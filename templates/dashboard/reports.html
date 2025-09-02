@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 lg:px-6 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="heading-font font-bold text-3xl text-dark-graphite uppercase tracking-wider">
+            <i class="fa-solid fa-file-lines mr-3"></i>
+            Reports & Exports
+        </h1>
+        <p class="text-gray-600 mt-2">Generate filtered reports with proper authorization and scoping</p>
+    </div>
+
+    <!-- Report Filters -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                <i class="fa-solid fa-filter mr-2"></i>
+                Report Filters
+            </h2>
+        </div>
+        <div class="p-6">
+            <form id="report-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% csrf_token %}
+                
+                <!-- Report Type -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                    <select name="report_type" id="report_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                        <option value="scan_events">Scan Events</option>
+                        <option value="cleaning_tasks">Cleaning Tasks</option>
+                        <option value="reclean_requests">Re-clean Requests</option>
+                    </select>
+                </div>
+
+                <!-- Date Range -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input type="date" name="start_date" id="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                    <input type="date" name="end_date" id="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                </div>
+
+                <!-- Camp Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Camp</label>
+                    <select name="camp_id" id="camp_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                        <option value="">All Camps</option>
+                        {% for camp in camps %}
+                            <option value="{{ camp.id }}">{{ camp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Compound Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Compound</label>
+                    <select name="compound_id" id="compound_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                        <option value="">All Compounds</option>
+                        {% for compound in compounds %}
+                            <option value="{{ compound.id }}">{{ compound.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Building Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Building</label>
+                    <select name="building_id" id="building_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                        <option value="">All Buildings</option>
+                        {% for building in buildings %}
+                            <option value="{{ building.id }}">{{ building.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- User Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
+                    <select name="user_id" id="user_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                        <option value="">All Users</option>
+                        {% for user in users %}
+                            <option value="{{ user.user.id }}">{{ user.user.get_full_name|default:user.user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Export Format -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+                    <select name="format" id="format" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                        <option value="xlsx">Excel (XLSX)</option>
+                        <option value="pdf">PDF</option>
+                    </select>
+                </div>
+
+                <!-- Export Button -->
+                <div class="flex items-end">
+                    <button type="button" id="export-btn" class="w-full px-6 py-3 bg-steel-blue text-white rounded-lg font-bold uppercase tracking-wider hover:bg-steel-blue-dark transition-all duration-200">
+                        <i class="fa-solid fa-download mr-2"></i>
+                        Export Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Export Guidelines -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="font-bold text-blue-900 mb-3">
+            <i class="fa-solid fa-info-circle mr-2"></i>
+            Export Guidelines
+        </h3>
+        <ul class="text-blue-800 space-y-2">
+            <li>• All exports respect your authorization level and data scoping</li>
+            <li>• Authority users can only export data from their assigned compounds</li>
+            <li>• Large exports may take a few moments to generate</li>
+            <li>• All export activities are logged for audit purposes</li>
+            <li>• Excel exports include all filtered data with proper formatting</li>
+            <li>• PDF exports are optimized for printing and sharing</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+document.getElementById('export-btn').addEventListener('click', function() {
+    const form = document.getElementById('report-form');
+    const formData = new FormData(form);
+    
+    // Show loading state
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Generating...';
+    btn.disabled = true;
+    
+    // Submit form
+    fetch('{% url "dashboard:export_report" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Export failed');
+    })
+    .then(blob => {
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'report.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        alert('Export failed: ' + error.message);
+    })
+    .finally(() => {
+        // Reset button
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+});
+</script>
+{% endblock %}

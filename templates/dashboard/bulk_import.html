@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bulk Import - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 lg:px-6 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="heading-font font-bold text-3xl text-dark-graphite uppercase tracking-wider">
+            <i class="fa-solid fa-upload mr-3"></i>
+            Bulk Import Locations
+        </h1>
+        <p class="text-gray-600 mt-2">Import camp hierarchy data via CSV with cleaning schedules and frequencies</p>
+    </div>
+
+    <!-- CSV Template Information -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+        <h3 class="font-bold text-blue-900 mb-3">
+            <i class="fa-solid fa-info-circle mr-2"></i>
+            CSV Template Requirements
+        </h3>
+        <div class="text-blue-800 space-y-2">
+            <p><strong>Required Columns:</strong></p>
+            <ul class="list-disc list-inside ml-4 space-y-1">
+                <li>Camp_Name, Compound_Name, BLDG_Location, m², Qty_of_rooms</li>
+                <li>Actual_Sqm_m2, Frequency_Per_Day, Frequency_Per_Week</li>
+                <li>Max_Frequency_Per_Month, Start_Date, End_Date</li>
+                <li>Shift_Code, Time_Window_Start, Time_Window_End</li>
+            </ul>
+            <p class="mt-3"><strong>Date Format:</strong> DD-MMM-YY (e.g., "1-Oct-25", "31-Dec-25")</p>
+            <p><strong>Building Location:</strong> Extract hierarchy from "Bld. XX, description" format</p>
+        </div>
+    </div>
+
+    <!-- Import Form -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                <i class="fa-solid fa-file-upload mr-2"></i>
+                Upload CSV File
+            </h2>
+        </div>
+        <div class="p-6">
+            <form id="import-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+                    <input type="file" name="csv_file" id="csv_file" accept=".csv" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                    <p class="text-sm text-gray-500 mt-1">Select a CSV file with the required columns</p>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button type="button" id="dry-run-btn" class="px-6 py-3 bg-yellow-600 text-white rounded-lg font-bold uppercase tracking-wider hover:bg-yellow-700 transition-all duration-200">
+                        <i class="fa-solid fa-eye mr-2"></i>
+                        Preview Import
+                    </button>
+                    <button type="button" id="apply-btn" class="px-6 py-3 bg-green-600 text-white rounded-lg font-bold uppercase tracking-wider hover:bg-green-700 transition-all duration-200" disabled>
+                        <i class="fa-solid fa-check mr-2"></i>
+                        Apply Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results-section" class="hidden">
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                    <i class="fa-solid fa-chart-bar mr-2"></i>
+                    Import Results
+                </h2>
+            </div>
+            <div id="results-content" class="p-6">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Data -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                <i class="fa-solid fa-table mr-2"></i>
+                Sample CSV Data
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-medium text-gray-500">Camp_Name</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-500">Compound_Name</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-500">BLDG_Location</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-500">m²</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-500">Qty_of_rooms</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-500">Frequency_Per_Day</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-500">Shift_Code</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-3 py-2">CAMP1</td>
+                            <td class="px-3 py-2">DANISH</td>
+                            <td class="px-3 py-2">Bld. 87, 1 single container (toilet)</td>
+                            <td class="px-3 py-2">13.16</td>
+                            <td class="px-3 py-2">1</td>
+                            <td class="px-3 py-2">1</td>
+                            <td class="px-3 py-2">MORNING</td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-2">CAMP1</td>
+                            <td class="px-3 py-2">DANISH</td>
+                            <td class="px-3 py-2">Bld. 87, 1 single containers F4</td>
+                            <td class="px-3 py-2">13.16</td>
+                            <td class="px-3 py-2">1</td>
+                            <td class="px-3 py-2">1</td>
+                            <td class="px-3 py-2">EVENING</td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-2">CAMP1</td>
+                            <td class="px-3 py-2">DANISH</td>
+                            <td class="px-3 py-2">Bld. 87, 1 single containers F5</td>
+                            <td class="px-3 py-2">13.16</td>
+                            <td class="px-3 py-2">1</td>
+                            <td class="px-3 py-2">1</td>
+                            <td class="px-3 py-2">EVENING</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('dry-run-btn').addEventListener('click', function() {
+    const form = document.getElementById('import-form');
+    const formData = new FormData(form);
+    formData.append('action', 'dry_run');
+    
+    // Show loading state
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Analyzing...';
+    btn.disabled = true;
+    
+    // Submit form
+    fetch('{% url "dashboard:process_import" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayResults(data.result, 'preview');
+            document.getElementById('apply-btn').disabled = false;
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    })
+    .finally(() => {
+        // Reset button
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+});
+
+document.getElementById('apply-btn').addEventListener('click', function() {
+    if (!confirm('Are you sure you want to apply this import? This action cannot be undone.')) {
+        return;
+    }
+    
+    const form = document.getElementById('import-form');
+    const formData = new FormData(form);
+    formData.append('action', 'apply');
+    
+    // Show loading state
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Importing...';
+    btn.disabled = true;
+    
+    // Submit form
+    fetch('{% url "dashboard:process_import" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayResults(data.result, 'applied');
+            btn.disabled = true;
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    })
+    .finally(() => {
+        // Reset button
+        btn.innerHTML = originalText;
+    });
+});
+
+function displayResults(result, action) {
+    const resultsSection = document.getElementById('results-section');
+    const resultsContent = document.getElementById('results-content');
+    
+    let html = '';
+    
+    if (action === 'preview') {
+        html = `
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Import Preview</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-blue-600">${result.summary.camps}</div>
+                        <div class="text-sm text-blue-800">Camps to Create</div>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-green-600">${result.summary.compounds}</div>
+                        <div class="text-sm text-green-800">Compounds to Create</div>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-yellow-600">${result.summary.buildings}</div>
+                        <div class="text-sm text-yellow-800">Buildings to Create</div>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-purple-600">${result.summary.floors}</div>
+                        <div class="text-sm text-purple-800">Floors to Create</div>
+                    </div>
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-indigo-600">${result.summary.rooms}</div>
+                        <div class="text-sm text-indigo-800">Rooms to Create</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (result.would_create.length > 0) {
+            html += `
+                <div class="mb-6">
+                    <h4 class="font-bold text-gray-900 mb-3">Items to Create:</h4>
+                    <div class="space-y-2">
+                        ${result.would_create.map(item => `
+                            <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div>
+                                    <span class="font-medium text-green-800">${item.type.toUpperCase()}</span>
+                                    <span class="text-green-700">: ${item.name}</span>
+                                    ${item.code ? `<span class="text-green-600">(${item.code})</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (result.conflicts.length > 0) {
+            html += `
+                <div class="mb-6">
+                    <h4 class="font-bold text-red-900 mb-3">Conflicts:</h4>
+                    <div class="space-y-2">
+                        ${result.conflicts.map(conflict => `
+                            <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div class="text-red-800">
+                                    Row ${conflict.row_num}: ${conflict.error}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    } else if (action === 'applied') {
+        html = `
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-green-900 mb-4">Import Completed Successfully!</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-green-600">${result.created_tasks}</div>
+                        <div class="text-sm text-green-800">Tasks Created</div>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-yellow-600">${result.skipped_tasks}</div>
+                        <div class="text-sm text-yellow-800">Tasks Skipped</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (result.errors.length > 0) {
+            html += `
+                <div class="mb-6">
+                    <h4 class="font-bold text-red-900 mb-3">Errors:</h4>
+                    <div class="space-y-2">
+                        ${result.errors.map(error => `
+                            <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div class="text-red-800">
+                                    Row ${error.row_num}: ${error.error}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    resultsContent.innerHTML = html;
+    resultsSection.classList.remove('hidden');
+}
+</script>
+{% endblock %}

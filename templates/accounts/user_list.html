@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management - NATO Camp Cleaning Tracker{% endblock %}
+
+{% block page_title %}User Management{% endblock %}
+{% block page_subtitle %}System Administration{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Header Actions -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">System Users</h2>
+            <p class="text-sm text-gray-600">Manage user accounts and permissions</p>
+        </div>
+        <a href="{% url 'accounts:user_create' %}" class="bg-steel-blue text-white px-6 py-3 rounded font-bold uppercase tracking-wider hover:bg-opacity-90 transition-all duration-200 shadow-lg">
+            <i class="fa-solid fa-plus mr-2"></i>
+            Add User
+        </a>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="metallic-card p-6 rounded-lg">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="search" class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">Search</label>
+                <input type="text" name="search" id="search" value="{{ search }}" 
+                       class="w-full px-4 py-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-500 focus:outline-none focus:border-steel-blue focus:ring-2 focus:ring-steel-blue focus:ring-opacity-50"
+                       placeholder="Username, name, or email...">
+            </div>
+            
+            <div>
+                <label for="role" class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">Role</label>
+                <select name="role" id="role" 
+                        class="w-full px-4 py-2 bg-white border border-gray-300 rounded text-gray-900 focus:outline-none focus:border-steel-blue focus:ring-2 focus:ring-steel-blue focus:ring-opacity-50">
+                    <option value="">All Roles</option>
+                    {% for value, label in role_choices %}
+                        <option value="{{ value }}" {% if role == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="status" class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">Status</label>
+                <select name="status" id="status" 
+                        class="w-full px-4 py-2 bg-white border border-gray-300 rounded text-gray-900 focus:outline-none focus:border-steel-blue focus:ring-2 focus:ring-steel-blue focus:ring-opacity-50">
+                    <option value="">All Status</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-steel-blue text-white px-4 py-2 rounded font-bold uppercase tracking-wider hover:bg-opacity-90 transition-all duration-200">
+                    <i class="fa-solid fa-search mr-2"></i>
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Users Table -->
+    <div class="metallic-card rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">User</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Role</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Compounds</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Last Login</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in users %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-steel-blue rounded-full flex items-center justify-center mr-4">
+                                        <i class="fa-solid fa-user text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ user.get_full_name|default:user.username }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">{{ user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td class="px-6 py-4">
+                                {% if user.profile %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                        {% if user.profile.role == 'admin' %}bg-red-100 text-red-800
+                                        {% elif user.profile.role == 'supervisor' %}bg-blue-100 text-blue-800
+                                        {% elif user.profile.role == 'authority' %}bg-green-100 text-green-800
+                                        {% elif user.profile.role == 'cleaner' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ user.profile.get_role_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        No Role
+                                    </span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="px-6 py-4">
+                                {% if user.compound_assignments.exists %}
+                                    <div class="flex flex-wrap gap-1">
+                                        {% for assignment in user.compound_assignments.all %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                {{ assignment.compound.code }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-sm text-gray-500">No assignments</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                    {% if user.is_active %}bg-green-100 text-green-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {% if user.is_active %}
+                                        <i class="fa-solid fa-check-circle mr-1"></i>Active
+                                    {% else %}
+                                        <i class="fa-solid fa-times-circle mr-1"></i>Inactive
+                                    {% endif %}
+                                </span>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                {% if user.last_login %}
+                                    {{ user.last_login|date:"M d, Y H:i" }}
+                                {% else %}
+                                    Never
+                                {% endif %}
+                            </td>
+                            
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <a href="{% url 'accounts:user_detail' user.pk %}" 
+                                       class="text-steel-blue hover:text-blue-600 transition-colors" title="View Details">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    
+                                    <a href="{% url 'accounts:user_update' user.pk %}" 
+                                       class="text-green-600 hover:text-green-700 transition-colors" title="Edit User">
+                                        <i class="fa-solid fa-edit"></i>
+                                    </a>
+                                    
+                                    <button onclick="toggleUserStatus({{ user.pk }}, {{ user.is_active|yesno:'false,true' }})" 
+                                            class="{% if user.is_active %}text-yellow-600 hover:text-yellow-700{% else %}text-green-600 hover:text-green-700{% endif %} transition-colors" 
+                                            title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %} User">
+                                        <i class="fa-solid fa-{% if user.is_active %}pause{% else %}play{% endif %}"></i>
+                                    </button>
+                                    
+                                    <button onclick="resetUserPassword({{ user.pk }})" 
+                                            class="text-orange-600 hover:text-orange-700 transition-colors" title="Reset Password">
+                                        <i class="fa-solid fa-key"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <i class="fa-solid fa-users text-4xl mb-4 block"></i>
+                                <p class="text-lg font-medium">No users found</p>
+                                <p class="text-sm">Try adjusting your search criteria or add a new user.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if users.has_other_pages %}
+        <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+                Showing {{ users.start_index }} to {{ users.end_index }} of {{ users.paginator.count }} users
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                {% if users.has_previous %}
+                    <a href="?page={{ users.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if status %}&status={{ status }}{% endif %}" 
+                       class="px-3 py-2 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-chevron-left mr-1"></i>Previous
+                    </a>
+                {% endif %}
+                
+                <span class="px-3 py-2 bg-steel-blue text-white rounded text-sm font-medium">
+                    Page {{ users.number }} of {{ users.paginator.num_pages }}
+                </span>
+                
+                {% if users.has_next %}
+                    <a href="?page={{ users.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if status %}&status={{ status }}{% endif %}" 
+                       class="px-3 py-2 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Next<i class="fa-solid fa-chevron-right ml-1"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleUserStatus(userId, currentStatus) {
+    if (confirm(`Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this user?`)) {
+        fetch(`/accounts/users/${userId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating user status.');
+        });
+    }
+}
+
+function resetUserPassword(userId) {
+    if (confirm('Are you sure you want to reset this user\'s password? A new password will be generated.')) {
+        fetch(`/accounts/users/${userId}/reset-password/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Password reset successfully. New password: ${data.new_password}`);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while resetting password.');
+        });
+    }
+}
+</script>
+{% endblock %}

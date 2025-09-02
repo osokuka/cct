@@ -1,0 +1,72 @@
+# Django Core
+Django>=4.2,<5.0
+djangorestframework>=3.14.0
+django-cors-headers>=4.0.0
+
+# Database
+psycopg2-binary>=2.9.0
+redis>=4.5.0
+
+# Authentication & Security
+django-axes>=6.0.0
+django-ratelimit>=4.0.0
+
+# Barcode Generation & Scanning
+python-barcode[images]>=0.15.0
+Pillow>=10.0.0
+reportlab>=4.0.0
+
+# Web Interface (Barcode Scanning)
+# Note: QuaggaJS is included via CDN in templates
+
+# Export & Reporting
+xlsxwriter>=3.1.0
+WeasyPrint>=59.0
+
+# Task Scheduling & Background Jobs
+celery>=5.3.0
+django-celery-beat>=2.5.0
+
+# Real-time Notifications
+channels>=4.0.0
+channels-redis>=4.1.0
+
+# Date/Time Handling
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# Environment & Configuration
+python-decouple>=3.8
+django-environ>=0.11.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-django>=4.5.0
+factory-boy>=3.3.0
+coverage>=7.2.0
+
+# Production Server
+gunicorn>=21.2.0
+whitenoise>=6.5.0
+
+# Monitoring & Logging
+sentry-sdk[django]>=1.32.0
+
+# Data Validation
+jsonschema>=4.19.0
+
+# HTTP Requests (for external integrations)
+requests>=2.31.0
+
+# File Processing
+openpyxl>=3.1.0
+pandas>=2.0.0
+
+# Caching
+django-redis>=5.4.0
+
+# API Documentation
+drf-spectacular>=0.26.0
+
+# Database Migrations
+django-extensions>=3.2.0

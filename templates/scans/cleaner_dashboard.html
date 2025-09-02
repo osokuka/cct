@@ -1,0 +1,257 @@
+{% extends 'base_cleaner.html' %}
+{% load static %}
+
+{% block title %}Cleaner Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 lg:px-6 py-6">
+    <!-- Mobile Scan Button -->
+    <div class="lg:hidden mb-6">
+        <a href="{% url 'scans:scan' %}" 
+           class="w-full industrial-gradient text-white py-4 rounded-lg metallic-shadow btn-industrial font-heading font-bold text-lg uppercase tracking-wide flex items-center justify-center">
+            <i class="fa-solid fa-qrcode mr-3 text-xl"></i>
+            SCAN ROOM
+        </a>
+    </div>
+
+    <!-- Desktop Header -->
+    <div class="hidden lg:block mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="font-heading font-bold text-3xl text-dark-graphite uppercase tracking-wider">
+                    <i class="fa-solid fa-home mr-3"></i>
+                    CLEANER DASHBOARD
+                </h1>
+                <p class="text-gray-600 mt-2 uppercase tracking-wide">Welcome back, {{ user.get_full_name|default:user.username }}!</p>
+            </div>
+            <div class="flex space-x-4">
+                <a href="{% url 'scans:scan' %}" 
+                   class="px-6 py-3 industrial-gradient text-white rounded font-heading font-bold uppercase tracking-wider btn-industrial">
+                    <i class="fa-solid fa-qrcode mr-2"></i>
+                    SCAN ROOM
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <!-- Today's Tasks -->
+        <div class="lg:col-span-2 xl:col-span-1">
+            <div class="bg-white rounded-lg metallic-shadow border border-industrial-silver/20">
+                <div class="px-6 py-4 border-b border-industrial-silver/20">
+                    <h2 class="font-heading font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                        <i class="fa-solid fa-tasks mr-2"></i>
+                        TODAY'S TASKS
+                    </h2>
+                </div>
+                    <div class="p-6">
+                {% if today_tasks %}
+                    <div class="space-y-3">
+                        {% for task in today_tasks %}
+                            <div class="flex items-center justify-between p-3 bg-industrial-silver/5 rounded-lg border border-industrial-silver/20">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-steel-blue/10 rounded-full flex items-center justify-center">
+                                        <i class="fa-solid fa-building text-steel-blue"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-dark-graphite uppercase tracking-wide">{{ task.room.name }}</p>
+                                        <p class="text-sm text-dark-graphite/70">{{ task.room.floor.building.compound.name }}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide
+                                        {% if task.state == 'PLANNED' %}bg-yellow-100 text-yellow-800
+                                        {% elif task.state == 'IN_PROGRESS' %}bg-blue-100 text-blue-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ task.get_state_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fa-solid fa-check-circle text-gray-300 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-dark-graphite mb-2 uppercase tracking-wide">NO TASKS TODAY</h3>
+                        <p class="text-gray-600">You have no assigned tasks for today.</p>
+                    </div>
+                {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Urgent Requests -->
+            <div class="lg:col-span-2 xl:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                            <i class="fa-solid fa-exclamation-triangle mr-2 text-red-500"></i>
+                            Urgent Requests
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        {% if urgent_requests %}
+                            <div class="space-y-3">
+                                {% for request in urgent_requests %}
+                                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                                <i class="fa-solid fa-exclamation text-red-600 text-sm"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-semibold text-red-900">{{ request.room.name }}</p>
+                                                <p class="text-sm text-red-700">{{ request.room.floor.building.compound.name }}</p>
+                                                <p class="text-xs text-red-600 mt-1">{{ request.reason|truncatechars:50 }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-8">
+                                <i class="fa-solid fa-check-circle text-gray-300 text-4xl mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Urgent Requests</h3>
+                                <p class="text-gray-600">All urgent requests are handled.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Re-clean Requests -->
+            <div class="lg:col-span-2 xl:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                            <i class="fa-solid fa-redo mr-2 text-yellow-500"></i>
+                            Re-clean Requests
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        {% if reclean_requests %}
+                            <div class="space-y-3">
+                                {% for request in reclean_requests %}
+                                    <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                                <i class="fa-solid fa-redo text-yellow-600 text-sm"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-semibold text-yellow-900">{{ request.room.name }}</p>
+                                                <p class="text-sm text-yellow-700">{{ request.room.floor.building.compound.name }}</p>
+                                                <p class="text-xs text-yellow-600 mt-1">{{ request.reason|truncatechars:50 }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-8">
+                                <i class="fa-solid fa-check-circle text-gray-300 text-4xl mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Re-clean Requests</h3>
+                                <p class="text-gray-600">All re-clean requests are completed.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Missed Tasks -->
+            <div class="lg:col-span-2 xl:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                            <i class="fa-solid fa-clock mr-2 text-orange-500"></i>
+                            Missed Tasks
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        {% if missed_tasks %}
+                            <div class="space-y-3">
+                                {% for task in missed_tasks %}
+                                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                                                <i class="fa-solid fa-clock text-orange-600 text-sm"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-semibold text-orange-900">{{ task.room.name }}</p>
+                                                <p class="text-sm text-orange-700">{{ task.room.floor.building.compound.name }}</p>
+                                                <p class="text-xs text-orange-600 mt-1">Missed on {{ task.date|date:"M d" }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-8">
+                                <i class="fa-solid fa-check-circle text-gray-300 text-4xl mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Missed Tasks</h3>
+                                <p class="text-gray-600">All previous tasks were completed on time.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Scans -->
+            <div class="lg:col-span-2 xl:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                            <i class="fa-solid fa-history mr-2"></i>
+                            Recent Scans
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        {% if recent_scans %}
+                            <div class="space-y-3">
+                                {% for scan in recent_scans %}
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                                <i class="fa-solid fa-check text-green-600 text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold text-dark-graphite">{{ scan.room.name }}</p>
+                                                <p class="text-sm text-gray-600">{{ scan.room.floor.building.compound.name }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs text-gray-500">{{ scan.timestamp|date:"M d, H:i" }}</p>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-8">
+                                <i class="fa-solid fa-qrcode text-gray-300 text-4xl mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Recent Scans</h3>
+                                <p class="text-gray-600">Start scanning rooms to see your activity here.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    menu.classList.toggle('hidden');
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('mobile-menu');
+    const menuButton = event.target.closest('[onclick="toggleMobileMenu()"]');
+    
+    if (!menuButton && !menu.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

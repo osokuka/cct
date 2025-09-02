@@ -1,0 +1,463 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Montserrat', sans-serif; }
+        .metallic-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
+        .metallic-card { background: linear-gradient(145deg, #F5F6F7 0%, #E8E9EA 50%, #F5F6F7 100%); box-shadow: 2px 2px 8px rgba(43, 46, 50, 0.15), -1px -1px 4px rgba(255, 255, 255, 0.8); }
+        .metallic-shine:hover { background: linear-gradient(135deg, #C0C3C8 0%, #B0B3B8 50%, #C0C3C8 100%); transition: all 0.3s ease; }
+        .re-clean-row { background-color: rgba(242, 140, 40, 0.1); border-left: 4px solid #F28C28; }
+    </style>
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "industrial-gray": "#B0B3B8",
+        "dark-graphite": "#2B2E32",
+        "steel-blue": "#3F5876",
+        "warning-orange": "#F28C28",
+        "off-white": "#F5F6F7"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="bg-off-white">
+
+<!-- Sidebar Navigation -->
+<div id="sidebar" class="bg-dark-graphite w-64 min-h-screen fixed left-0 top-0 flex flex-col text-white">
+    <div class="p-6 flex items-center border-b border-gray-700">
+        <div class="w-8 h-8 mr-3 bg-industrial-gray rounded flex items-center justify-center">
+            <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
+        </div>
+        <div>
+            <div class="heading-font font-bold text-lg">CONTROL</div>
+            <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
+        </div>
+    </div>
+    
+    <nav class="flex-1 mt-6">
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-gauge-high mr-3 text-gray-400"></i>
+            <span class="text-sm">Dashboard</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-users mr-3 text-gray-400"></i>
+            <span class="text-sm">User Management</span>
+        </div>
+        <div class="px-4 py-2 flex items-center bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue">
+            <i class="fa-solid fa-file-lines mr-3 text-steel-blue"></i>
+            <span class="heading-font font-semibold uppercase text-sm">Reports</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
+            <span class="text-sm">QR Scanner</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-clipboard-check mr-3 text-gray-400"></i>
+            <span class="text-sm">Audit Logs</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-exclamation-triangle mr-3 text-warning-orange"></i>
+            <span class="text-sm">Re-clean Requests</span>
+        </div>
+    </nav>
+    
+    <div class="mt-auto border-t border-gray-700">
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-cog mr-3 text-gray-400"></i>
+            <span class="text-sm">Settings</span>
+        </div>
+        <div class="p-4 flex items-center">
+            <div class="w-10 h-10 rounded bg-industrial-gray flex items-center justify-center mr-3">
+                <span class="text-dark-graphite font-semibold text-sm">AD</span>
+            </div>
+            <div>
+                <div class="text-sm font-medium">Admin User</div>
+                <div class="text-xs text-gray-400">Administrator</div>
+            </div>
+            <i class="fa-solid fa-chevron-up ml-auto text-xs text-gray-400"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="ml-64">
+    <!-- Top Header Bar -->
+    <div id="header" class="metallic-gradient px-6 py-4 border-b border-gray-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="heading-font font-bold text-2xl text-dark-graphite uppercase tracking-wider">REPORTS CONTROL</h1>
+                <p class="text-sm text-gray-600 mt-1">Room Cleaning Data &amp; Analytics</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <i class="fa-solid fa-bell text-dark-graphite text-lg cursor-pointer hover:text-steel-blue"></i>
+                    <span class="absolute -top-2 -right-2 bg-warning-orange text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                </div>
+                <div class="text-sm text-dark-graphite">
+                    <div class="font-medium">Last Update:</div>
+                    <div class="text-xs">2025-01-09 13:21</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metallic Silver Filter Panel -->
+    <div id="filter-panel" class="metallic-gradient px-6 py-4 border-b border-gray-300">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center space-x-6">
+                <!-- Date Range Filter -->
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Date Range:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="date" class="px-3 py-2 border border-gray-400 rounded text-sm bg-white text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue" value="2025-01-01">
+                        <span class="text-dark-graphite">to</span>
+                        <input type="date" class="px-3 py-2 border border-gray-400 rounded text-sm bg-white text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue" value="2025-01-09">
+                    </div>
+                </div>
+
+                <!-- Building Filter -->
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Building:</label>
+                    <select class="px-3 py-2 border border-gray-400 rounded text-sm bg-white text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>All Buildings</option>
+                        <option>Building A</option>
+                        <option>Building B</option>
+                        <option>Building C</option>
+                        <option>Building D</option>
+                        <option>Building E</option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Status:</label>
+                    <select class="px-3 py-2 border border-gray-400 rounded text-sm bg-white text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>All Statuses</option>
+                        <option>Completed</option>
+                        <option>In Progress</option>
+                        <option>Re-clean Required</option>
+                        <option>Pending</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Search and Apply -->
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <input type="text" placeholder="Search room..." class="pl-10 pr-4 py-2 border border-gray-400 rounded text-sm bg-white text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue w-48">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-gray-500 text-sm"></i>
+                </div>
+                <button class="px-4 py-2 bg-steel-blue text-white rounded uppercase text-sm font-medium tracking-wide hover:bg-opacity-90 transition-all">
+                    Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Buttons Section -->
+    <div id="export-section" class="px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-table text-steel-blue"></i>
+                <span class="heading-font font-semibold text-dark-graphite uppercase">Room Cleaning Data</span>
+                <span class="text-sm text-gray-500">(Showing 247 records)</span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button class="px-4 py-2 bg-dark-graphite text-steel-blue rounded flex items-center space-x-2 hover:bg-opacity-90 transition-all metallic-shine">
+                    <i class="fa-solid fa-file-pdf text-sm"></i>
+                    <span class="text-sm font-medium">Export PDF</span>
+                </button>
+                <button class="px-4 py-2 bg-dark-graphite text-steel-blue rounded flex items-center space-x-2 hover:bg-opacity-90 transition-all metallic-shine">
+                    <i class="fa-solid fa-file-excel text-sm"></i>
+                    <span class="text-sm font-medium">Export Excel</span>
+                </button>
+                <button class="px-4 py-2 bg-dark-graphite text-steel-blue rounded flex items-center space-x-2 hover:bg-opacity-90 transition-all metallic-shine">
+                    <i class="fa-solid fa-download text-sm"></i>
+                    <span class="text-sm font-medium">Export CSV</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clean Room Data Table -->
+    <div id="data-table-section" class="px-6 pb-6">
+        <div class="metallic-card rounded-lg border border-gray-300 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-steel-blue text-white">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <span>Room ID</span>
+                                    <i class="fa-solid fa-sort text-xs opacity-60"></i>
+                                </div>
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <span>Building</span>
+                                    <i class="fa-solid fa-sort text-xs opacity-60"></i>
+                                </div>
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <span>Cleaner</span>
+                                    <i class="fa-solid fa-sort text-xs opacity-60"></i>
+                                </div>
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <span>Clean Time</span>
+                                    <i class="fa-solid fa-sort text-xs opacity-60"></i>
+                                </div>
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <span>Duration</span>
+                                    <i class="fa-solid fa-sort text-xs opacity-60"></i>
+                                </div>
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <span>Status</span>
+                                    <i class="fa-solid fa-sort text-xs opacity-60"></i>
+                                </div>
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Quality Score</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Regular Completed Row -->
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-dark-graphite">A-101</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Building A</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">J. Smith</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">2025-01-09 13:18</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">12 min</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full uppercase font-medium">Completed</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <div class="text-green-600 font-medium">98%</div>
+                                    <div class="ml-2 flex">
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button class="text-steel-blue hover:text-steel-blue-dark text-sm">
+                                    <i class="fa-solid fa-eye mr-1"></i>View
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Re-clean Required Row (Highlighted in Orange) -->
+                        <tr class="re-clean-row hover:bg-orange-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-dark-graphite">B-204</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Building B</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">M. Johnson</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">2025-01-09 12:45</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">8 min</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-xs bg-orange-100 text-orange-800 rounded-full uppercase font-medium">Re-clean Required</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <div class="text-red-600 font-medium">65%</div>
+                                    <div class="ml-2 flex">
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-gray-300 text-xs"></i>
+                                        <i class="fa-solid fa-star text-gray-300 text-xs"></i>
+                                        <i class="fa-solid fa-star text-gray-300 text-xs"></i>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 flex items-center space-x-2">
+                                <button class="text-steel-blue hover:text-steel-blue-dark text-sm">
+                                    <i class="fa-solid fa-eye mr-1"></i>View
+                                </button>
+                                <button class="text-warning-orange hover:text-orange-600 text-sm">
+                                    <i class="fa-solid fa-exclamation-triangle mr-1"></i>Details
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- In Progress Row -->
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-dark-graphite">C-305</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Building C</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">R. Davis</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">2025-01-09 13:20</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">5 min</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full uppercase font-medium">In Progress</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <div class="text-gray-400">Pending</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button class="text-steel-blue hover:text-steel-blue-dark text-sm">
+                                    <i class="fa-solid fa-eye mr-1"></i>View
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Another Re-clean Row -->
+                        <tr class="re-clean-row hover:bg-orange-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-dark-graphite">A-205</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Building A</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">K. Wilson</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">2025-01-09 11:30</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">15 min</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-xs bg-orange-100 text-orange-800 rounded-full uppercase font-medium">Re-clean Required</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <div class="text-red-600 font-medium">58%</div>
+                                    <div class="ml-2 flex">
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-gray-300 text-xs"></i>
+                                        <i class="fa-solid fa-star text-gray-300 text-xs"></i>
+                                        <i class="fa-solid fa-star text-gray-300 text-xs"></i>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 flex items-center space-x-2">
+                                <button class="text-steel-blue hover:text-steel-blue-dark text-sm">
+                                    <i class="fa-solid fa-eye mr-1"></i>View
+                                </button>
+                                <button class="text-warning-orange hover:text-orange-600 text-sm">
+                                    <i class="fa-solid fa-exclamation-triangle mr-1"></i>Details
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- More completed rows -->
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-dark-graphite">D-102</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Building D</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">S. Brown</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">2025-01-09 13:15</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">10 min</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full uppercase font-medium">Completed</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <div class="text-green-600 font-medium">94%</div>
+                                    <div class="ml-2 flex">
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-gray-300 text-xs"></i>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button class="text-steel-blue hover:text-steel-blue-dark text-sm">
+                                    <i class="fa-solid fa-eye mr-1"></i>View
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-dark-graphite">E-401</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Building E</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">T. Garcia</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">2025-01-09 13:10</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">14 min</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full uppercase font-medium">Completed</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <div class="text-green-600 font-medium">96%</div>
+                                    <div class="ml-2 flex">
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button class="text-steel-blue hover:text-steel-blue-dark text-sm">
+                                    <i class="fa-solid fa-eye mr-1"></i>View
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Pagination -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        Showing 1 to 10 of 247 results
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50" disabled="">
+                            <i class="fa-solid fa-chevron-left mr-1"></i>Previous
+                        </button>
+                        <button class="px-3 py-2 bg-steel-blue text-white rounded text-sm font-medium">1</button>
+                        <button class="px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-100">2</button>
+                        <button class="px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-100">3</button>
+                        <span class="px-2 text-gray-400">...</span>
+                        <button class="px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-100">25</button>
+                        <button class="px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-100">
+                            Next<i class="fa-solid fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body></html>

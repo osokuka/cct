@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - NATO Camp Cleaning Tracker{% endblock %}
+
+{% block login_content %}
+<div id="login-container" class="flex items-center justify-center min-h-screen p-6">
+    <div class="metallic-card w-full max-w-md p-8 rounded-lg border border-gray-600">
+        
+        <!-- Logo Section -->
+        <div id="logo-section" class="flex justify-center mb-8">
+            <div class="shield-logo w-20 h-20 rounded-lg flex items-center justify-center border-2 border-gray-400 shadow-lg">
+                <div class="relative">
+                    <i class="fa-solid fa-shield-halved text-dark-graphite text-3xl"></i>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="grid grid-cols-3 gap-0.5 mt-1">
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                            <div class="w-1 h-1 bg-dark-graphite rounded-full opacity-60"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Header -->
+        <div id="login-header" class="text-center mb-8">
+            <h1 class="heading-font font-bold text-4xl text-dark-graphite uppercase tracking-wider mb-2">LOGIN</h1>
+            <p class="text-gray-600 text-sm uppercase tracking-wide">SECURE ACCESS CONTROL</p>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Display form errors -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {% for error in form.non_field_errors %}
+                        <p class="text-sm">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="space-y-4">
+                <!-- Username Field -->
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">
+                        USERNAME
+                    </label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        {{ form.username }}
+                    </div>
+                    {% if form.username.errors %}
+                        <div class="text-red-600 text-xs mt-1">
+                            {% for error in form.username.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">
+                        PASSWORD
+                    </label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        {{ form.password }}
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="text-red-600 text-xs mt-1">
+                            {% for error in form.password.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Remember Me & Forgot Password -->
+            <div id="login-options" class="flex items-center justify-between text-sm">
+                <div class="flex items-center">
+                    <input type="checkbox" id="remember-me" name="remember_me" class="w-4 h-4 text-steel-blue bg-gray-800 border-gray-600 rounded focus:ring-steel-blue focus:ring-2">
+                    <label for="remember-me" class="ml-2 text-gray-600 uppercase tracking-wide">REMEMBER ME</label>
+                </div>
+                <a href="{% url 'accounts:password_reset' %}" class="text-steel-blue hover:text-blue-400 uppercase tracking-wide font-medium transition-colors duration-200">
+                    FORGOT PASSWORD?
+                </a>
+            </div>
+
+            <!-- Login Button -->
+            <button type="submit" class="w-full bg-steel-blue text-white py-4 rounded font-bold uppercase tracking-wider hover:bg-opacity-90 metallic-shine focus:outline-none focus:ring-4 focus:ring-steel-blue focus:ring-opacity-50 transition-all duration-200 shadow-lg">
+                <i class="fa-solid fa-sign-in-alt mr-2"></i>
+                SECURE LOGIN
+            </button>
+        </form>
+
+        <!-- Additional Options -->
+        <div id="additional-options" class="mt-8 pt-6 border-t border-gray-600">
+            <div class="text-center">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-4">ALTERNATIVE ACCESS</p>
+                <button class="w-full bg-gray-700 text-gray-300 py-3 rounded uppercase text-sm tracking-wider hover:bg-gray-600 transition-all duration-200 border border-gray-600">
+                    <i class="fa-solid fa-id-card mr-2"></i>
+                    SSO LOGIN
+                </button>
+            </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div id="security-notice" class="mt-6 text-center">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">
+                <i class="fa-solid fa-shield-check mr-1"></i>
+                SECURE CONNECTION ESTABLISHED
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Background Security Pattern -->
+<div class="fixed inset-0 pointer-events-none opacity-5">
+    <div class="absolute inset-0" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 21px);"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('login-form').addEventListener('submit', function(e) {
+    // Add loading state to button
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>AUTHENTICATING...';
+    submitBtn.disabled = true;
+    
+    // Re-enable button after a delay (in case of errors)
+    setTimeout(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 3000);
+});
+
+// Add focus effects to form inputs
+document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('focus', function() {
+        this.parentElement.classList.add('ring-2', 'ring-steel-blue', 'ring-opacity-50');
+    });
+    
+    input.addEventListener('blur', function() {
+        this.parentElement.classList.remove('ring-2', 'ring-steel-blue', 'ring-opacity-50');
+    });
+});
+</script>
+{% endblock %}

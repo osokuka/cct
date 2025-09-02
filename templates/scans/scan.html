@@ -1,0 +1,360 @@
+{% extends 'base_cleaner.html' %}
+{% load static %}
+
+{% block title %}Scan Room - Cleaner Interface{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 lg:px-6 py-6">
+    <!-- Mobile Back Button -->
+    <div class="lg:hidden mb-6">
+        <a href="{% url 'scans:dashboard' %}" class="flex items-center text-steel-blue hover:text-steel-blue/80 mb-4">
+            <i class="fa-solid fa-arrow-left mr-2"></i>
+            <span class="font-medium uppercase tracking-wide">BACK TO DASHBOARD</span>
+        </a>
+    </div>
+
+    <!-- Desktop Header -->
+    <div class="hidden lg:block mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="font-heading font-bold text-3xl text-dark-graphite uppercase tracking-wider">
+                    <i class="fa-solid fa-qrcode mr-3"></i>
+                    ROOM SCANNER
+                </h1>
+                <p class="text-gray-600 mt-2 uppercase tracking-wide">Scan room barcodes to record cleaning activities</p>
+            </div>
+            <div class="flex space-x-4">
+                <a href="{% url 'scans:dashboard' %}" 
+                   class="px-6 py-3 bg-white border border-industrial-silver text-dark-graphite rounded font-heading font-bold uppercase tracking-wider hover:bg-industrial-silver/10 transition-all duration-200">
+                    <i class="fa-solid fa-home mr-2"></i>
+                    DASHBOARD
+                </a>
+                <a href="{% url 'scans:scan_history' %}" 
+                   class="px-6 py-3 bg-white border border-industrial-silver text-dark-graphite rounded font-heading font-bold uppercase tracking-wider hover:bg-industrial-silver/10 transition-all duration-200">
+                    <i class="fa-solid fa-history mr-2"></i>
+                    HISTORY
+                </a>
+            </div>
+        </div>
+    </div>
+
+        <!-- Today's Tasks (Mobile) -->
+        <div class="lg:hidden mb-6">
+            <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h2 class="font-bold text-lg text-dark-graphite">
+                        <i class="fa-solid fa-tasks mr-2"></i>
+                        Today's Tasks
+                    </h2>
+                </div>
+                <div class="p-4">
+                    {% if today_tasks %}
+                        <div class="space-y-2">
+                            {% for task in today_tasks %}
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded border">
+                                    <div>
+                                        <p class="font-medium text-dark-graphite">{{ task.room.name }}</p>
+                                        <p class="text-xs text-gray-600">{{ task.room.floor.building.compound.name }}</p>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 rounded
+                                        {% if task.state == 'PLANNED' %}bg-yellow-100 text-yellow-800
+                                        {% elif task.state == 'IN_PROGRESS' %}bg-blue-100 text-blue-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ task.get_state_display }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-gray-600 text-center py-4">No tasks assigned for today.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    <!-- Scanner Interface -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Scanner Section -->
+        <div class="bg-white rounded-lg metallic-shadow border border-industrial-silver/20">
+            <div class="px-6 py-4 border-b border-industrial-silver/20">
+                <h2 class="font-heading font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                    <i class="fa-solid fa-camera mr-2"></i>
+                    BARCODE SCANNER
+                </h2>
+            </div>
+            <div class="p-6">
+                <!-- Camera Preview -->
+                <div class="mb-6">
+                    <div id="camera-preview" class="camera-view w-full h-64 rounded-lg flex items-center justify-center relative">
+                        <div class="scan-corner top-left"></div>
+                        <div class="scan-corner top-right"></div>
+                        <div class="scan-corner bottom-left"></div>
+                        <div class="scan-corner bottom-right"></div>
+                        
+                        <div class="scan-overlay absolute inset-0"></div>
+                        
+                        <div class="text-center text-white z-10">
+                            <div class="w-24 h-24 mx-auto mb-6 border-4 border-steel-blue rounded-lg flex items-center justify-center bg-white/10">
+                                <i class="fa-solid fa-qrcode text-4xl text-steel-blue"></i>
+                            </div>
+                            <h2 class="text-xl font-heading font-bold mb-2 uppercase tracking-wide">POSITION QR CODE IN FRAME</h2>
+                            <p class="text-sm opacity-80">ALIGN THE CODE WITHIN THE SCANNING AREA</p>
+                        </div>
+                        
+                        <div class="absolute top-4 left-4">
+                            <div class="bg-black/50 rounded-lg px-3 py-2">
+                                <div class="flex items-center space-x-2 text-white text-sm">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span class="font-medium uppercase tracking-wide">CAMERA ACTIVE</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="absolute top-4 right-4">
+                            <button class="bg-black/50 text-white p-3 rounded-lg hover:bg-black/70 transition-colors">
+                                <i class="fa-solid fa-expand text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Entry -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-dark-graphite mb-2 uppercase tracking-wide">
+                        <i class="fa-solid fa-keyboard mr-1"></i>
+                        MANUAL ENTRY (ALTERNATIVE)
+                    </label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="manual-barcode" 
+                               class="flex-1 px-4 py-2 border border-industrial-silver rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent"
+                               placeholder="Enter room barcode manually...">
+                        <button onclick="processManualBarcode()" 
+                                class="px-6 py-2 bg-steel-blue text-white rounded-lg font-medium hover:bg-steel-blue/80 transition-all duration-200">
+                            <i class="fa-solid fa-search mr-1"></i>
+                            LOOKUP
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scan Actions -->
+                <div class="space-y-3">
+                    <button id="scan-button" onclick="startScanning()" 
+                            class="w-full industrial-gradient text-white py-6 rounded-lg metallic-shadow btn-industrial font-heading font-bold text-xl uppercase tracking-wide">
+                        <i class="fa-solid fa-qrcode mr-3 text-2xl"></i>
+                        SCAN NOW
+                    </button>
+                    
+                    <div class="flex justify-center space-x-4">
+                        <button class="flex items-center space-x-2 px-6 py-3 bg-white border border-industrial-silver rounded-lg hover:bg-industrial-silver/10 transition-colors">
+                            <i class="fa-solid fa-lightbulb text-steel-blue"></i>
+                            <span class="font-medium text-dark-graphite uppercase tracking-wide text-sm">FLASH</span>
+                        </button>
+                        <button class="flex items-center space-x-2 px-6 py-3 bg-white border border-industrial-silver rounded-lg hover:bg-industrial-silver/10 transition-colors">
+                            <i class="fa-solid fa-camera-rotate text-steel-blue"></i>
+                            <span class="font-medium text-dark-graphite uppercase tracking-wide text-sm">FLIP</span>
+                        </button>
+                        <button class="flex items-center space-x-2 px-6 py-3 bg-white border border-industrial-silver rounded-lg hover:bg-industrial-silver/10 transition-colors">
+                            <i class="fa-solid fa-keyboard text-steel-blue"></i>
+                            <span class="font-medium text-dark-graphite uppercase tracking-wide text-sm">MANUAL</span>
+                        </button>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+        <!-- Recent Scans -->
+        <div class="bg-white rounded-lg metallic-shadow border border-industrial-silver/20">
+            <div class="px-6 py-4 border-b border-industrial-silver/20">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-heading font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                        <i class="fa-solid fa-clock mr-2"></i>
+                        LAST 5 SCANS
+                    </h2>
+                    <a href="{% url 'scans:scan_history' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm">
+                        <i class="fa-solid fa-history mr-2"></i>VIEW ALL
+                    </a>
+                </div>
+            </div>
+            <div class="p-6">
+                {% if recent_scans %}
+                    <div class="space-y-4">
+                        {% for scan in recent_scans %}
+                            <div class="flex items-center justify-between p-4 bg-industrial-silver/5 rounded-lg border border-industrial-silver/20">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i class="fa-solid fa-qrcode text-green-600 text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-dark-graphite uppercase tracking-wide">{{ scan.room.name }}</p>
+                                        <p class="text-sm text-dark-graphite/70">{{ scan.timestamp|date:"M d, Y H:i:s" }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium uppercase">COMPLETED</span>
+                                    <button class="text-steel-blue hover:text-steel-blue/80">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <i class="fa-solid fa-qrcode text-gray-300 text-6xl mb-4"></i>
+                        <h3 class="text-xl font-medium text-dark-graphite mb-2 uppercase tracking-wide">NO RECENT SCANS</h3>
+                        <p class="text-gray-600 mb-6">Start scanning rooms to see your activity here.</p>
+                        <button onclick="startScanning()" class="inline-flex items-center px-6 py-3 industrial-gradient text-white rounded-lg font-medium btn-industrial">
+                            <i class="fa-solid fa-qrcode mr-2"></i>
+                            START SCANNING
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        </div>
+
+        <!-- Room Information Modal (Hidden by default) -->
+        <div id="room-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-dark-graphite">Room Information</h3>
+                    </div>
+                    <div class="p-6">
+                        <div id="room-info" class="space-y-3">
+                            <!-- Room details will be populated here -->
+                        </div>
+                        <div class="mt-6 flex space-x-3">
+                            <button onclick="confirmScan()" 
+                                    class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all duration-200">
+                                <i class="fa-solid fa-check mr-1"></i>
+                                Confirm Scan
+                            </button>
+                            <button onclick="closeModal()" 
+                                    class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-400 transition-all duration-200">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Scanner functionality (placeholder - would integrate with actual barcode scanning library)
+let isScanning = false;
+let currentRoom = null;
+
+function startScanning() {
+    const scanButton = document.getElementById('scan-button');
+    if (!scanButton) return;
+    
+    isScanning = true;
+    scanButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-3 text-2xl"></i>SCANNING...';
+    scanButton.disabled = true;
+    
+    console.log('Starting barcode scanning...');
+    // TODO: Implement actual camera/barcode scanning
+    // This would integrate with libraries like QuaggaJS or ZXing
+    
+    setTimeout(() => {
+        scanButton.innerHTML = '<i class="fa-solid fa-check mr-3 text-2xl"></i>SCAN COMPLETE';
+        scanButton.classList.remove('industrial-gradient');
+        scanButton.classList.add('bg-green-600');
+        
+        setTimeout(() => {
+            scanButton.innerHTML = '<i class="fa-solid fa-qrcode mr-3 text-2xl"></i>SCAN NOW';
+            scanButton.disabled = false;
+            scanButton.classList.remove('bg-green-600');
+            scanButton.classList.add('industrial-gradient');
+        }, 2000);
+    }, 3000);
+}
+
+function stopScanning() {
+    isScanning = false;
+    console.log('Stopping barcode scanning...');
+    // TODO: Stop camera/barcode scanning
+}
+
+function processManualBarcode() {
+    const barcode = document.getElementById('manual-barcode').value.trim();
+    if (barcode) {
+        lookupRoom(barcode);
+    }
+}
+
+function lookupRoom(barcode) {
+    // TODO: Make AJAX request to lookup room by barcode
+    console.log('Looking up room with barcode:', barcode);
+    
+    // For now, show a placeholder modal
+    showRoomModal({
+        name: 'Sample Room',
+        building: 'Building 17',
+        compound: 'CNS/AUT Compound',
+        sqm: '25',
+        barcode: barcode
+    });
+}
+
+function showRoomModal(roomData) {
+    currentRoom = roomData;
+    const roomInfo = document.getElementById('room-info');
+    roomInfo.innerHTML = `
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Room:</span>
+                <span class="font-semibold">${roomData.name}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Building:</span>
+                <span>${roomData.building}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Compound:</span>
+                <span>${roomData.compound}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Size:</span>
+                <span>${roomData.sqm} m²</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Barcode:</span>
+                <span class="font-mono text-sm">${roomData.barcode}</span>
+            </div>
+        </div>
+    `;
+    document.getElementById('room-modal').classList.remove('hidden');
+}
+
+function confirmScan() {
+    if (currentRoom) {
+        // TODO: Make AJAX request to record scan
+        console.log('Recording scan for room:', currentRoom);
+        
+        // Show success message
+        alert('Scan recorded successfully!');
+        
+        // Close modal and refresh page
+        closeModal();
+        location.reload();
+    }
+}
+
+function closeModal() {
+    document.getElementById('room-modal').classList.add('hidden');
+    currentRoom = null;
+    document.getElementById('manual-barcode').value = '';
+}
+
+// Allow Enter key to trigger manual lookup
+document.getElementById('manual-barcode').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        processManualBarcode();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,499 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Montserrat', sans-serif; }
+        .metallic-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
+        .metallic-card { background: linear-gradient(145deg, #F5F6F7 0%, #E8E9EA 50%, #F5F6F7 100%); box-shadow: 2px 2px 8px rgba(43, 46, 50, 0.15), -1px -1px 4px rgba(255, 255, 255, 0.8); }
+        .metallic-shine:hover { background: linear-gradient(135deg, #C0C3C8 0%, #B0B3B8 50%, #C0C3C8 100%); transition: all 0.3s ease; }
+    </style>
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "industrial-gray": "#B0B3B8",
+        "dark-graphite": "#2B2E32",
+        "steel-blue": "#3F5876",
+        "warning-orange": "#F28C28",
+        "off-white": "#F5F6F7"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="bg-off-white">
+
+<!-- Sidebar Navigation -->
+<div id="sidebar" class="bg-dark-graphite w-64 min-h-screen fixed left-0 top-0 flex flex-col text-white">
+    <div class="p-6 flex items-center border-b border-gray-700">
+        <div class="w-8 h-8 mr-3 bg-industrial-gray rounded flex items-center justify-center">
+            <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
+        </div>
+        <div>
+            <div class="heading-font font-bold text-lg">CONTROL</div>
+            <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
+        </div>
+    </div>
+    
+    <nav class="flex-1 mt-6">
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-gauge-high mr-3 text-gray-400"></i>
+            <span class="text-sm">Dashboard</span>
+        </div>
+        <div class="px-4 py-2 flex items-center bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue">
+            <i class="fa-solid fa-users mr-3 text-steel-blue"></i>
+            <span class="heading-font font-semibold uppercase text-sm">User Management</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>
+            <span class="text-sm">Reports</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
+            <span class="text-sm">QR Scanner</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-clipboard-check mr-3 text-gray-400"></i>
+            <span class="text-sm">Audit Logs</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-exclamation-triangle mr-3 text-warning-orange"></i>
+            <span class="text-sm">Re-clean Requests</span>
+        </div>
+    </nav>
+    
+    <div class="mt-auto border-t border-gray-700">
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-cog mr-3 text-gray-400"></i>
+            <span class="text-sm">Settings</span>
+        </div>
+        <div class="p-4 flex items-center">
+            <div class="w-10 h-10 rounded bg-industrial-gray flex items-center justify-center mr-3">
+                <span class="text-dark-graphite font-semibold text-sm">AD</span>
+            </div>
+            <div>
+                <div class="text-sm font-medium">Admin User</div>
+                <div class="text-xs text-gray-400">Administrator</div>
+            </div>
+            <i class="fa-solid fa-chevron-up ml-auto text-xs text-gray-400"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="ml-64">
+    <!-- Top Header Bar -->
+    <div id="header" class="metallic-gradient px-6 py-4 border-b border-gray-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="heading-font font-bold text-2xl text-dark-graphite uppercase tracking-wider">USER MANAGEMENT</h1>
+                <p class="text-sm text-gray-600 mt-1">Manage system users, roles and permissions</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="add-user-btn" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add User</span>
+                </button>
+                <div class="relative">
+                    <i class="fa-solid fa-bell text-dark-graphite text-lg cursor-pointer hover:text-steel-blue"></i>
+                    <span class="absolute -top-2 -right-2 bg-warning-orange text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search Section -->
+    <div id="filter-section" class="p-6 border-b border-gray-300 bg-white">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Filter by Role:</label>
+                    <select class="bg-white border border-industrial-gray rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>All Roles</option>
+                        <option>Administrator</option>
+                        <option>Supervisor</option>
+                        <option>Cleaner</option>
+                        <option>Authority</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Status:</label>
+                    <select class="bg-white border border-industrial-gray rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>All Status</option>
+                        <option>Active</option>
+                        <option>Inactive</option>
+                        <option>Pending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <input type="text" placeholder="Search users..." class="bg-white border border-industrial-gray rounded pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-steel-blue w-64">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                <button class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Export</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Statistics -->
+    <div id="stats-section" class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="metallic-card rounded-lg p-4 border border-gray-300 text-center">
+                <div class="text-2xl font-bold text-dark-graphite heading-font">24</div>
+                <div class="text-xs text-gray-600 uppercase tracking-wide">Total Users</div>
+            </div>
+            <div class="metallic-card rounded-lg p-4 border border-gray-300 text-center">
+                <div class="text-2xl font-bold text-green-600 heading-font">18</div>
+                <div class="text-xs text-gray-600 uppercase tracking-wide">Active</div>
+            </div>
+            <div class="metallic-card rounded-lg p-4 border border-gray-300 text-center">
+                <div class="text-2xl font-bold text-warning-orange heading-font">4</div>
+                <div class="text-xs text-gray-600 uppercase tracking-wide">Pending</div>
+            </div>
+            <div class="metallic-card rounded-lg p-4 border border-gray-300 text-center">
+                <div class="text-2xl font-bold text-red-600 heading-font">2</div>
+                <div class="text-xs text-gray-600 uppercase tracking-wide">Inactive</div>
+            </div>
+            <div class="metallic-card rounded-lg p-4 border border-gray-300 text-center">
+                <div class="text-2xl font-bold text-steel-blue heading-font">5</div>
+                <div class="text-xs text-gray-600 uppercase tracking-wide">Administrators</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div id="users-table" class="px-6 pb-6">
+        <div class="metallic-card rounded-lg border border-gray-300">
+            <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">USER ACCOUNTS</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-steel-blue text-white">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Last Login</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded bg-steel-blue flex items-center justify-center mr-3">
+                                        <span class="text-white font-semibold text-sm">JS</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-dark-graphite">John Smith</div>
+                                        <div class="text-xs text-gray-500">ID: USR001</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">john.smith@company.com</td>
+                            <td class="px-6 py-4">
+                                <div class="relative">
+                                    <select class="bg-red-100 text-red-800 px-3 py-1 rounded text-xs uppercase tracking-wide border-none focus:outline-none cursor-pointer">
+                                        <option>Administrator</option>
+                                        <option>Supervisor</option>
+                                        <option>Cleaner</option>
+                                        <option>Authority</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded uppercase font-medium">Active</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">2 hours ago</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">Edit</button>
+                                    <button class="bg-red-500 text-white px-3 py-1 rounded text-xs uppercase tracking-wide hover:bg-red-600">Disable</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded bg-warning-orange flex items-center justify-center mr-3">
+                                        <span class="text-white font-semibold text-sm">MJ</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-dark-graphite">Maria Johnson</div>
+                                        <div class="text-xs text-gray-500">ID: USR002</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">maria.johnson@company.com</td>
+                            <td class="px-6 py-4">
+                                <div class="relative">
+                                    <select class="bg-blue-100 text-blue-800 px-3 py-1 rounded text-xs uppercase tracking-wide border-none focus:outline-none cursor-pointer">
+                                        <option>Supervisor</option>
+                                        <option>Administrator</option>
+                                        <option>Cleaner</option>
+                                        <option>Authority</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded uppercase font-medium">Active</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">1 day ago</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">Edit</button>
+                                    <button class="bg-red-500 text-white px-3 py-1 rounded text-xs uppercase tracking-wide hover:bg-red-600">Disable</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded bg-green-600 flex items-center justify-center mr-3">
+                                        <span class="text-white font-semibold text-sm">RW</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-dark-graphite">Robert Wilson</div>
+                                        <div class="text-xs text-gray-500">ID: USR003</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">robert.wilson@company.com</td>
+                            <td class="px-6 py-4">
+                                <div class="relative">
+                                    <select class="bg-green-100 text-green-800 px-3 py-1 rounded text-xs uppercase tracking-wide border-none focus:outline-none cursor-pointer">
+                                        <option>Cleaner</option>
+                                        <option>Administrator</option>
+                                        <option>Supervisor</option>
+                                        <option>Authority</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded uppercase font-medium">Active</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">30 minutes ago</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">Edit</button>
+                                    <button class="bg-red-500 text-white px-3 py-1 rounded text-xs uppercase tracking-wide hover:bg-red-600">Disable</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded bg-purple-600 flex items-center justify-center mr-3">
+                                        <span class="text-white font-semibold text-sm">SD</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-dark-graphite">Sarah Davis</div>
+                                        <div class="text-xs text-gray-500">ID: USR004</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">sarah.davis@authority.gov</td>
+                            <td class="px-6 py-4">
+                                <div class="relative">
+                                    <select class="bg-purple-100 text-purple-800 px-3 py-1 rounded text-xs uppercase tracking-wide border-none focus:outline-none cursor-pointer">
+                                        <option>Authority</option>
+                                        <option>Administrator</option>
+                                        <option>Supervisor</option>
+                                        <option>Cleaner</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded uppercase font-medium">Pending</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Never</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">Edit</button>
+                                    <button class="bg-steel-blue text-white px-3 py-1 rounded text-xs uppercase tracking-wide hover:bg-blue-700">Resend Invite</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50 bg-red-50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded bg-gray-400 flex items-center justify-center mr-3">
+                                        <span class="text-white font-semibold text-sm">TB</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-dark-graphite">Tom Brown</div>
+                                        <div class="text-xs text-gray-500">ID: USR005</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">tom.brown@company.com</td>
+                            <td class="px-6 py-4">
+                                <div class="relative">
+                                    <select class="bg-green-100 text-green-800 px-3 py-1 rounded text-xs uppercase tracking-wide border-none focus:outline-none cursor-pointer">
+                                        <option>Cleaner</option>
+                                        <option>Administrator</option>
+                                        <option>Supervisor</option>
+                                        <option>Authority</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded uppercase font-medium">Inactive</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">1 week ago</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">Edit</button>
+                                    <button class="bg-green-500 text-white px-3 py-1 rounded text-xs uppercase tracking-wide hover:bg-green-600">Activate</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="px-6 py-4 border-t border-gray-300 flex items-center justify-between">
+                <div class="text-sm text-gray-600">
+                    Showing 1-5 of 24 users
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">Previous</button>
+                    <button class="bg-steel-blue text-white px-3 py-1 rounded text-xs uppercase tracking-wide">1</button>
+                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">2</button>
+                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">3</button>
+                    <button class="bg-industrial-gray text-dark-graphite px-3 py-1 rounded text-xs uppercase tracking-wide metallic-shine">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div id="add-user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+        <div class="metallic-gradient px-6 py-4 border-b border-gray-300 rounded-t-lg">
+            <div class="flex items-center justify-between">
+                <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase">Add New User</h2>
+                <button id="close-modal" class="text-dark-graphite hover:text-steel-blue">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <form class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">First Name</label>
+                        <input type="text" class="w-full border border-industrial-gray rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Last Name</label>
+                        <input type="text" class="w-full border border-industrial-gray rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Email Address</label>
+                    <input type="email" class="w-full border border-industrial-gray rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Role</label>
+                    <select class="w-full border border-industrial-gray rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>Select Role</option>
+                        <option>Administrator</option>
+                        <option>Supervisor</option>
+                        <option>Cleaner</option>
+                        <option>Authority</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Department</label>
+                    <select class="w-full border border-industrial-gray rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>Select Department</option>
+                        <option>Building A</option>
+                        <option>Building B</option>
+                        <option>Building C</option>
+                        <option>All Buildings</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="send-invite" class="mr-2">
+                    <label for="send-invite" class="text-sm text-gray-600">Send invitation email immediately</label>
+                </div>
+            </form>
+        </div>
+        
+        <div class="px-6 py-4 border-t border-gray-300 flex items-center justify-end space-x-3">
+            <button id="cancel-btn" class="bg-industrial-gray text-dark-graphite px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine">Cancel</button>
+            <button class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-blue-700">Create User</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functionality
+document.getElementById('add-user-btn').addEventListener('click', function() {
+    document.getElementById('add-user-modal').classList.remove('hidden');
+});
+
+document.getElementById('close-modal').addEventListener('click', function() {
+    document.getElementById('add-user-modal').classList.add('hidden');
+});
+
+document.getElementById('cancel-btn').addEventListener('click', function() {
+    document.getElementById('add-user-modal').classList.add('hidden');
+});
+
+// Close modal when clicking outside
+document.getElementById('add-user-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.add('hidden');
+    }
+});
+</script>
+
+
+</body></html>

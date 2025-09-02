@@ -1,0 +1,438 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        .industrial-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 100%); }
+        .metallic-shadow { box-shadow: 0 4px 6px rgba(43, 46, 50, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+        .btn-industrial { transition: all 0.2s ease; }
+        .btn-industrial:hover { box-shadow: 0 0 15px rgba(176, 179, 184, 0.4); }
+    </style>
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "industrial-silver": "#B0B3B8",
+        "dark-graphite": "#2B2E32",
+        "steel-blue": "#3F5876",
+        "warning-orange": "#F28C28",
+        "off-white": "#F5F6F7"
+      },
+      "fontFamily": {
+        "heading": [
+          "Montserrat",
+          "sans-serif"
+        ],
+        "body": [
+          "Inter",
+          "sans-serif"
+        ],
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="bg-off-white font-sans">
+
+<!-- COMPONENT: Header -->
+<header id="header" class="industrial-gradient text-white metallic-shadow">
+    <div class="container mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-white/20 rounded flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-heading font-bold">CONTRACTING AUTHORITY</h1>
+                    <p class="text-sm opacity-80">FACILITY MANAGEMENT SYSTEM</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-user text-sm"></i>
+                    </div>
+                    <span class="text-sm font-medium">ADMIN USER</span>
+                </div>
+                <button class="p-2 hover:bg-white/10 rounded">
+                    <i class="fa-solid fa-cog"></i>
+                </button>
+                <button class="p-2 hover:bg-white/10 rounded">
+                    <i class="fa-solid fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- COMPONENT: Navigation -->
+<nav id="navigation" class="bg-dark-graphite text-white border-b border-industrial-silver/20">
+    <div class="container mx-auto px-6">
+        <div class="flex items-center space-x-8">
+            <span class="flex items-center space-x-2 px-4 py-4 bg-steel-blue/20 border-b-2 border-steel-blue cursor-pointer">
+                <i class="fa-solid fa-home"></i>
+                <span class="font-medium text-sm uppercase tracking-wide">DASHBOARD</span>
+            </span>
+            <span class="flex items-center space-x-2 px-4 py-4 hover:bg-white/5 cursor-pointer">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span class="font-medium text-sm uppercase tracking-wide">RE-CLEAN REQUESTS</span>
+            </span>
+            <span class="flex items-center space-x-2 px-4 py-4 hover:bg-white/5 cursor-pointer">
+                <i class="fa-solid fa-file-alt"></i>
+                <span class="font-medium text-sm uppercase tracking-wide">AUDIT LOGS</span>
+            </span>
+            <span class="flex items-center space-x-2 px-4 py-4 hover:bg-white/5 cursor-pointer">
+                <i class="fa-solid fa-chart-bar"></i>
+                <span class="font-medium text-sm uppercase tracking-wide">REPORTS</span>
+            </span>
+        </div>
+    </div>
+</nav>
+
+<!-- COMPONENT: Main Dashboard Content -->
+<main id="main-content" class="container mx-auto px-6 py-8">
+    
+    <!-- COMPONENT: Filter Bar -->
+    <section id="filter-section" class="bg-white rounded-lg metallic-shadow mb-8 p-6">
+        <div class="flex flex-wrap gap-4 items-center">
+            <div class="flex items-center space-x-2">
+                <label class="text-sm font-medium text-dark-graphite uppercase tracking-wide">FILTER BY:</label>
+            </div>
+            <select class="px-4 py-2 border border-industrial-silver rounded bg-white text-dark-graphite font-medium">
+                <option>ALL BUILDINGS</option>
+                <option>BUILDING A</option>
+                <option>BUILDING B</option>
+                <option>BUILDING C</option>
+            </select>
+            <select class="px-4 py-2 border border-industrial-silver rounded bg-white text-dark-graphite font-medium">
+                <option>ALL FLOORS</option>
+                <option>FLOOR 1</option>
+                <option>FLOOR 2</option>
+                <option>FLOOR 3</option>
+            </select>
+            <select class="px-4 py-2 border border-industrial-silver rounded bg-white text-dark-graphite font-medium">
+                <option>LAST 7 DAYS</option>
+                <option>LAST 30 DAYS</option>
+                <option>LAST 90 DAYS</option>
+            </select>
+            <select class="px-4 py-2 border border-industrial-silver rounded bg-white text-dark-graphite font-medium">
+                <option>ALL STATUS</option>
+                <option>COMPLETED</option>
+                <option>PENDING</option>
+                <option>RE-CLEAN REQUIRED</option>
+            </select>
+            <button class="px-6 py-2 bg-steel-blue text-white rounded btn-industrial font-medium uppercase tracking-wide">
+                <i class="fa-solid fa-filter mr-2"></i>APPLY
+            </button>
+            <button class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide">
+                <i class="fa-solid fa-times mr-2"></i>CLEAR
+            </button>
+        </div>
+    </section>
+
+    <!-- COMPONENT: KPI Counters -->
+    <section id="kpi-section" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg metallic-shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark-graphite/70 uppercase tracking-wide">TOTAL ROOMS</p>
+                    <p class="text-3xl font-bold text-dark-graphite font-heading">1,247</p>
+                </div>
+                <div class="w-12 h-12 bg-steel-blue/10 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-door-open text-steel-blue text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg metallic-shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark-graphite/70 uppercase tracking-wide">ROOMS CLEANED</p>
+                    <p class="text-3xl font-bold text-green-600 font-heading">1,089</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-check-circle text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg metallic-shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark-graphite/70 uppercase tracking-wide">PENDING RE-CLEANS</p>
+                    <p class="text-3xl font-bold text-warning-orange font-heading">23</p>
+                </div>
+                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-exclamation-triangle text-warning-orange text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg metallic-shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark-graphite/70 uppercase tracking-wide">COMPLETION RATE</p>
+                    <p class="text-3xl font-bold text-steel-blue font-heading">87%</p>
+                </div>
+                <div class="w-12 h-12 bg-steel-blue/10 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-chart-pie text-steel-blue text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- COMPONENT: Recent Activity Table -->
+    <section id="recent-activity" class="bg-white rounded-lg metallic-shadow mb-8">
+        <div class="p-6 border-b border-industrial-silver/20">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-heading font-bold text-dark-graphite uppercase tracking-wide">RECENT CLEANING ACTIVITY</h2>
+                <div class="flex space-x-3">
+                    <button class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm">
+                        <i class="fa-solid fa-download mr-2"></i>EXPORT
+                    </button>
+                    <button class="px-4 py-2 bg-steel-blue text-white rounded btn-industrial font-medium uppercase tracking-wide text-sm">
+                        <i class="fa-solid fa-refresh mr-2"></i>REFRESH
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-industrial-silver/10">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">ROOM ID</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">BUILDING</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">FLOOR</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">CLEANER</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">STATUS</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">COMPLETED</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-industrial-silver/5">
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-001</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING A</td>
+                        <td class="px-6 py-4 text-dark-graphite">FLOOR 1</td>
+                        <td class="px-6 py-4 text-dark-graphite">J. SMITH</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium uppercase">COMPLETED</span>
+                        </td>
+                        <td class="px-6 py-4 text-dark-graphite">2024-01-15 14:30</td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-002</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING A</td>
+                        <td class="px-6 py-4 text-dark-graphite">FLOOR 1</td>
+                        <td class="px-6 py-4 text-dark-graphite">M. JOHNSON</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-warning-orange/20 text-warning-orange rounded-full text-sm font-medium uppercase">RE-CLEAN REQ</span>
+                        </td>
+                        <td class="px-6 py-4 text-dark-graphite">2024-01-15 13:45</td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80 mr-3">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button class="text-warning-orange hover:text-warning-orange/80">
+                                <i class="fa-solid fa-redo"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-003</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING B</td>
+                        <td class="px-6 py-4 text-dark-graphite">FLOOR 2</td>
+                        <td class="px-6 py-4 text-dark-graphite">K. WILLIAMS</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium uppercase">COMPLETED</span>
+                        </td>
+                        <td class="px-6 py-4 text-dark-graphite">2024-01-15 12:20</td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-004</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING C</td>
+                        <td class="px-6 py-4 text-dark-graphite">FLOOR 3</td>
+                        <td class="px-6 py-4 text-dark-graphite">A. DAVIS</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium uppercase">IN PROGRESS</span>
+                        </td>
+                        <td class="px-6 py-4 text-dark-graphite">-</td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-005</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING A</td>
+                        <td class="px-6 py-4 text-dark-graphite">FLOOR 2</td>
+                        <td class="px-6 py-4 text-dark-graphite">R. BROWN</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium uppercase">COMPLETED</span>
+                        </td>
+                        <td class="px-6 py-4 text-dark-graphite">2024-01-15 11:15</td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- COMPONENT: Re-clean Requests Table -->
+    <section id="reclean-requests" class="bg-white rounded-lg metallic-shadow">
+        <div class="p-6 border-b border-industrial-silver/20">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-heading font-bold text-dark-graphite uppercase tracking-wide">PENDING RE-CLEAN REQUESTS</h2>
+                <span class="px-3 py-1 bg-warning-orange/20 text-warning-orange rounded-full text-sm font-medium uppercase">23 PENDING</span>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-industrial-silver/10">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">ROOM ID</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">BUILDING</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">ORIGINAL CLEANER</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">REQUESTED BY</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">REQUEST DATE</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">PRIORITY</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-dark-graphite uppercase tracking-wide">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-industrial-silver/5">
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-002</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING A</td>
+                        <td class="px-6 py-4 text-dark-graphite">M. JOHNSON</td>
+                        <td class="px-6 py-4 text-dark-graphite">SUPERVISOR</td>
+                        <td class="px-6 py-4 text-dark-graphite">2024-01-15 15:00</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium uppercase">HIGH</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80 mr-3">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button class="px-3 py-1 bg-warning-orange text-white rounded text-sm font-medium uppercase btn-industrial">
+                                ASSIGN
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-015</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING B</td>
+                        <td class="px-6 py-4 text-dark-graphite">L. GARCIA</td>
+                        <td class="px-6 py-4 text-dark-graphite">INSPECTOR</td>
+                        <td class="px-6 py-4 text-dark-graphite">2024-01-15 14:30</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium uppercase">MEDIUM</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80 mr-3">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button class="px-3 py-1 bg-warning-orange text-white rounded text-sm font-medium uppercase btn-industrial">
+                                ASSIGN
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-industrial-silver/20">
+                        <td class="px-6 py-4 font-medium text-dark-graphite">R-028</td>
+                        <td class="px-6 py-4 text-dark-graphite">BUILDING C</td>
+                        <td class="px-6 py-4 text-dark-graphite">P. MARTINEZ</td>
+                        <td class="px-6 py-4 text-dark-graphite">SUPERVISOR</td>
+                        <td class="px-6 py-4 text-dark-graphite">2024-01-15 13:15</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium uppercase">LOW</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <button class="text-steel-blue hover:text-steel-blue/80 mr-3">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button class="px-3 py-1 bg-warning-orange text-white rounded text-sm font-medium uppercase btn-industrial">
+                                ASSIGN
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<!-- COMPONENT: Footer -->
+<footer id="footer" class="bg-dark-graphite text-white mt-16">
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-8 h-8 bg-white/20 rounded flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <p class="font-heading font-bold uppercase tracking-wide">FACILITY MANAGEMENT SYSTEM</p>
+                    <p class="text-sm opacity-70">SECURE • RELIABLE • INDUSTRIAL</p>
+                </div>
+            </div>
+            <div class="text-sm opacity-70">
+                © 2024 CONTRACTING AUTHORITY. ALL RIGHTS RESERVED.
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+</body></html>

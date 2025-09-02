@@ -1,0 +1,389 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Montserrat', sans-serif; }
+        .metallic-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
+        .metallic-card { background: linear-gradient(145deg, #F5F6F7 0%, #E8E9EA 50%, #F5F6F7 100%); box-shadow: 2px 2px 8px rgba(43, 46, 50, 0.15), -1px -1px 4px rgba(255, 255, 255, 0.8); }
+        .metallic-shine:hover { background: linear-gradient(135deg, #C0C3C8 0%, #B0B3B8 50%, #C0C3C8 100%); transition: all 0.3s ease; }
+    </style>
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "industrial-gray": "#B0B3B8",
+        "dark-graphite": "#2B2E32",
+        "steel-blue": "#3F5876",
+        "warning-orange": "#F28C28",
+        "off-white": "#F5F6F7"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="bg-off-white">
+
+<!-- Sidebar Navigation -->
+<div id="sidebar" class="bg-dark-graphite w-64 min-h-screen fixed left-0 top-0 flex flex-col text-white">
+    <div class="p-6 flex items-center border-b border-gray-700">
+        <div class="w-8 h-8 mr-3 bg-industrial-gray rounded flex items-center justify-center">
+            <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
+        </div>
+        <div>
+            <div class="heading-font font-bold text-lg">CONTROL</div>
+            <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
+        </div>
+    </div>
+    
+    <nav class="flex-1 mt-6">
+        <div class="px-4 py-2 flex items-center bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue">
+            <i class="fa-solid fa-gauge-high mr-3 text-steel-blue"></i>
+            <span class="heading-font font-semibold uppercase text-sm">Dashboard</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-users mr-3 text-gray-400"></i>
+            <span class="text-sm">User Management</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>
+            <span class="text-sm">Reports</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
+            <span class="text-sm">QR Scanner</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-clipboard-check mr-3 text-gray-400"></i>
+            <span class="text-sm">Audit Logs</span>
+        </div>
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-exclamation-triangle mr-3 text-warning-orange"></i>
+            <span class="text-sm">Re-clean Requests</span>
+        </div>
+    </nav>
+    
+    <div class="mt-auto border-t border-gray-700">
+        <div class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
+            <i class="fa-solid fa-cog mr-3 text-gray-400"></i>
+            <span class="text-sm">Settings</span>
+        </div>
+        <div class="p-4 flex items-center">
+            <div class="w-10 h-10 rounded bg-industrial-gray flex items-center justify-center mr-3">
+                <span class="text-dark-graphite font-semibold text-sm">AD</span>
+            </div>
+            <div>
+                <div class="text-sm font-medium">Admin User</div>
+                <div class="text-xs text-gray-400">Administrator</div>
+            </div>
+            <i class="fa-solid fa-chevron-up ml-auto text-xs text-gray-400"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="ml-64">
+    <!-- Top Header Bar -->
+    <div id="header" class="metallic-gradient px-6 py-4 border-b border-gray-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="heading-font font-bold text-2xl text-dark-graphite uppercase tracking-wider">DASHBOARD CONTROL</h1>
+                <p class="text-sm text-gray-600 mt-1">System Overview &amp; Monitoring</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <i class="fa-solid fa-bell text-dark-graphite text-lg cursor-pointer hover:text-steel-blue"></i>
+                    <span class="absolute -top-2 -right-2 bg-warning-orange text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                </div>
+                <div class="text-sm text-dark-graphite">
+                    <div class="font-medium">Last Update:</div>
+                    <div class="text-xs">2025-01-09 13:21</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Cards Section -->
+    <div id="kpi-section" class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Rooms Cleaned Today -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-steel-blue rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-broom text-white text-xl"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-dark-graphite heading-font">247</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide">CLEANED TODAY</div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="text-green-600 text-sm font-medium">+12%</div>
+                    <div class="text-xs text-gray-500 ml-2">vs yesterday</div>
+                </div>
+            </div>
+
+            <!-- Pending Re-cleans -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-warning-orange rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-exclamation-triangle text-white text-xl"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-dark-graphite heading-font">8</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide">PENDING RE-CLEANS</div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="text-warning-orange text-sm font-medium">URGENT</div>
+                    <div class="text-xs text-gray-500 ml-2">3 high priority</div>
+                </div>
+            </div>
+
+            <!-- Active Users -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-steel-blue rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-users text-white text-xl"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-dark-graphite heading-font">32</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide">ACTIVE USERS</div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="text-green-600 text-sm font-medium">ONLINE</div>
+                    <div class="text-xs text-gray-500 ml-2">18 cleaners active</div>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-shield-check text-white text-xl"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-dark-graphite heading-font">99.8%</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide">SYSTEM UPTIME</div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="text-green-600 text-sm font-medium">OPERATIONAL</div>
+                    <div class="text-xs text-gray-500 ml-2">All systems normal</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Analytics -->
+    <div id="analytics-section" class="px-6 pb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Bar Chart - Rooms Cleaned by Building -->
+            <div class="lg:col-span-2 metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ROOMS CLEANED BY BUILDING</h3>
+                        <p class="text-sm text-gray-600">Daily performance metrics</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 bg-steel-blue text-white text-xs rounded uppercase tracking-wide">TODAY</button>
+                        <button class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer">WEEK</button>
+                        <button class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer">MONTH</button>
+                    </div>
+                </div>
+                <div id="bar-chart" class="h-80"></div>
+            </div>
+
+            <!-- Alert Panel -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-exclamation-triangle text-warning-orange mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ALERTS</h3>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium text-red-800">HIGH PRIORITY</div>
+                                <div class="text-xs text-red-600">Room B-204 requires re-clean</div>
+                            </div>
+                            <div class="text-xs text-red-500">2 min ago</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium text-yellow-800">MEDIUM</div>
+                                <div class="text-xs text-yellow-600">Scanner offline - Building A</div>
+                            </div>
+                            <div class="text-xs text-yellow-500">15 min ago</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium text-blue-800">INFO</div>
+                                <div class="text-xs text-blue-600">Daily report generated</div>
+                            </div>
+                            <div class="text-xs text-blue-500">1 hour ago</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="w-full mt-4 bg-dark-graphite text-white py-2 rounded uppercase text-sm tracking-wide metallic-shine">
+                    VIEW ALL ALERTS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Table -->
+    <div id="activity-section" class="px-6 pb-6">
+        <div class="metallic-card rounded-lg border border-gray-300">
+            <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">RECENT ACTIVITY</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-steel-blue text-white">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">TIME</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">USER</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ACTION</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ROOM</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm text-gray-600">13:18</td>
+                            <td class="px-6 py-4 text-sm text-dark-graphite font-medium">J. Smith</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Room Cleaned</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">A-101</td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded uppercase">COMPLETED</span></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm text-gray-600">13:15</td>
+                            <td class="px-6 py-4 text-sm text-dark-graphite font-medium">M. Johnson</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">QR Code Scanned</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">B-205</td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded uppercase">IN PROGRESS</span></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50 bg-red-50">
+                            <td class="px-6 py-4 text-sm text-gray-600">13:12</td>
+                            <td class="px-6 py-4 text-sm text-dark-graphite font-medium">Authority User</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">Re-clean Requested</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">B-204</td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded uppercase">RE-CLEAN</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize Bar Chart
+Highcharts.chart('bar-chart', {
+    chart: {
+        type: 'column',
+        backgroundColor: 'transparent'
+    },
+    title: {
+        text: null
+    },
+    credits: {
+        enabled: false
+    },
+    xAxis: {
+        categories: ['Building A', 'Building B', 'Building C', 'Building D', 'Building E'],
+        labels: {
+            style: {
+                color: '#2B2E32',
+                fontWeight: 'bold'
+            }
+        }
+    },
+    yAxis: {
+        title: {
+            text: 'Rooms Cleaned',
+            style: {
+                color: '#2B2E32',
+                fontWeight: 'bold'
+            }
+        },
+        labels: {
+            style: {
+                color: '#2B2E32'
+            }
+        }
+    },
+    plotOptions: {
+        column: {
+            borderRadius: 4,
+            dataLabels: {
+                enabled: true,
+                style: {
+                    color: '#2B2E32',
+                    fontWeight: 'bold'
+                }
+            }
+        }
+    },
+    series: [{
+        name: 'Cleaned',
+        data: [68, 45, 52, 38, 44],
+        color: '#3F5876'
+    }, {
+        name: 'Re-clean Required',
+        data: [3, 2, 1, 2, 0],
+        color: '#F28C28'
+    }],
+    legend: {
+        itemStyle: {
+            color: '#2B2E32',
+            fontWeight: 'bold'
+        }
+    }
+});
+</script>
+
+
+</body></html>

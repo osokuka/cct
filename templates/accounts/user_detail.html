@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Profile - {{ user_obj.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="heading-font font-bold text-3xl text-dark-graphite uppercase tracking-wider">
+                        User Profile
+                    </h1>
+                    <p class="text-gray-600 mt-2">View user details and compound assignments</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="{% url 'accounts:user_update' user_obj.pk %}" 
+                       class="px-6 py-3 bg-steel-blue text-white rounded font-bold uppercase tracking-wider hover:bg-steel-blue-dark transition-all duration-200">
+                        <i class="fa-solid fa-edit mr-2"></i>
+                        Edit User
+                    </a>
+                    <a href="{% url 'accounts:user_list' %}" 
+                       class="px-6 py-3 bg-gray-300 text-gray-700 rounded font-bold uppercase tracking-wider hover:bg-gray-400 transition-all duration-200">
+                        <i class="fa-solid fa-arrow-left mr-2"></i>
+                        Back to Users
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Information Card -->
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                    <i class="fa-solid fa-user mr-2"></i>
+                    User Information
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Basic Info -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <p class="text-lg font-semibold text-dark-graphite">{{ user_obj.username }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <p class="text-lg font-semibold text-dark-graphite">
+                                {{ user_obj.get_full_name|default:"Not provided" }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <p class="text-lg font-semibold text-dark-graphite">
+                                {{ user_obj.email|default:"Not provided" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Profile Info -->
+                    <div class="space-y-4">
+                        {% if profile %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                    {% if profile.role == 'admin' %}bg-red-100 text-red-800
+                                    {% elif profile.role == 'supervisor' %}bg-blue-100 text-blue-800
+                                    {% elif profile.role == 'authority' %}bg-green-100 text-green-800
+                                    {% elif profile.role == 'cleaner' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    <i class="fa-solid fa-user-tag mr-1"></i>
+                                    {{ profile.get_role_display }}
+                                </span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                                <p class="text-lg font-semibold text-dark-graphite">
+                                    {{ profile.employee_id|default:"Not provided" }}
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <p class="text-lg font-semibold text-dark-graphite">
+                                    {{ profile.phone_number|default:"Not provided" }}
+                                </p>
+                            </div>
+                        {% else %}
+                            <div class="col-span-2">
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <div class="flex">
+                                        <i class="fa-solid fa-exclamation-triangle text-yellow-400 mr-3 mt-1"></i>
+                                        <div>
+                                            <h3 class="text-sm font-medium text-yellow-800">No Profile Found</h3>
+                                            <p class="text-sm text-yellow-700 mt-1">
+                                                This user doesn't have a profile. Please edit the user to create one.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Status Info -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Account Status</label>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                {% if user_obj.is_active %}bg-green-100 text-green-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                <i class="fa-solid fa-circle mr-1 text-xs"></i>
+                                {% if user_obj.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Staff Status</label>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                {% if user_obj.is_staff %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                <i class="fa-solid fa-user-shield mr-1"></i>
+                                {% if user_obj.is_staff %}Staff{% else %}Regular User{% endif %}
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Superuser</label>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                {% if user_obj.is_superuser %}bg-purple-100 text-purple-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                <i class="fa-solid fa-crown mr-1"></i>
+                                {% if user_obj.is_superuser %}Superuser{% else %}Regular User{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compound Assignments Card -->
+        {% if compound_assignments %}
+            <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                        <i class="fa-solid fa-building mr-2"></i>
+                        Compound Assignments
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for assignment in compound_assignments %}
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-semibold text-dark-graphite">{{ assignment.compound.name }}</h3>
+                                    <span class="text-xs text-gray-500">{{ assignment.compound.code }}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">
+                                    <i class="fa-solid fa-map-marker-alt mr-1"></i>
+                                    {{ assignment.compound.camp.name }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    <i class="fa-solid fa-calendar mr-1"></i>
+                                    Assigned: {{ assignment.created_at|date:"M d, Y" }}
+                                </p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                        <i class="fa-solid fa-building mr-2"></i>
+                        Compound Assignments
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="text-center py-8">
+                        <i class="fa-solid fa-building text-gray-300 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No Compound Assignments</h3>
+                        <p class="text-gray-600 mb-4">
+                            This user is not assigned to any compounds yet.
+                        </p>
+                        <a href="{% url 'accounts:user_update' user_obj.pk %}" 
+                           class="inline-flex items-center px-4 py-2 bg-steel-blue text-white rounded font-medium hover:bg-steel-blue-dark transition-all duration-200">
+                            <i class="fa-solid fa-plus mr-2"></i>
+                            Assign Compounds
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Account Information Card -->
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                    <i class="fa-solid fa-info-circle mr-2"></i>
+                    Account Information
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date Joined</label>
+                        <p class="text-lg font-semibold text-dark-graphite">
+                            {{ user_obj.date_joined|date:"F d, Y \a\t g:i A" }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Login</label>
+                        <p class="text-lg font-semibold text-dark-graphite">
+                            {% if user_obj.last_login %}
+                                {{ user_obj.last_login|date:"F d, Y \a\t g:i A" }}
+                            {% else %}
+                                Never logged in
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if profile %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Profile Created</label>
+                            <p class="text-lg font-semibold text-dark-graphite">
+                                {{ profile.created_at|date:"F d, Y \a\t g:i A" }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Profile Updated</label>
+                            <p class="text-lg font-semibold text-dark-graphite">
+                                {{ profile.updated_at|date:"F d, Y \a\t g:i A" }}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

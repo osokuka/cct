@@ -1,0 +1,573 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        .industrial-gradient {
+            background: linear-gradient(135deg, #B0B3B8 0%, #2B2E32 100%);
+        }
+        .metallic-shine:hover {
+            background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 100%);
+            box-shadow: 0 4px 15px rgba(176, 179, 184, 0.3);
+        }
+        .control-panel-shadow {
+            box-shadow: 0 2px 8px rgba(43, 46, 50, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+    </style>
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "fontFamily": {
+        "heading": [
+          "Montserrat",
+          "sans-serif"
+        ],
+        "body": [
+          "Inter",
+          "sans-serif"
+        ],
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      },
+      "colors": {
+        "industrial-silver": "#B0B3B8",
+        "dark-graphite": "#2B2E32",
+        "steel-blue": "#3F5876",
+        "warning-orange": "#F28C28",
+        "off-white": "#F5F6F7"
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="bg-off-white font-sans">
+
+<!-- Header -->
+<nav id="header" class="industrial-gradient text-white px-6 py-4 flex items-center justify-between shadow-lg">
+    <div class="flex items-center">
+        <div class="bg-white text-dark-graphite rounded w-10 h-10 flex items-center justify-center mr-4 font-heading font-bold">
+            <i class="fa-solid fa-shield-halved text-lg"></i>
+        </div>
+        <div class="font-heading font-bold text-xl tracking-wide">FACILITY MANAGEMENT</div>
+    </div>
+    <div class="flex items-center space-x-6">
+        <button class="hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+            <i class="fa-solid fa-bell text-lg"></i>
+        </button>
+        <button class="hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+            <i class="fa-solid fa-cog text-lg"></i>
+        </button>
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded bg-warning-orange flex items-center justify-center text-white font-semibold mr-2">
+                AD
+            </div>
+            <span class="font-medium">ADMIN</span>
+        </div>
+    </div>
+</nav>
+
+<div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <div id="sidebar" class="w-64 bg-dark-graphite text-white flex flex-col">
+        <div class="p-6 border-b border-gray-600">
+            <h2 class="font-heading font-semibold text-sm tracking-wide uppercase text-industrial-silver">CONTROL PANEL</h2>
+        </div>
+        
+        <nav class="flex-1 p-4">
+            <ul class="space-y-2">
+                <li>
+                    <span class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-all cursor-pointer">
+                        <i class="fa-solid fa-chart-line w-5 mr-3"></i>
+                        <span class="font-medium">DASHBOARD</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-all cursor-pointer">
+                        <i class="fa-solid fa-qrcode w-5 mr-3"></i>
+                        <span class="font-medium">QR CODES</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-all cursor-pointer">
+                        <i class="fa-solid fa-clipboard-check w-5 mr-3"></i>
+                        <span class="font-medium">INSPECTIONS</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="flex items-center px-4 py-3 bg-steel-blue text-white rounded cursor-pointer">
+                        <i class="fa-solid fa-broom w-5 mr-3"></i>
+                        <span class="font-medium">CLEANING ROSTER</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-all cursor-pointer">
+                        <i class="fa-solid fa-users w-5 mr-3"></i>
+                        <span class="font-medium">TEAMS</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-all cursor-pointer">
+                        <i class="fa-solid fa-file-alt w-5 mr-3"></i>
+                        <span class="font-medium">REPORTS</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-all cursor-pointer">
+                        <i class="fa-solid fa-exclamation-triangle w-5 mr-3"></i>
+                        <span class="font-medium">ALERTS</span>
+                    </span>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="p-4 border-t border-gray-600">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded bg-industrial-silver flex items-center justify-center text-dark-graphite font-semibold mr-3">
+                    <i class="fa-solid fa-user text-sm"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-medium">SYSTEM ADMIN</div>
+                    <div class="text-xs text-gray-400">admin@facility.com</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="flex-1 p-8">
+        <!-- Page Header -->
+        <div id="page-header" class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="font-heading font-bold text-3xl text-dark-graphite tracking-wide uppercase mb-2">CLEANING ROSTER</h1>
+                    <p class="text-gray-600 font-medium">MANAGE CLEANING TEAMS AND SCHEDULES</p>
+                </div>
+                <div class="flex space-x-4">
+                    <button class="bg-steel-blue text-white px-6 py-3 rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-plus mr-2"></i>
+                        ADD TEAM
+                    </button>
+                    <button class="bg-warning-orange text-white px-6 py-3 rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-calendar-alt mr-2"></i>
+                        SCHEDULE
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div id="stats-section" class="grid grid-cols-4 gap-6 mb-8">
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">ACTIVE TEAMS</p>
+                        <p class="text-2xl font-heading font-bold text-dark-graphite mt-2">6</p>
+                    </div>
+                    <div class="w-12 h-12 bg-steel-blue rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-users text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">TODAY'S TASKS</p>
+                        <p class="text-2xl font-heading font-bold text-dark-graphite mt-2">24</p>
+                    </div>
+                    <div class="w-12 h-12 bg-industrial-silver rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-clipboard-list text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">COMPLETED</p>
+                        <p class="text-2xl font-heading font-bold text-dark-graphite mt-2">18</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-check text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">OVERDUE</p>
+                        <p class="text-2xl font-heading font-bold text-warning-orange mt-2">2</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-orange rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-exclamation-triangle text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div id="filter-bar" class="bg-white control-panel-shadow rounded-lg p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div class="flex space-x-4">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" placeholder="SEARCH TEAMS..." class="pl-10 pr-4 py-2 border border-gray-300 rounded font-medium uppercase text-sm tracking-wide focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                    </div>
+                    <select class="px-4 py-2 border border-gray-300 rounded font-medium uppercase text-sm tracking-wide focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>ALL SHIFTS</option>
+                        <option>MORNING SHIFT</option>
+                        <option>EVENING SHIFT</option>
+                        <option>NIGHT SHIFT</option>
+                    </select>
+                    <select class="px-4 py-2 border border-gray-300 rounded font-medium uppercase text-sm tracking-wide focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option>ALL STATUS</option>
+                        <option>ACTIVE</option>
+                        <option>ON BREAK</option>
+                        <option>OFFLINE</option>
+                    </select>
+                </div>
+                <button class="bg-industrial-silver text-white px-4 py-2 rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-download mr-2"></i>
+                    EXPORT
+                </button>
+            </div>
+        </div>
+
+        <!-- Teams Grid -->
+        <div id="teams-grid" class="grid grid-cols-2 gap-6 mb-8">
+            <!-- Alpha Team -->
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-steel-blue rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-white font-heading font-bold text-lg">Α</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-bold text-xl text-dark-graphite uppercase">ALPHA TEAM</h3>
+                            <p class="text-gray-500 font-medium text-sm uppercase">MORNING SHIFT • 06:00 - 14:00</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">ACTIVE</span>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" class="w-8 h-8 rounded-full mr-3">
+                            <span class="font-medium text-dark-graphite">JAMES WILSON</span>
+                        </div>
+                        <span class="text-xs font-semibold text-steel-blue uppercase">TEAM LEAD</span>
+                    </div>
+                    <div class="flex items-center">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-3.jpg" class="w-8 h-8 rounded-full mr-3">
+                        <span class="font-medium text-dark-graphite">MICHAEL CHEN</span>
+                    </div>
+                    <div class="flex items-center">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" class="w-8 h-8 rounded-full mr-3">
+                        <span class="font-medium text-dark-graphite">DAVID RODRIGUEZ</span>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500 font-medium uppercase">TODAY'S PROGRESS</span>
+                        <span class="font-semibold text-dark-graphite">8/10 TASKS</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: 80%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bravo Team -->
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-warning-orange rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-white font-heading font-bold text-lg">Β</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-bold text-xl text-dark-graphite uppercase">BRAVO TEAM</h3>
+                            <p class="text-gray-500 font-medium text-sm uppercase">EVENING SHIFT • 14:00 - 22:00</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">ON BREAK</span>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-5.jpg" class="w-8 h-8 rounded-full mr-3">
+                            <span class="font-medium text-dark-graphite">SARAH JOHNSON</span>
+                        </div>
+                        <span class="text-xs font-semibold text-steel-blue uppercase">TEAM LEAD</span>
+                    </div>
+                    <div class="flex items-center">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" class="w-8 h-8 rounded-full mr-3">
+                        <span class="font-medium text-dark-graphite">ROBERT TAYLOR</span>
+                    </div>
+                    <div class="flex items-center">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-9.jpg" class="w-8 h-8 rounded-full mr-3">
+                        <span class="font-medium text-dark-graphite">ALEX MARTINEZ</span>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500 font-medium uppercase">TODAY'S PROGRESS</span>
+                        <span class="font-semibold text-dark-graphite">5/8 TASKS</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div class="bg-warning-orange h-2 rounded-full" style="width: 62.5%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charlie Team -->
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-dark-graphite rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-white font-heading font-bold text-lg">Γ</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-bold text-xl text-dark-graphite uppercase">CHARLIE TEAM</h3>
+                            <p class="text-gray-500 font-medium text-sm uppercase">NIGHT SHIFT • 22:00 - 06:00</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">OFFLINE</span>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-6.jpg" class="w-8 h-8 rounded-full mr-3">
+                            <span class="font-medium text-dark-graphite">EMILY DAVIS</span>
+                        </div>
+                        <span class="text-xs font-semibold text-steel-blue uppercase">TEAM LEAD</span>
+                    </div>
+                    <div class="flex items-center">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" class="w-8 h-8 rounded-full mr-3">
+                        <span class="font-medium text-dark-graphite">THOMAS BROWN</span>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500 font-medium uppercase">SHIFT STARTS IN</span>
+                        <span class="font-semibold text-dark-graphite">4H 32M</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div class="bg-gray-400 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delta Team -->
+            <div class="bg-white control-panel-shadow rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-industrial-silver rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-white font-heading font-bold text-lg">Δ</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-bold text-xl text-dark-graphite uppercase">DELTA TEAM</h3>
+                            <p class="text-gray-500 font-medium text-sm uppercase">WEEKEND SHIFT • 08:00 - 16:00</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">ACTIVE</span>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-7.jpg" class="w-8 h-8 rounded-full mr-3">
+                            <span class="font-medium text-dark-graphite">LISA ANDERSON</span>
+                        </div>
+                        <span class="text-xs font-semibold text-steel-blue uppercase">TEAM LEAD</span>
+                    </div>
+                    <div class="flex items-center">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-3.jpg" class="w-8 h-8 rounded-full mr-3">
+                        <span class="font-medium text-dark-graphite">KEVIN WHITE</span>
+                    </div>
+                    <div class="flex items-center">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" class="w-8 h-8 rounded-full mr-3">
+                        <span class="font-medium text-dark-graphite">MARK GARCIA</span>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500 font-medium uppercase">TODAY'S PROGRESS</span>
+                        <span class="font-semibold text-dark-graphite">6/6 TASKS</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Overview -->
+        <div id="schedule-section" class="bg-white control-panel-shadow rounded-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="font-heading font-bold text-xl text-dark-graphite uppercase">WEEKLY SCHEDULE</h2>
+                <div class="flex space-x-2">
+                    <button class="bg-steel-blue text-white px-4 py-2 rounded font-semibold text-sm uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-chevron-left mr-2"></i>
+                        PREV WEEK
+                    </button>
+                    <button class="bg-steel-blue text-white px-4 py-2 rounded font-semibold text-sm uppercase tracking-wide metallic-shine transition-all">
+                        NEXT WEEK
+                        <i class="fa-solid fa-chevron-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b-2 border-gray-200">
+                            <th class="text-left py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">TEAM</th>
+                            <th class="text-center py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">MON</th>
+                            <th class="text-center py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">TUE</th>
+                            <th class="text-center py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">WED</th>
+                            <th class="text-center py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">THU</th>
+                            <th class="text-center py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">FRI</th>
+                            <th class="text-center py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">SAT</th>
+                            <th class="text-center py-4 px-4 font-heading font-semibold text-sm text-gray-600 uppercase tracking-wide">SUN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-gray-100">
+                            <td class="py-4 px-4">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-steel-blue rounded mr-3 flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">Α</span>
+                                    </div>
+                                    <span class="font-semibold text-dark-graphite">ALPHA</span>
+                                </div>
+                            </td>
+                            <td class="text-center py-4 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">06-14</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">06-14</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">06-14</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">06-14</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">06-14</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                        </tr>
+                        <tr class="border-b border-gray-100">
+                            <td class="py-4 px-4">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-warning-orange rounded mr-3 flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">Β</span>
+                                    </div>
+                                    <span class="font-semibold text-dark-graphite">BRAVO</span>
+                                </div>
+                            </td>
+                            <td class="text-center py-4 px-4"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">14-22</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">14-22</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">14-22</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">14-22</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">14-22</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                        </tr>
+                        <tr class="border-b border-gray-100">
+                            <td class="py-4 px-4">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-dark-graphite rounded mr-3 flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">Γ</span>
+                                    </div>
+                                    <span class="font-semibold text-dark-graphite">CHARLIE</span>
+                                </div>
+                            </td>
+                            <td class="text-center py-4 px-4"><span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">22-06</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">22-06</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">22-06</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">22-06</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">22-06</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-4 px-4">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-industrial-silver rounded mr-3 flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">Δ</span>
+                                    </div>
+                                    <span class="font-semibold text-dark-graphite">DELTA</span>
+                                </div>
+                            </td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">OFF</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">08-16</span></td>
+                            <td class="text-center py-4 px-4"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">08-16</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body></html>

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Scan History - Cleaner Interface{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="heading-font font-bold text-3xl text-dark-graphite uppercase tracking-wider">
+                        <i class="fa-solid fa-history mr-3"></i>
+                        Scan History
+                    </h1>
+                    <p class="text-gray-600 mt-2">View your recent scanning activities</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="{% url 'scans:scan' %}" 
+                       class="px-6 py-3 bg-steel-blue text-white rounded font-bold uppercase tracking-wider hover:bg-steel-blue-dark transition-all duration-200">
+                        <i class="fa-solid fa-qrcode mr-2"></i>
+                        Back to Scanner
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan History -->
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
+                    <i class="fa-solid fa-list mr-2"></i>
+                    Your Scan History
+                </h2>
+            </div>
+            <div class="p-6">
+                {% if scan_history %}
+                    <div class="space-y-4">
+                        {% for scan in scan_history %}
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors duration-200">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-steel-blue rounded-full flex items-center justify-center">
+                                        <i class="fa-solid fa-check text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-dark-graphite">{{ scan.room.name }}</h3>
+                                        <p class="text-sm text-gray-600">
+                                            <i class="fa-solid fa-building mr-1"></i>
+                                            {{ scan.room.floor.building.name }}, {{ scan.room.floor.building.compound.name }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            <i class="fa-solid fa-map-marker-alt mr-1"></i>
+                                            Floor {{ scan.room.floor.code }}, Room {{ scan.room.code }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="flex items-center space-x-2 mb-1">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                            {% if scan.scan_type == 'CHECK_IN' %}bg-green-100 text-green-800
+                                            {% elif scan.scan_type == 'CHECK_OUT' %}bg-blue-100 text-blue-800
+                                            {% elif scan.scan_type == 'RE_CLEAN' %}bg-yellow-100 text-yellow-800
+                                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            <i class="fa-solid fa-{% if scan.scan_type == 'CHECK_IN' %}sign-in-alt{% elif scan.scan_type == 'CHECK_OUT' %}sign-out-alt{% else %}redo{% endif %} mr-1"></i>
+                                            {{ scan.get_scan_type_display }}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-900">{{ scan.timestamp|date:"M d, Y" }}</p>
+                                    <p class="text-xs text-gray-500">{{ scan.timestamp|date:"g:i A" }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <i class="fa-solid fa-history text-gray-300 text-6xl mb-4"></i>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">No Scan History</h3>
+                        <p class="text-gray-600 mb-6">You haven't scanned any rooms yet.</p>
+                        <a href="{% url 'scans:scan' %}" 
+                           class="inline-flex items-center px-6 py-3 bg-steel-blue text-white rounded-lg font-medium hover:bg-steel-blue-dark transition-all duration-200">
+                            <i class="fa-solid fa-qrcode mr-2"></i>
+                            Start Scanning
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
