@@ -180,21 +180,23 @@ class Shift(models.Model):
 class Route(models.Model):
     """
     Routes assign teams to compounds for specific shifts.
+    One team can handle multiple compounds per shift.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='routes')
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='routes')
-    compound = models.ForeignKey('locations.Compound', on_delete=models.CASCADE, related_name='routes')
+    compounds = models.ManyToManyField('locations.Compound', related_name='routes', help_text="Compounds assigned to this route")
     priority = models.IntegerField(default=1, help_text="Route priority (higher number = higher priority)")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['team', 'shift', 'compound']
+        unique_together = ['team', 'shift']
         verbose_name = "Route"
         verbose_name_plural = "Routes"
         ordering = ['-priority', 'team__name']
 
     def __str__(self):
-        return f"{self.team.name} → {self.compound.name} ({self.shift.name})"
+        compound_names = ", ".join([c.name for c in self.compounds.all()])
+        return f"{self.team.name} → {compound_names} ({self.shift.name})"

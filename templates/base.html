@@ -127,22 +127,48 @@
         
         {% if user.is_authenticated %}
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
-            <a href="{% url 'accounts:team_list' %}" class="px-4 py-3 flex items-center {% if 'team' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
-                <i class="fa-solid fa-user-friends mr-3 {% if 'team' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                <span class="{% if 'team' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Team Management</span>
-            </a>
             <div class="relative">
-                <a href="{% url 'locations:location_list' %}" class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+                <div class="px-4 py-3 flex items-center {% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleTeamMenu()">
+                    <i class="fa-solid fa-user-friends mr-3 {% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                    <span class="{% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Team Management</span>
+                    <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400" id="team-chevron"></i>
+                </div>
+                <!-- Team Management Sub-menu -->
+                <div id="team-submenu" class="ml-8 mt-2 space-y-1 {% if 'team' not in request.resolver_match.url_name and 'shift' not in request.resolver_match.url_name %}hidden{% endif %}">
+                    <a href="{% url 'accounts:team_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'team_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-list mr-3 text-xs"></i>
+                        <span class="text-xs">List Teams</span>
+                    </a>
+                    <a href="{% url 'accounts:shift_list' %}" class="px-4 py-2 flex items-center {% if 'shift' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-clock mr-3 text-xs"></i>
+                        <span class="text-xs">Shifts</span>
+                    </a>
+                    <a href="{% url 'accounts:route_list' %}" class="px-4 py-2 flex items-center {% if 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-route mr-3 text-xs"></i>
+                        <span class="text-xs">Route Assignment</span>
+                    </a>
+                                            <a href="{% url 'accounts:task_generation_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_generation' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                            <i class="fa-solid fa-tasks mr-3 text-xs"></i>
+                            <span class="text-xs">Task Generation</span>
+                        </a>
+                        <a href="{% url 'accounts:task_assignment_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                            <i class="fa-solid fa-route mr-3 text-xs"></i>
+                            <span class="text-xs">Task Assignment</span>
+                        </a>
+                        <a href="{% url 'accounts:task_list' %}" class="px-4 py-2 flex items-center {% if 'task_list' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                            <i class="fa-solid fa-list-check mr-3 text-xs"></i>
+                            <span class="text-xs">All Tasks</span>
+                        </a>
+                </div>
+            </div>
+            <div class="relative">
+                <div class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleLocationMenu()">
                     <i class="fa-solid fa-map-marker-alt mr-3 {% if 'location' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
                     <span class="{% if 'location' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Location Management</span>
-                    <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400"></i>
-                </a>
+                    <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400" id="location-chevron"></i>
+                </div>
                 <!-- Sub-menu -->
-                <div class="ml-8 mt-2 space-y-1">
-                    <a href="{% url 'locations:location_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'location_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                        <i class="fa-solid fa-door-open mr-3 text-xs"></i>
-                        <span class="text-xs">Rooms</span>
-                    </a>
+                <div id="location-submenu" class="ml-8 mt-2 space-y-1 {% if 'location' not in request.resolver_match.url_name %}hidden{% endif %}">
                     <a href="{% url 'locations:camp_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'camp_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-building mr-3 text-xs"></i>
                         <span class="text-xs">Camps</span>
@@ -150,6 +176,10 @@
                     <a href="{% url 'locations:compound_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'compound_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-map-marker-alt mr-3 text-xs"></i>
                         <span class="text-xs">Compounds</span>
+                    </a>
+                    <a href="{% url 'locations:location_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'location_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-door-open mr-3 text-xs"></i>
+                        <span class="text-xs">Rooms</span>
                     </a>
                 </div>
             </div>
@@ -187,7 +217,7 @@
             </div>
             <!-- Settings Sub-menu -->
             <div id="settings-submenu" class="ml-8 mt-2 space-y-1 hidden">
-                {% if user.is_authenticated and user.profile.role in 'admin,supervisor,manager' %}
+                    {% if user.is_authenticated and user.profile.role in 'admin,supervisor,manager' %}
                 <a href="{% url 'accounts:user_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'user_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                     <i class="fa-solid fa-users mr-3 text-xs"></i>
                     <span class="text-xs">User Management</span>
@@ -196,12 +226,6 @@
                     {% else %}
                         <span class="ml-auto text-xs text-gray-400">(View Only)</span>
                     {% endif %}
-                </a>
-                {% endif %}
-                {% if user.is_authenticated and user.profile.role == 'admin' %}
-                <a href="{% url 'accounts:compound_assignment_list' %}" class="px-4 py-2 flex items-center {% if 'compound-assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                    <i class="fa-solid fa-building mr-3 text-xs"></i>
-                    <span class="text-xs">Compound Assignments</span>
                 </a>
                 {% endif %}
                 <a href="{% url 'accounts:user_list' %}" class="px-4 py-2 flex items-center hover:bg-gray-700 cursor-pointer transition-colors rounded">
@@ -361,6 +385,38 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleSettingsMenu() {
     const submenu = document.getElementById('settings-submenu');
     const chevron = document.getElementById('settings-chevron');
+    
+    if (submenu.classList.contains('hidden')) {
+        submenu.classList.remove('hidden');
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-up');
+    } else {
+        submenu.classList.add('hidden');
+        chevron.classList.remove('fa-chevron-up');
+        chevron.classList.add('fa-chevron-down');
+    }
+}
+
+// Team menu toggle function
+function toggleTeamMenu() {
+    const submenu = document.getElementById('team-submenu');
+    const chevron = document.getElementById('team-chevron');
+    
+    if (submenu.classList.contains('hidden')) {
+        submenu.classList.remove('hidden');
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-up');
+    } else {
+        submenu.classList.add('hidden');
+        chevron.classList.remove('fa-chevron-up');
+        chevron.classList.add('fa-chevron-down');
+    }
+}
+
+// Location menu toggle function
+function toggleLocationMenu() {
+    const submenu = document.getElementById('location-submenu');
+    const chevron = document.getElementById('location-chevron');
     
     if (submenu.classList.contains('hidden')) {
         submenu.classList.remove('hidden');

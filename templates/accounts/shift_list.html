@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Shift Management{% endblock %}
+{% block page_title %}SHIFT MANAGEMENT{% endblock %}
+{% block page_subtitle %}Manage cleaning shifts and schedules{% endblock %}
+
+{% block content %}
+<!-- Filter and Search Section -->
+<div id="filter-section" class="p-6 border-b border-gray-300 bg-white">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <label class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Filter by Status:</label>
+                <form method="get" class="flex items-center space-x-4">
+                    <select name="active" class="bg-white border border-industrial-gray rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                        <option value="">All Shifts</option>
+                        <option value="true" {% if active_filter == 'true' %}selected{% endif %}>Active Only</option>
+                        <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Inactive Only</option>
+                    </select>
+                    <input type="text" name="search" placeholder="Search shifts..." class="bg-white border border-industrial-gray rounded pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-steel-blue w-64" value="{{ search_query }}">
+                    <button type="submit" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                        <i class="fa-solid fa-search"></i>
+                        <span>Search</span>
+                    </button>
+                    <a href="{% url 'accounts:shift_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                        <i class="fa-solid fa-times"></i>
+                        <span>Clear</span>
+                    </a>
+                </form>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'accounts:shift_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Shift</span>
+            </a>
+            <button class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                <i class="fa-solid fa-download"></i>
+                <span>Export</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="p-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <!-- Total Shifts Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Total Shifts</p>
+                    <p class="text-2xl font-bold text-charcoal-black">{{ total_shifts }}</p>
+                </div>
+                <div class="w-12 h-12 bg-steel-blue bg-opacity-10 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-clock text-steel-blue text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Shifts Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark-graphite uppercase tracking-wide">Active Shifts</p>
+                    <p class="text-2xl font-bold text-charcoal-black">{{ active_shifts }}</p>
+                </div>
+                <div class="w-12 h-12 bg-safety-green bg-opacity-10 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-check-circle text-safety-green text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shifts Table -->
+<div class="px-6 pb-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Shifts</h3>
+        </div>
+        <div class="overflow-x-auto">
+            {% if shifts %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Camp</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Start Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">End Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Duration</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Routes</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for shift in shifts %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="{% url 'accounts:shift_view' shift.id %}" class="text-steel-blue hover:text-steel-blue-dark font-medium">
+                                    {{ shift.name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-dark-graphite">
+                                {{ shift.camp.name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-dark-graphite">
+                                {{ shift.start_time|time:"H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-dark-graphite">
+                                {{ shift.end_time|time:"H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-dark-graphite">
+                                {% if shift.duration_display %}
+                                    {{ shift.duration_display }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if shift.is_active %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-safety-green bg-opacity-10 text-safety-green">
+                                        <i class="fa-solid fa-check-circle mr-1"></i>
+                                        Active
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-industrial-gray bg-opacity-10 text-dark-graphite">
+                                        <i class="fa-solid fa-pause-circle mr-1"></i>
+                                        Inactive
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-steel-blue bg-opacity-10 text-steel-blue">
+                                    {{ shift.routes.count }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex items-center space-x-2">
+                                    <a href="{% url 'accounts:shift_view' shift.id %}" 
+                                       class="text-steel-blue hover:text-steel-blue-dark" title="View">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'accounts:shift_update' shift.id %}" 
+                                       class="text-amber-600 hover:text-amber-700" title="Edit">
+                                        <i class="fa-solid fa-edit"></i>
+                                    </a>
+                                    {% if shift.is_active %}
+                                        <a href="{% url 'accounts:shift_deactivate' shift.id %}" 
+                                           class="text-red-600 hover:text-red-700" title="Deactivate">
+                                            <i class="fa-solid fa-pause"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'accounts:shift_activate' shift.id %}" 
+                                           class="text-safety-green hover:text-safety-green-dark" title="Activate">
+                                            <i class="fa-solid fa-play"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if shifts.has_other_pages %}
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-dark-graphite">
+                            Showing page {{ shifts.number }} of {{ shifts.paginator.num_pages }}
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            {% if shifts.has_previous %}
+                                <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}" 
+                                   class="px-3 py-2 text-sm font-medium text-dark-graphite bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    First
+                                </a>
+                                <a href="?page={{ shifts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}" 
+                                   class="px-3 py-2 text-sm font-medium text-dark-graphite bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Previous
+                                </a>
+                            {% endif %}
+                            
+                            {% if shifts.has_next %}
+                                <a href="?page={{ shifts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}" 
+                                   class="px-3 py-2 text-sm font-medium text-dark-graphite bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Next
+                                </a>
+                                <a href="?page={{ shifts.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}" 
+                                   class="px-3 py-2 text-sm font-medium text-dark-graphite bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Last
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 bg-industrial-gray bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-clock text-industrial-gray text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-dark-graphite mb-2">No shifts found</h3>
+                    <p class="text-sm text-gray-500 mb-6">
+                        {% if search_query or active_filter %}
+                            Try adjusting your search criteria.
+                        {% else %}
+                            Get started by creating your first shift.
+                        {% endif %}
+                    </p>
+                    {% if not search_query and not active_filter %}
+                        <a href="{% url 'accounts:shift_create' %}" 
+                           class="inline-flex items-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark">
+                            <i class="fa-solid fa-plus mr-2"></i>
+                            Create First Shift
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

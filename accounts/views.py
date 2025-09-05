@@ -16,7 +16,7 @@ import time
 from .models import UserProfile, Team, Shift, Route, CompoundAssignment
 from .forms import (
     UserCreateForm, UserUpdateForm, TeamCreateForm, TeamUpdateForm,
-    ShiftCreateForm, RouteCreateForm, CompoundAssignmentForm
+    ShiftCreateForm, ShiftUpdateForm, RouteCreateForm, RouteUpdateForm, CompoundAssignmentForm
 )
 from locations.models import Camp, Compound
 from audit.models import AuditLog
@@ -561,16 +561,74 @@ def team_list(request):
             Q(camp__name__icontains=search_query)
         )
     
+    # Filter by camp if specified
+    camp_filter = request.GET.get('camp')
+    if camp_filter:
+        teams = teams.filter(camp_id=camp_filter)
+    
     # Pagination
     paginator = Paginator(teams, 20)
     page_number = request.GET.get('page')
     teams = paginator.get_page(page_number)
     
+    # Calculate statistics
+    all_teams = Team.objects.all()
+    total_teams = all_teams.count()
+    active_teams = all_teams.filter(is_active=True).count()
+    total_members = sum(team.members.count() for team in all_teams)
+    avg_team_size = total_members / total_teams if total_teams > 0 else 0
+    
+    # Get available camps for filter
+    from locations.models import Camp
+    camps = Camp.objects.filter(is_active=True)
+    
     context = {
         'teams': teams,
         'search_query': search_query,
+        'current_camp': camp_filter,
+        'camps': camps,
+        'stats': {
+            'total_teams': total_teams,
+            'active_teams': active_teams,
+            'total_members': total_members,
+            'avg_team_size': avg_team_size,
+        }
     }
     return render(request, 'accounts/team_list.html', context)
+
+
+@login_required
+def team_view(request, team_id):
+    """View team details."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    try:
+        team = Team.objects.select_related('camp', 'team_leader').prefetch_related('members', 'routes__compounds', 'routes__shift').get(id=team_id)
+    except Team.DoesNotExist:
+        messages.error(request, 'Team not found.')
+        return redirect('accounts:team_list')
+    
+    # Log audit event
+    log_audit_event(
+        request, 
+        'TEAM_VIEWED', 
+        object_ref=f'Team:{team.id}',
+        details={
+            'team_name': team.name,
+            'camp': team.camp.name if team.camp else None,
+            'team_leader': team.team_leader.username
+        }
+    )
+    
+    # Calculate active members count
+    active_members_count = team.members.filter(is_active=True, profile__is_active=True).count()
+    
+    context = {
+        'team': team,
+        'active_members_count': active_members_count
+    }
+    return render(request, 'accounts/team_view.html', context)
 
 
 @login_required
@@ -584,12 +642,26 @@ def team_create(request):
         if form.is_valid():
             team = form.save()
             messages.success(request, f'Team {team.name} created successfully.')
+            
+            # Log audit event
+            log_audit_event(
+                request, 
+                'TEAM_CREATED', 
+                object_ref=f'Team:{team.id}',
+                details={
+                    'team_name': team.name,
+                    'camp': team.camp.name if team.camp else None,
+                    'team_leader': team.team_leader.username,
+                    'member_count': team.members.count()
+                }
+            )
+            
             return redirect('accounts:team_list')
     else:
         form = TeamCreateForm(request=request)
     
     context = {'form': form}
-    return render(request, 'accounts/team_form.html', context)
+    return render(request, 'accounts/team_create.html', context)
 
 
 @login_required
@@ -601,16 +673,37 @@ def team_update(request, team_id):
     team = get_object_or_404(Team, id=team_id)
     
     if request.method == 'POST':
-        form = TeamUpdateForm(request.POST, instance=team)
+        form = TeamUpdateForm(request.POST, instance=team, request=request)
         if form.is_valid():
             form.save()
             messages.success(request, f'Team {team.name} updated successfully.')
+            
+            # Log audit event
+            log_audit_event(
+                request, 
+                'TEAM_UPDATED', 
+                object_ref=f'Team:{team.id}',
+                details={
+                    'team_name': team.name,
+                    'camp': team.camp.name if team.camp else None,
+                    'team_leader': team.team_leader.username,
+                    'member_count': team.members.count()
+                }
+            )
+            
             return redirect('accounts:team_list')
     else:
-        form = TeamUpdateForm(instance=team)
+        form = TeamUpdateForm(instance=team, request=request)
     
-    context = {'form': form, 'team': team}
-    return render(request, 'accounts/team_form.html', context)
+    # Get current member IDs for template
+    current_member_ids = list(team.members.values_list('id', flat=True))
+    
+    context = {
+        'form': form, 
+        'team': team,
+        'current_member_ids': current_member_ids
+    }
+    return render(request, 'accounts/team_update.html', context)
 
 
 @login_required
@@ -625,9 +718,56 @@ def team_delete(request, team_id):
         team.is_active = False
         team.save()
         messages.success(request, f'Team {team.name} deactivated successfully.')
+        
+        # Log audit event
+        log_audit_event(
+            request, 
+            'TEAM_DEACTIVATED', 
+            object_ref=f'Team:{team.id}',
+            details={
+                'team_name': team.name,
+                'camp': team.camp.name if team.camp else None,
+                'team_leader': team.team_leader.username,
+                'member_count': team.members.count(),
+                'route_count': team.routes.count()
+            }
+        )
+        
         return redirect('accounts:team_list')
     
     context = {'team': team}
+    return render(request, 'accounts/team_confirm_delete.html', context)
+
+
+@login_required
+def team_activate(request, team_id):
+    """Activate a team (reactivate)."""
+    if not check_permission(request, ['admin']):
+        return redirect('accounts:login')
+    
+    team = get_object_or_404(Team, id=team_id)
+    
+    if request.method == 'POST':
+        team.is_active = True
+        team.save()
+        messages.success(request, f'Team {team.name} activated successfully.')
+        
+        # Log audit event
+        log_audit_event(
+            request, 
+            'TEAM_ACTIVATED', 
+            object_ref=f'Team:{team.id}',
+            details={
+                'team_name': team.name,
+                'camp': team.camp.name if team.camp else None,
+                'team_leader': team.team_leader.username,
+                'member_count': team.members.count()
+            }
+        )
+        
+        return redirect('accounts:team_list')
+    
+    context = {'team': team, 'action': 'activate'}
     return render(request, 'accounts/team_confirm_delete.html', context)
 
 
@@ -677,7 +817,7 @@ def route_list(request):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    routes = Route.objects.select_related('team', 'shift', 'compound').all()
+    routes = Route.objects.select_related('team', 'shift', 'team__camp', 'shift__camp').prefetch_related('compounds__camp').all()
     
     # Filter by camp if manager
     user_role = get_user_role(request)
@@ -686,8 +826,61 @@ def route_list(request):
         if camp:
             routes = routes.filter(team__camp=camp)
     
-    context = {'routes': routes}
+    # Calculate statistics
+    active_routes_count = routes.filter(is_active=True).count()
+    teams_with_routes_count = routes.filter(is_active=True).values('team').distinct().count()
+    # Count unique compounds across all active routes
+    active_routes = routes.filter(is_active=True)
+    compound_ids = set()
+    for route in active_routes:
+        compound_ids.update(route.compounds.values_list('id', flat=True))
+    compounds_covered_count = len(compound_ids)
+    
+    context = {
+        'routes': routes,
+        'active_routes_count': active_routes_count,
+        'teams_with_routes_count': teams_with_routes_count,
+        'compounds_covered_count': compounds_covered_count
+    }
     return render(request, 'accounts/route_list.html', context)
+
+
+@login_required
+def route_view(request, route_id):
+    """View route details."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    try:
+        route = Route.objects.select_related('team', 'shift', 'team__camp', 'shift__camp').prefetch_related('team__members', 'compounds__camp').get(id=route_id)
+    except Route.DoesNotExist:
+        messages.error(request, 'Route not found.')
+        return redirect('accounts:route_list')
+    
+    # Check camp access for managers
+    user_role = get_user_role(request)
+    if user_role == 'manager' and hasattr(request.user, 'profile'):
+        camp = request.user.profile.camp
+        if camp and route.team.camp != camp:
+            messages.error(request, 'You do not have permission to view this route.')
+            return redirect('accounts:route_list')
+    
+    # Log audit event
+    compound_names = ", ".join([c.name for c in route.compounds.all()])
+    log_audit_event(
+        request, 
+        'ROUTE_VIEWED', 
+        object_ref=f'Route:{route.id}',
+        details={
+            'team_name': route.team.name,
+            'shift_name': route.shift.name,
+            'compound_names': compound_names,
+            'priority': route.priority
+        }
+    )
+    
+    context = {'route': route}
+    return render(request, 'accounts/route_view.html', context)
 
 
 @login_required
@@ -700,13 +893,164 @@ def route_create(request):
         form = RouteCreateForm(request.POST, request=request)
         if form.is_valid():
             route = form.save()
+            
+            # Log audit event
+            compound_names = ", ".join([c.name for c in route.compounds.all()])
+            log_audit_event(
+                request, 
+                'ROUTE_CREATED', 
+                object_ref=f'Route:{route.id}',
+                details={
+                    'team_name': route.team.name,
+                    'shift_name': route.shift.name,
+                    'compound_names': compound_names,
+                    'priority': route.priority
+                }
+            )
+            
             messages.success(request, f'Route created successfully.')
-            return redirect('accounts:route_list')
+            return redirect('accounts:route_view', route_id=route.id)
     else:
         form = RouteCreateForm(request=request)
     
     context = {'form': form}
     return render(request, 'accounts/route_form.html', context)
+
+
+@login_required
+def route_update(request, route_id):
+    """Update a route."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    try:
+        route = Route.objects.get(id=route_id)
+    except Route.DoesNotExist:
+        messages.error(request, 'Route not found.')
+        return redirect('accounts:route_list')
+    
+    # Check camp access for managers
+    user_role = get_user_role(request)
+    if user_role == 'manager' and hasattr(request.user, 'profile'):
+        camp = request.user.profile.camp
+        if camp and route.team.camp != camp:
+            messages.error(request, 'You do not have permission to edit this route.')
+            return redirect('accounts:route_list')
+    
+    if request.method == 'POST':
+        form = RouteUpdateForm(request.POST, instance=route, request=request)
+        if form.is_valid():
+            route = form.save()
+            
+            # Log audit event
+            compound_names = ", ".join([c.name for c in route.compounds.all()])
+            log_audit_event(
+                request, 
+                'ROUTE_UPDATED', 
+                object_ref=f'Route:{route.id}',
+                details={
+                    'team_name': route.team.name,
+                    'shift_name': route.shift.name,
+                    'compound_names': compound_names,
+                    'priority': route.priority
+                }
+            )
+            
+            messages.success(request, f'Route updated successfully.')
+            return redirect('accounts:route_view', route_id=route.id)
+    else:
+        form = RouteUpdateForm(instance=route, request=request)
+    
+    context = {'form': form, 'route': route}
+    return render(request, 'accounts/route_form.html', context)
+
+
+@login_required
+def route_deactivate(request, route_id):
+    """Deactivate a route."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    try:
+        route = Route.objects.get(id=route_id)
+    except Route.DoesNotExist:
+        messages.error(request, 'Route not found.')
+        return redirect('accounts:route_list')
+    
+    # Check camp access for managers
+    user_role = get_user_role(request)
+    if user_role == 'manager' and hasattr(request.user, 'profile'):
+        camp = request.user.profile.camp
+        if camp and route.team.camp != camp:
+            messages.error(request, 'You do not have permission to modify this route.')
+            return redirect('accounts:route_list')
+    
+    if request.method == 'POST':
+        route.is_active = False
+        route.save()
+        
+        # Log audit event
+        compound_names = ", ".join([c.name for c in route.compounds.all()])
+        log_audit_event(
+            request, 
+            'ROUTE_DEACTIVATED', 
+            object_ref=f'Route:{route.id}',
+            details={
+                'team_name': route.team.name,
+                'shift_name': route.shift.name,
+                'compound_names': compound_names
+            }
+        )
+        
+        messages.success(request, f'Route deactivated successfully.')
+        return redirect('accounts:route_view', route_id=route.id)
+    
+    context = {'route': route, 'action': 'deactivate'}
+    return render(request, 'accounts/route_confirm_delete.html', context)
+
+
+@login_required
+def route_activate(request, route_id):
+    """Activate a route."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    try:
+        route = Route.objects.get(id=route_id)
+    except Route.DoesNotExist:
+        messages.error(request, 'Route not found.')
+        return redirect('accounts:route_list')
+    
+    # Check camp access for managers
+    user_role = get_user_role(request)
+    if user_role == 'manager' and hasattr(request.user, 'profile'):
+        camp = request.user.profile.camp
+        if camp and route.team.camp != camp:
+            messages.error(request, 'You do not have permission to modify this route.')
+            return redirect('accounts:route_list')
+    
+    if request.method == 'POST':
+        route.is_active = True
+        route.save()
+        
+        # Log audit event
+        compound_names = ", ".join([c.name for c in route.compounds.all()])
+        log_audit_event(
+            request, 
+            'ROUTE_ACTIVATED', 
+            object_ref=f'Route:{route.id}',
+            details={
+                'team_name': route.team.name,
+                'shift_name': route.shift.name,
+                'compound_names': compound_names
+            }
+        )
+        
+        messages.success(request, f'Route activated successfully.')
+        return redirect('accounts:route_view', route_id=route.id)
+    
+    context = {'route': route, 'action': 'activate'}
+    return render(request, 'accounts/route_confirm_delete.html', context)
 
 
 # Compound Assignment Views
@@ -741,3 +1085,251 @@ def compound_assignment_create(request):
     
     context = {'form': form}
     return render(request, 'accounts/compound_assignment_form.html', context)
+
+
+# Shift Management Views
+
+@login_required
+def shift_list(request):
+    """List all shifts with filtering and search."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    shifts = Shift.objects.select_related('camp').all()
+    
+    # Filter by camp for managers
+    if request.user.profile.role == 'manager':
+        camp = request.user.profile.camp
+        if camp:
+            shifts = shifts.filter(camp=camp)
+    
+    # Search functionality
+    search_query = request.GET.get('search', '')
+    if search_query:
+        shifts = shifts.filter(
+            Q(name__icontains=search_query) |
+            Q(camp__name__icontains=search_query)
+        )
+    
+    # Filter by active status
+    active_filter = request.GET.get('active', '')
+    if active_filter == 'true':
+        shifts = shifts.filter(is_active=True)
+    elif active_filter == 'false':
+        shifts = shifts.filter(is_active=False)
+    
+    # Add duration calculation to each shift
+    for shift in shifts:
+        if shift.start_time and shift.end_time:
+            if shift.end_time > shift.start_time:
+                # Regular shift (same day)
+                start_minutes = shift.start_time.hour * 60 + shift.start_time.minute
+                end_minutes = shift.end_time.hour * 60 + shift.end_time.minute
+                duration_minutes = end_minutes - start_minutes
+                duration_hours = duration_minutes / 60
+                shift.duration_display = f"{duration_hours:.1f} hours"
+            else:
+                # Overnight shift
+                shift.duration_display = "Overnight Shift"
+        else:
+            shift.duration_display = None
+    
+    # Pagination
+    paginator = Paginator(shifts, 20)
+    page_number = request.GET.get('page')
+    shifts = paginator.get_page(page_number)
+    
+    # Statistics
+    total_shifts = Shift.objects.count()
+    active_shifts = Shift.objects.filter(is_active=True).count()
+    
+    context = {
+        'shifts': shifts,
+        'search_query': search_query,
+        'active_filter': active_filter,
+        'total_shifts': total_shifts,
+        'active_shifts': active_shifts,
+    }
+    return render(request, 'accounts/shift_list.html', context)
+
+
+@login_required
+def shift_view(request, shift_id):
+    """View detailed information about a specific shift."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    shift = get_object_or_404(Shift, id=shift_id)
+    
+    # Check camp access for managers
+    if request.user.profile.role == 'manager':
+        camp = request.user.profile.camp
+        if camp and shift.camp != camp:
+            messages.error(request, 'You do not have permission to view this shift.')
+            return redirect('accounts:shift_list')
+    
+    # Calculate duration for display
+    if shift.start_time and shift.end_time:
+        if shift.end_time > shift.start_time:
+            # Regular shift (same day)
+            start_minutes = shift.start_time.hour * 60 + shift.start_time.minute
+            end_minutes = shift.end_time.hour * 60 + shift.end_time.minute
+            duration_minutes = end_minutes - start_minutes
+            duration_hours = duration_minutes / 60
+            shift.duration_display = f"{duration_hours:.1f} hours"
+        else:
+            # Overnight shift
+            shift.duration_display = "Overnight Shift"
+    else:
+        shift.duration_display = None
+    
+    # Get routes using this shift
+    routes = shift.routes.select_related('team').prefetch_related('compounds__camp').all()
+    
+    # Log audit event
+    log_audit_event(
+        request,
+        'SHIFT_VIEWED',
+        object_ref=f'shift:{shift.id}',
+        details=f'Viewed shift: {shift.name}'
+    )
+    
+    context = {
+        'shift': shift,
+        'routes': routes,
+        'routes_count': routes.count(),
+    }
+    return render(request, 'accounts/shift_view.html', context)
+
+
+@login_required
+def shift_create(request):
+    """Create a new shift."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    if request.method == 'POST':
+        form = ShiftCreateForm(request.POST, request=request)
+        if form.is_valid():
+            shift = form.save()
+            
+            # Log audit event
+            log_audit_event(
+                request,
+                'SHIFT_CREATED',
+                object_ref=f'shift:{shift.id}',
+                details=f'Created shift: {shift.name}'
+            )
+            
+            messages.success(request, f'Shift "{shift.name}" created successfully.')
+            return redirect('accounts:shift_view', shift_id=shift.id)
+    else:
+        form = ShiftCreateForm(request=request)
+    
+    context = {'form': form}
+    return render(request, 'accounts/shift_form.html', context)
+
+
+@login_required
+def shift_update(request, shift_id):
+    """Update an existing shift."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    shift = get_object_or_404(Shift, id=shift_id)
+    
+    # Check camp access for managers
+    if request.user.profile.role == 'manager':
+        camp = request.user.profile.camp
+        if camp and shift.camp != camp:
+            messages.error(request, 'You do not have permission to edit this shift.')
+            return redirect('accounts:shift_list')
+    
+    if request.method == 'POST':
+        form = ShiftUpdateForm(request.POST, instance=shift, request=request)
+        if form.is_valid():
+            shift = form.save()
+            
+            # Log audit event
+            log_audit_event(
+                request,
+                'SHIFT_UPDATED',
+                object_ref=f'shift:{shift.id}',
+                details=f'Updated shift: {shift.name}'
+            )
+            
+            messages.success(request, f'Shift "{shift.name}" updated successfully.')
+            return redirect('accounts:shift_view', shift_id=shift.id)
+    else:
+        form = ShiftUpdateForm(instance=shift, request=request)
+    
+    context = {'form': form, 'shift': shift}
+    return render(request, 'accounts/shift_form.html', context)
+
+
+@login_required
+def shift_deactivate(request, shift_id):
+    """Deactivate a shift."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    shift = get_object_or_404(Shift, id=shift_id)
+    
+    # Check camp access for managers
+    if request.user.profile.role == 'manager':
+        camp = request.user.profile.camp
+        if camp and shift.camp != camp:
+            messages.error(request, 'You do not have permission to deactivate this shift.')
+            return redirect('accounts:shift_list')
+    
+    if request.method == 'POST':
+        shift.is_active = False
+        shift.save()
+        
+        # Log audit event
+        log_audit_event(
+            request,
+            'SHIFT_DEACTIVATED',
+            object_ref=f'shift:{shift.id}',
+            details=f'Deactivated shift: {shift.name}'
+        )
+        
+        messages.success(request, f'Shift "{shift.name}" has been deactivated.')
+        return redirect('accounts:shift_view', shift_id=shift.id)
+    
+    context = {'shift': shift}
+    return render(request, 'accounts/shift_confirm_deactivate.html', context)
+
+
+@login_required
+def shift_activate(request, shift_id):
+    """Activate a shift."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    shift = get_object_or_404(Shift, id=shift_id)
+    
+    # Check camp access for managers
+    if request.user.profile.role == 'manager':
+        camp = request.user.profile.camp
+        if camp and shift.camp != camp:
+            messages.error(request, 'You do not have permission to activate this shift.')
+            return redirect('accounts:shift_list')
+    
+    if request.method == 'POST':
+        shift.is_active = True
+        shift.save()
+        
+        # Log audit event
+        log_audit_event(
+            request,
+            'SHIFT_ACTIVATED',
+            object_ref=f'shift:{shift.id}',
+            details=f'Activated shift: {shift.name}'
+        )
+        
+        messages.success(request, f'Shift "{shift.name}" has been activated.')
+        return redirect('accounts:shift_view', shift_id=shift.id)
+    
+    context = {'shift': shift}
+    return render(request, 'accounts/shift_confirm_activate.html', context)

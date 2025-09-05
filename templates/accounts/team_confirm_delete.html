@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Confirm Team Deactivation - {{ team.name }}{% endblock %}
+{% block page_title %}CONFIRM TEAM DEACTIVATION{% endblock %}
+{% block page_subtitle %}Deactivate team: {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-2xl mx-auto">
+        <div class="metallic-card rounded-lg p-8 border border-gray-300">
+            <!-- Warning Icon -->
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-exclamation-triangle text-red-600 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-dark-graphite mb-2">Deactivate Team</h3>
+                <p class="text-gray-600">Are you sure you want to deactivate this team?</p>
+            </div>
+
+            <!-- Team Information -->
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <h4 class="font-semibold text-dark-graphite mb-4">Team Details:</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Team Name</label>
+                        <div class="text-sm text-dark-graphite font-medium">{{ team.name }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Camp</label>
+                        <div class="text-sm text-dark-graphite font-medium">{{ team.camp.name }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Team Leader</label>
+                        <div class="text-sm text-dark-graphite font-medium">{{ team.team_leader.get_full_name|default:team.team_leader.username }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Members</label>
+                        <div class="text-sm text-dark-graphite font-medium">{{ team.members.count }} member{{ team.members.count|pluralize }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Impact Information -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <i class="fa-solid fa-info-circle text-yellow-600 mr-3 mt-1"></i>
+                    <div>
+                        <h4 class="font-semibold text-yellow-800 mb-2">What happens when you deactivate a team:</h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• The team will be marked as inactive and won't appear in active team lists</li>
+                            <li>• Team members will be unassigned from the team</li>
+                            <li>• Active routes assigned to this team will be affected</li>
+                            <li>• Team data will be preserved for historical records</li>
+                            <li>• The team can be reactivated later if needed</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Routes Warning -->
+            {% if team.routes.exists %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <i class="fa-solid fa-exclamation-triangle text-red-600 mr-3 mt-1"></i>
+                    <div>
+                        <h4 class="font-semibold text-red-800 mb-2">Warning: Active Routes Found</h4>
+                        <p class="text-sm text-red-700 mb-2">This team currently has {{ team.routes.count }} active route{{ team.routes.count|pluralize }} assigned:</p>
+                        <ul class="text-sm text-red-700 space-y-1">
+                            {% for route in team.routes.all|slice:":3" %}
+                            <li>• {{ route.compound.name }} ({{ route.shift.name }})</li>
+                            {% endfor %}
+                            {% if team.routes.count > 3 %}
+                            <li>• ... and {{ team.routes.count|add:"-3" }} more</li>
+                            {% endif %}
+                        </ul>
+                        <p class="text-sm text-red-700 mt-2 font-medium">These routes will need to be reassigned to other teams.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-300">
+                <a href="{% url 'accounts:team_view' team.id %}" 
+                   class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-gray-400 transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                    Cancel
+                </a>
+                
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="px-6 py-3 bg-red-600 text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-red-700 transition-colors"
+                            onclick="return confirm('Are you absolutely sure you want to deactivate this team? This action will affect {{ team.routes.count }} route{{ team.routes.count|pluralize }} and {{ team.members.count }} member{{ team.members.count|pluralize }}.')">
+                        <i class="fa-solid fa-ban mr-2"></i>
+                        Yes, Deactivate Team
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

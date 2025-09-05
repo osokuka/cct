@@ -5,6 +5,7 @@ Forms for user management in the NATO Camp Cleaning Tracker.
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
+from django.db import models
 from .models import UserProfile, Team, Shift, Route, CompoundAssignment
 from locations.models import Camp, Compound
 
@@ -230,11 +231,11 @@ class TeamCreateForm(forms.ModelForm):
                 profile__is_active=True
             )
             
-            # Filter members to only cleaners
+            # Filter members to only cleaners who are not already assigned to any team
             self.fields['members'].queryset = User.objects.filter(
                 profile__role='cleaner',
                 profile__is_active=True
-            )
+            ).exclude(teams__is_active=True)
 
 
 class TeamUpdateForm(forms.ModelForm):
@@ -248,6 +249,7 @@ class TeamUpdateForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
         # Filter team leaders to only managers and admins
@@ -256,11 +258,20 @@ class TeamUpdateForm(forms.ModelForm):
             profile__is_active=True
         )
         
-        # Filter members to only cleaners
+        # Filter members to only cleaners who are not already assigned to any team
+        # But include current team members so they can be removed if needed
+        current_team_members = []
+        if self.instance and self.instance.pk:
+            current_team_members = list(self.instance.members.values_list('id', flat=True))
+        
         self.fields['members'].queryset = User.objects.filter(
             profile__role='cleaner',
             profile__is_active=True
-        )
+        ).filter(
+            models.Q(teams__isnull=True) |  # No teams assigned
+            models.Q(teams__is_active=False) |  # Only inactive teams
+            models.Q(id__in=current_team_members)  # Current team members
+        ).distinct()
 
 
 class ShiftCreateForm(forms.ModelForm):
@@ -273,6 +284,41 @@ class ShiftCreateForm(forms.ModelForm):
             'start_time': forms.TimeInput(attrs={'type': 'time'}),
             'end_time': forms.TimeInput(attrs={'type': 'time'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.request and hasattr(self.request.user, 'profile'):
+            # Filter by user's camp if not admin
+            if self.request.user.profile.role != 'admin':
+                camp = self.request.user.profile.camp
+                if camp:
+                    self.fields['camp'].queryset = Camp.objects.filter(id=camp.id)
+                    self.fields['camp'].initial = camp
+
+
+class ShiftUpdateForm(forms.ModelForm):
+    """Form for updating shifts."""
+    
+    class Meta:
+        model = Shift
+        fields = ['name', 'camp', 'start_time', 'end_time', 'is_active']
+        widgets = {
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.request and hasattr(self.request.user, 'profile'):
+            # Filter by user's camp if not admin
+            if self.request.user.profile.role != 'admin':
+                camp = self.request.user.profile.camp
+                if camp:
+                    self.fields['camp'].queryset = Camp.objects.filter(id=camp.id)
 
 
 class RouteCreateForm(forms.ModelForm):
@@ -280,7 +326,10 @@ class RouteCreateForm(forms.ModelForm):
     
     class Meta:
         model = Route
-        fields = ['team', 'shift', 'compound', 'priority', 'is_active']
+        fields = ['team', 'shift', 'compounds', 'priority', 'is_active']
+        widgets = {
+            'compounds': forms.CheckboxSelectMultiple(),
+        }
     
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
@@ -293,7 +342,31 @@ class RouteCreateForm(forms.ModelForm):
                 if camp:
                     self.fields['team'].queryset = Team.objects.filter(camp=camp, is_active=True)
                     self.fields['shift'].queryset = Shift.objects.filter(camp=camp, is_active=True)
-                    self.fields['compound'].queryset = Compound.objects.filter(camp=camp, is_active=True)
+                    self.fields['compounds'].queryset = Compound.objects.filter(camp=camp, is_active=True)
+
+
+class RouteUpdateForm(forms.ModelForm):
+    """Form for updating routes."""
+    
+    class Meta:
+        model = Route
+        fields = ['team', 'shift', 'compounds', 'priority', 'is_active']
+        widgets = {
+            'compounds': forms.CheckboxSelectMultiple(),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.request and hasattr(self.request.user, 'profile'):
+            # Filter by user's camp if not admin
+            if self.request.user.profile.role != 'admin':
+                camp = self.request.user.profile.camp
+                if camp:
+                    self.fields['team'].queryset = Team.objects.filter(camp=camp, is_active=True)
+                    self.fields['shift'].queryset = Shift.objects.filter(camp=camp, is_active=True)
+                    self.fields['compounds'].queryset = Compound.objects.filter(camp=camp, is_active=True)
 
 
 class CompoundAssignmentForm(forms.ModelForm):

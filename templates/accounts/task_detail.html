@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Task Details{% endblock %}
+{% block page_title %}TASK DETAILS{% endblock %}
+{% block page_subtitle %}{{ task.room.room_code }} - {{ task.task_date }}{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="p-6 border-b border-gray-300 bg-white">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div>
+                <h1 class="text-2xl font-bold text-charcoal-black">Task Details</h1>
+                <p class="text-dark-graphite mt-1">{{ task.room.room_code }} - {{ task.task_date }}</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'accounts:task_list' %}" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors">
+                <i class="fa-solid fa-arrow-left mr-2"></i>
+                Back to Tasks
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="p-6">
+    <!-- Main Task Details Card -->
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-charcoal-black">Task Details</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Task ID</span>
+                    <div class="mt-1 text-sm text-charcoal-black font-mono">{{ task.id }}</div>
+                </div>
+                
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Task Date</span>
+                    <div class="mt-1 text-sm text-charcoal-black">{{ task.task_date|date:"F d, Y" }}</div>
+                </div>
+                
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Index in Day</span>
+                    <div class="mt-1 text-sm text-charcoal-black">{{ task.index_in_day }}</div>
+                </div>
+                
+                <div>
+                    <span class="text-sm font-medium text-gray-500">SLA Credit</span>
+                    <div class="mt-1 text-sm text-charcoal-black font-semibold">{{ task.sla_credit_sqm }} m²</div>
+                </div>
+                
+                {% if task.is_urgent %}
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Priority</span>
+                    <div class="mt-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i>
+                            Urgent
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Small Cards Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        
+        <!-- Status Card -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-charcoal-black">Status</h3>
+            </div>
+            <div class="p-4">
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">State</span>
+                        <div class="mt-1">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if task.state == 'planned' %}bg-gray-100 text-gray-800
+                                {% elif task.state == 'in_progress' %}bg-blue-100 text-blue-800
+                                {% elif task.state == 'done' %}bg-green-100 text-green-800
+                                {% elif task.state == 'missed' %}bg-red-100 text-red-800
+                                {% elif task.state == 're_clean_required' %}bg-amber-100 text-amber-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ task.get_state_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Type</span>
+                        <div class="mt-1">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if task.task_type == 'regular' %}bg-gray-100 text-gray-800
+                                {% elif task.task_type == 'requested' %}bg-amber-100 text-amber-800
+                                {% elif task.task_type == 'urgent' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ task.get_task_type_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {% if task.is_urgent %}
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Priority</span>
+                        <div class="mt-1">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <i class="fa-solid fa-exclamation-triangle mr-1"></i>
+                                Urgent
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignment Card -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-charcoal-black">Assignment</h3>
+            </div>
+            <div class="p-4">
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Team</span>
+                        <div class="mt-1 text-xs text-charcoal-black">
+                            {% if task.assigned_to_team %}
+                                {{ task.assigned_to_team.name|truncatechars:20 }}
+                            {% else %}
+                                <span class="text-gray-400 italic">Unassigned</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">User</span>
+                        <div class="mt-1 text-xs text-charcoal-black">
+                            {% if task.assigned_to_user %}
+                                {{ task.assigned_to_user.get_full_name|default:task.assigned_to_user.username|truncatechars:20 }}
+                            {% else %}
+                                <span class="text-gray-400 italic">Not assigned</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Shift</span>
+                        <div class="mt-1 text-xs text-charcoal-black">
+                            {% if task.shift %}
+                                {{ task.shift.name|truncatechars:15 }}
+                                <div class="text-xs text-gray-500">{{ task.shift.start_time|time:"H:i" }}-{{ task.shift.end_time|time:"H:i" }}</div>
+                            {% else %}
+                                <span class="text-gray-400 italic">No shift</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Room Information Card -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-charcoal-black">Room Info</h3>
+            </div>
+            <div class="p-4">
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Room Code</span>
+                        <div class="mt-1 text-xs text-charcoal-black font-semibold">{{ task.room.room_code }}</div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Area</span>
+                        <div class="mt-1 text-xs text-charcoal-black">{{ task.room.square_meters }} m²</div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Building</span>
+                        <div class="mt-1 text-xs text-charcoal-black">{{ task.room.building.name|truncatechars:20 }}</div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Compound</span>
+                        <div class="mt-1 text-xs text-charcoal-black">{{ task.room.compound.name|truncatechars:20 }}</div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Camp</span>
+                        <div class="mt-1 text-xs text-charcoal-black">{{ task.room.camp.name|truncatechars:20 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description Card -->
+        {% if task.room.room_description %}
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-charcoal-black">Description</h3>
+            </div>
+            <div class="p-4">
+                <div class="text-xs text-charcoal-black">{{ task.room.room_description|truncatechars:100 }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Notes Card -->
+        {% if task.notes %}
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-charcoal-black">Notes</h3>
+            </div>
+            <div class="p-4">
+                <div class="text-xs text-charcoal-black whitespace-pre-wrap">{{ task.notes|truncatechars:100 }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Timestamps Card -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-charcoal-black">Timestamps</h3>
+            </div>
+            <div class="p-4">
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Created</span>
+                        <div class="mt-1 text-xs text-charcoal-black">{{ task.created_at|date:"M d, H:i" }}</div>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Updated</span>
+                        <div class="mt-1 text-xs text-charcoal-black">{{ task.updated_at|date:"M d, H:i" }}</div>
+                    </div>
+                    
+                    {% if task.completed_at %}
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Completed</span>
+                        <div class="mt-1 text-xs text-charcoal-black">{{ task.completed_at|date:"M d, H:i" }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Section -->
+    <div class="mt-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div class="px-4 py-3 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-charcoal-black">Actions</h3>
+        </div>
+        <div class="p-4">
+            <div class="flex flex-wrap items-center gap-3">
+                {% if task.state == 'planned' or task.state == 'in_progress' %}
+                    <form method="post" action="{% url 'accounts:task_mark_done' task.id %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex items-center px-3 py-2 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors">
+                            <i class="fa-solid fa-check mr-2"></i>
+                            Mark as Done
+                        </button>
+                    </form>
+                {% endif %}
+                
+                {% if task.state == 'done' %}
+                    <span class="inline-flex items-center px-3 py-2 bg-green-100 text-green-800 text-xs font-medium rounded-md">
+                        <i class="fa-solid fa-check mr-2"></i>
+                        Completed
+                    </span>
+                {% endif %}
+                
+                {% if task.state == 'missed' %}
+                    <span class="inline-flex items-center px-3 py-2 bg-red-100 text-red-800 text-xs font-medium rounded-md">
+                        <i class="fa-solid fa-times mr-2"></i>
+                        Missed
+                    </span>
+                {% endif %}
+                
+                <a href="{% url 'accounts:task_list' %}" class="inline-flex items-center px-3 py-2 bg-gray-600 text-white text-xs font-medium rounded-md hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-list mr-2"></i>
+                    View All Tasks
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

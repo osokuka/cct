@@ -1,0 +1,832 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Task Assignment Dashboard{% endblock %}
+{% block page_title %}TASK ASSIGNMENT DASHBOARD{% endblock %}
+{% block page_subtitle %}Assign tasks to teams via routes{% endblock %}
+
+{% block content %}
+<!-- CSRF Token -->
+{% csrf_token %}
+
+<!-- Header Section -->
+<div class="p-6 border-b border-gray-300 bg-white">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div>
+                <h1 class="text-2xl font-bold text-charcoal-black">Task Assignment</h1>
+                <p class="text-dark-graphite mt-1">Assign unassigned tasks to teams via routes</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'accounts:task_generation_dashboard' %}" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors">
+                <i class="fa-solid fa-arrow-left mr-2"></i>
+                Back to Generation
+            </a>
+            <a href="{% url 'accounts:task_list' %}" class="inline-flex items-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
+                <i class="fa-solid fa-list mr-2"></i>
+                View All Tasks
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="p-6">
+
+    <!-- Camp Selection and Controls -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 class="text-lg font-semibold text-charcoal-black mb-4">Assignment Controls</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Camp Selection -->
+            <div>
+                <label for="camp-select" class="block text-sm font-medium text-gray-700 mb-2">Select Camp</label>
+                <select id="camp-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                    <option value="">All Camps</option>
+                    {% for camp in camps %}
+                        <option value="{{ camp.id }}" {% if selected_camp and selected_camp.id == camp.id %}selected{% endif %}>
+                            {{ camp.name }} ({{ camp.code }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Bulk Assignment -->
+            <div class="flex items-end">
+                <button id="bulk-assign-btn" class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors" 
+                        {% if not selected_camp %}disabled{% endif %}>
+                    <i class="fa-solid fa-magic mr-2"></i>
+                    Auto-Assign All
+                </button>
+            </div>
+            
+            <!-- Refresh -->
+            <div class="flex items-end">
+                <button id="refresh-btn" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-refresh mr-2"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Routes Overview -->
+    {% if selected_camp and routes %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 class="text-lg font-semibold text-charcoal-black mb-4">Available Routes</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for route in routes %}
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="font-medium text-gray-900">{{ route.team.name }}</h4>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{{ route.shift.name }}</span>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <p><strong>Compounds:</strong> {{ route.compounds.count }}</p>
+                    <p><strong>Coverage:</strong> 
+                        {% for compound in route.compounds.all %}
+                            {{ compound.name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Unassigned Tasks Grouped by Compound -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-charcoal-black">Unassigned Tasks by Compound</h3>
+            <p class="text-sm text-gray-600 mt-1">Select tasks to assign to routes, grouped by compound for easier management</p>
+        </div>
+        
+        {% if tasks_by_compound %}
+        <!-- Compound Summary -->
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-charcoal-black">{{ tasks_by_compound|length }}</p>
+                    <p class="text-sm text-gray-600">Compounds with Tasks</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-blue-600">{{ unassigned_count }}</p>
+                    <p class="text-sm text-gray-600">Total Unassigned Tasks</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-green-600">{{ routes|length }}</p>
+                    <p class="text-sm text-gray-600">Available Routes</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="divide-y divide-gray-200">
+            {% for compound, compound_data in tasks_by_compound.items %}
+            <div class="p-6">
+                <!-- Compound Summary Card -->
+                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-building text-blue-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-gray-900">{{ compound.name }}</h4>
+                                <p class="text-sm text-gray-600">Compound Summary</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <p class="text-sm text-gray-600">SLA Status</p>
+                                <div class="flex items-center space-x-2">
+                                    {% if compound_data.sla_compliance >= 100 %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fa-solid fa-check-circle mr-1"></i>
+                                            Compliant
+                                        </span>
+                                    {% elif compound_data.sla_compliance >= 80 %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fa-solid fa-exclamation-triangle mr-1"></i>
+                                            At Risk
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fa-solid fa-times-circle mr-1"></i>
+                                            Non-Compliant
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Task Status Overview -->
+                    <div class="mb-6">
+                        <h5 class="text-sm font-medium text-gray-700 mb-3">Task Status Overview</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <!-- Unassigned -->
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h6 class="text-sm font-medium text-red-800">Unassigned</h6>
+                                    <i class="fa-solid fa-exclamation-triangle text-red-600"></i>
+                                </div>
+                                <p class="text-2xl font-bold text-red-900">{{ compound_data.unassigned_count }}</p>
+                                <p class="text-xs text-red-600">pending assignment</p>
+                            </div>
+                            
+                            <!-- Assigned -->
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h6 class="text-sm font-medium text-blue-800">Assigned</h6>
+                                    <i class="fa-solid fa-users text-blue-600"></i>
+                                </div>
+                                <p class="text-2xl font-bold text-blue-900">{{ compound_data.assigned_count }}</p>
+                                <p class="text-xs text-blue-600">to teams</p>
+                            </div>
+                            
+                            <!-- Completed -->
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h6 class="text-sm font-medium text-green-800">Completed</h6>
+                                    <i class="fa-solid fa-check-circle text-green-600"></i>
+                                </div>
+                                <p class="text-2xl font-bold text-green-900">{{ compound_data.completed_count }}</p>
+                                <p class="text-xs text-green-600">finished</p>
+                            </div>
+                            
+                            <!-- Missed -->
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h6 class="text-sm font-medium text-orange-800">Missed</h6>
+                                    <i class="fa-solid fa-clock text-orange-600"></i>
+                                </div>
+                                <p class="text-2xl font-bold text-orange-900">{{ compound_data.missed_count }}</p>
+                                <p class="text-xs text-orange-600">overdue</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Special Tasks -->
+                    {% if compound_data.urgent_count > 0 or compound_data.reclean_count > 0 %}
+                    <div class="mb-6">
+                        <h5 class="text-sm font-medium text-gray-700 mb-3">Special Tasks</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {% if compound_data.urgent_count > 0 %}
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h6 class="text-sm font-medium text-red-800">Urgent</h6>
+                                    <i class="fa-solid fa-fire text-red-600"></i>
+                                </div>
+                                <p class="text-2xl font-bold text-red-900">{{ compound_data.urgent_count }}</p>
+                                <p class="text-xs text-red-600">urgent tasks</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if compound_data.reclean_count > 0 %}
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h6 class="text-sm font-medium text-yellow-800">Re-clean</h6>
+                                    <i class="fa-solid fa-redo text-yellow-600"></i>
+                                </div>
+                                <p class="text-2xl font-bold text-yellow-900">{{ compound_data.reclean_count }}</p>
+                                <p class="text-xs text-yellow-600">re-clean requests</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- SLA Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Weekly Required</p>
+                                    <p class="text-xl font-bold text-gray-900">{{ compound_data.weekly_required_sqm|floatformat:0 }} m²</p>
+                                </div>
+                                <i class="fa-solid fa-chart-line text-blue-600"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Monthly Cap</p>
+                                    <p class="text-xl font-bold text-gray-900">{{ compound_data.monthly_cap_sqm|floatformat:0 }} m²</p>
+                                </div>
+                                <i class="fa-solid fa-chart-bar text-purple-600"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">SLA Compliance</p>
+                                    <p class="text-xl font-bold {% if compound_data.sla_compliance >= 100 %}text-green-600{% elif compound_data.sla_compliance >= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                        {{ compound_data.sla_compliance|floatformat:1 }}%
+                                    </p>
+                                </div>
+                                <i class="fa-solid fa-percentage {% if compound_data.sla_compliance >= 100 %}text-green-600{% elif compound_data.sla_compliance >= 80 %}text-yellow-600{% else %}text-red-600{% endif %}"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden task checkboxes for JavaScript functionality -->
+                    <div style="display: none;">
+                        {% for task in compound_data.unassigned_tasks %}
+                        <input type="checkbox" class="task-checkbox" value="{{ task.id }}" data-compound="{{ compound.id }}">
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Simple Assignment Controls -->
+                    <div class="pt-4 border-t border-gray-200">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h6 class="text-sm font-medium text-blue-800 mb-1">Quick Assignment</h6>
+                                    <p class="text-xs text-blue-600">Assign all unassigned tasks in this compound to a team</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <select class="compound-route-select text-sm border border-gray-300 rounded px-3 py-2 bg-white" data-compound="{{ compound.id }}">
+                                        <option value="">Select Team & Shift...</option>
+                                        {% for route in routes %}
+                                            <option value="{{ route.id }}">{{ route.team.name }} ({{ route.shift.name }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="compound-assign-btn px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                            data-compound="{{ compound.id }}" disabled>
+                                        <i class="fa-solid fa-arrow-right mr-2"></i>
+                                        Assign All Tasks
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Individual Task Assignment (Unassigned Only) -->
+                        {% if compound_data.unassigned_tasks %}
+                        <div class="mt-4 bg-gray-50 rounded-lg p-4">
+                            <h6 class="text-sm font-medium text-gray-700 mb-3">Unassigned Tasks ({{ compound_data.unassigned_count }})</h6>
+                            <div class="space-y-2 max-h-40 overflow-y-auto">
+                                {% for task in compound_data.unassigned_tasks|slice:":10" %}
+                                <div class="flex items-center justify-between bg-white border border-gray-200 rounded px-3 py-2">
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-xs font-mono text-gray-500">{{ task.room.room_code }}</span>
+                                        <span class="text-xs text-gray-600">{{ task.room.room_description|truncatechars:30 }}</span>
+                                        <span class="text-xs text-gray-500">{{ task.sla_credit_sqm }}m²</span>
+                                        {% if task.task_type == 'requested' %}
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fa-solid fa-redo mr-1"></i>Re-clean
+                                        </span>
+                                        {% endif %}
+                                        {% if task.is_urgent %}
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fa-solid fa-fire mr-1"></i>Urgent
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <select class="task-route-select text-xs border border-gray-300 rounded px-2 py-1" data-task="{{ task.id }}">
+                                            <option value="">Select team...</option>
+                                            {% for route in routes %}
+                                                <option value="{{ route.id }}">{{ route.team.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="task-assign-btn px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                                data-task="{{ task.id }}" disabled>
+                                            <i class="fa-solid fa-check"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% if compound_data.unassigned_tasks|length > 10 %}
+                                <div class="text-xs text-gray-500 text-center py-2">
+                                    ... and {{ compound_data.unassigned_tasks|length|add:"-10" }} more unassigned tasks
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Assigned Tasks Summary -->
+                        {% if compound_data.assigned_tasks %}
+                        <div class="mt-4 bg-blue-50 rounded-lg p-4">
+                            <h6 class="text-sm font-medium text-blue-700 mb-3">Assigned Tasks ({{ compound_data.assigned_count }})</h6>
+                            <div class="space-y-2 max-h-32 overflow-y-auto">
+                                {% for task in compound_data.assigned_tasks|slice:":5" %}
+                                <div class="flex items-center justify-between bg-white border border-blue-200 rounded px-3 py-2">
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-xs font-mono text-gray-500">{{ task.room.room_code }}</span>
+                                        <span class="text-xs text-gray-600">{{ task.room.room_description|truncatechars:25 }}</span>
+                                        <span class="text-xs text-blue-600">{{ task.assigned_to_team.name }}</span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                                            {% if task.state == 'done' %}bg-green-100 text-green-800
+                                            {% elif task.state == 'missed' %}bg-orange-100 text-orange-800
+                                            {% elif task.state == 'in_progress' %}bg-blue-100 text-blue-800
+                                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            {{ task.get_state_display }}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ task.sla_credit_sqm }}m²
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% if compound_data.assigned_tasks|length > 5 %}
+                                <div class="text-xs text-gray-500 text-center py-2">
+                                    ... and {{ compound_data.assigned_tasks|length|add:"-5" }} more assigned tasks
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
+                </div>
+                <div class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if selected_camp %}&camp={{ selected_camp.id }}{% endif %}" 
+                           class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                            Previous
+                        </a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if selected_camp %}&camp={{ selected_camp.id }}{% endif %}" 
+                           class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <i class="fa-solid fa-check-circle text-4xl text-green-500 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Unassigned Tasks</h3>
+            <p class="text-gray-500">All tasks are currently assigned to teams.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bulk Assignment Actions -->
+    {% if page_obj %}
+    <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-charcoal-black mb-4">Bulk Assignment</h3>
+        
+        <div class="flex items-center space-x-4">
+            <div class="flex-1">
+                <label for="route-select" class="block text-sm font-medium text-gray-700 mb-2">Assign Selected Tasks to Route</label>
+                <select id="route-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                    <option value="">Select a route</option>
+                    {% for route in routes %}
+                        <option value="{{ route.id }}">{{ route.team.name }} - {{ route.shift.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button id="assign-selected-btn" class="px-6 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <i class="fa-solid fa-arrow-right mr-2"></i>
+                    Assign Selected
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Route Assignment Modal -->
+<div id="route-assignment-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Assign Task to Route</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">Select a route for this task:</p>
+                <select id="modal-route-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                    <option value="">Select a route</option>
+                    {% for route in routes %}
+                        <option value="{{ route.id }}">{{ route.team.name }} - {{ route.shift.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button id="cancel-assignment" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                    Cancel
+                </button>
+                <button id="confirm-assignment" class="px-4 py-2 text-sm font-medium text-white bg-steel-blue rounded-md hover:bg-steel-blue-dark">
+                    Assign
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const campSelect = document.getElementById('camp-select');
+    const selectAllCheckbox = document.getElementById('select-all');
+    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+    const assignSelectedBtn = document.getElementById('assign-selected-btn');
+    const routeSelect = document.getElementById('route-select');
+    const bulkAssignBtn = document.getElementById('bulk-assign-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
+    
+    let currentTaskId = null;
+    
+    // Check if required elements exist before adding event listeners
+    if (!assignSelectedBtn || !routeSelect || !bulkAssignBtn || !refreshBtn) {
+        console.log('Some required elements not found, skipping some event listeners');
+        // Continue with other functionality that doesn't depend on these elements
+    }
+    
+    // Camp selection
+    if (campSelect) {
+        campSelect.addEventListener('change', function() {
+            const campId = this.value;
+            const url = new URL(window.location);
+            if (campId) {
+                url.searchParams.set('camp', campId);
+            } else {
+                url.searchParams.delete('camp');
+            }
+            window.location.href = url.toString();
+        });
+    }
+    
+    // Select all functionality
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            taskCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            // Also update compound-level select all checkboxes
+            document.querySelectorAll('.compound-select-all').forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            document.querySelectorAll('.compound-task-select-all').forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateAssignButton();
+        });
+    }
+    
+    // Compound-level select all functionality
+    document.querySelectorAll('.compound-select-all').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const compoundId = this.dataset.compound;
+            const compoundTaskCheckboxes = document.querySelectorAll(`.task-checkbox[data-compound="${compoundId}"]`);
+            const compoundTaskSelectAll = document.querySelector(`.compound-task-select-all[data-compound="${compoundId}"]`);
+            
+            compoundTaskCheckboxes.forEach(cb => {
+                cb.checked = this.checked;
+            });
+            if (compoundTaskSelectAll) {
+                compoundTaskSelectAll.checked = this.checked;
+            }
+            
+            updateAssignButton();
+            updateSelectAllState();
+        });
+    });
+    
+    // Compound task select all functionality
+    document.querySelectorAll('.compound-task-select-all').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const compoundId = this.dataset.compound;
+            const compoundTaskCheckboxes = document.querySelectorAll(`.task-checkbox[data-compound="${compoundId}"]`);
+            const compoundSelectAll = document.querySelector(`.compound-select-all[data-compound="${compoundId}"]`);
+            
+            compoundTaskCheckboxes.forEach(cb => {
+                cb.checked = this.checked;
+            });
+            if (compoundSelectAll) {
+                compoundSelectAll.checked = this.checked;
+            }
+            
+            updateAssignButton();
+            updateSelectAllState();
+        });
+    });
+    
+    // Individual checkbox change
+    taskCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateAssignButton();
+            updateSelectAllState();
+            updateCompoundSelectAllState(this.dataset.compound);
+        });
+    });
+    
+    function updateSelectAllState() {
+        const checkedBoxes = document.querySelectorAll('.task-checkbox:checked');
+        selectAllCheckbox.checked = checkedBoxes.length === taskCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < taskCheckboxes.length;
+    }
+    
+    function updateCompoundSelectAllState(compoundId) {
+        const compoundTaskCheckboxes = document.querySelectorAll(`.task-checkbox[data-compound="${compoundId}"]`);
+        const checkedCompoundTasks = document.querySelectorAll(`.task-checkbox[data-compound="${compoundId}"]:checked`);
+        const compoundSelectAll = document.querySelector(`.compound-select-all[data-compound="${compoundId}"]`);
+        const compoundTaskSelectAll = document.querySelector(`.compound-task-select-all[data-compound="${compoundId}"]`);
+        
+        if (compoundSelectAll) {
+            compoundSelectAll.checked = checkedCompoundTasks.length === compoundTaskCheckboxes.length;
+            compoundSelectAll.indeterminate = checkedCompoundTasks.length > 0 && checkedCompoundTasks.length < compoundTaskCheckboxes.length;
+        }
+        
+        if (compoundTaskSelectAll) {
+            compoundTaskSelectAll.checked = checkedCompoundTasks.length === compoundTaskCheckboxes.length;
+            compoundTaskSelectAll.indeterminate = checkedCompoundTasks.length > 0 && checkedCompoundTasks.length < compoundTaskCheckboxes.length;
+        }
+    }
+    
+    function updateAssignButton() {
+        if (!assignSelectedBtn || !routeSelect) return;
+        
+        const checkedBoxes = document.querySelectorAll('.task-checkbox:checked');
+        assignSelectedBtn.disabled = checkedBoxes.length === 0 || !routeSelect.value;
+    }
+    
+    // Route selection change
+    if (routeSelect) {
+        routeSelect.addEventListener('change', updateAssignButton);
+    }
+    
+    // Compound route selection change (using event delegation)
+    document.addEventListener('change', function(event) {
+        if (event.target.classList.contains('compound-route-select')) {
+            const compoundId = event.target.dataset.compound;
+            const assignBtn = document.querySelector(`.compound-assign-btn[data-compound="${compoundId}"]`);
+            
+            if (assignBtn) {
+                assignBtn.disabled = !event.target.value;
+            }
+        }
+        
+        // Individual task route selection
+        if (event.target.classList.contains('task-route-select')) {
+            const taskId = event.target.dataset.task;
+            const assignBtn = document.querySelector(`.task-assign-btn[data-task="${taskId}"]`);
+            
+            if (assignBtn) {
+                assignBtn.disabled = !event.target.value;
+            }
+        }
+    });
+    
+    // Compound assignment buttons (for unassigned tasks) - using event delegation
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('compound-assign-btn') || event.target.closest('.compound-assign-btn')) {
+            const button = event.target.classList.contains('compound-assign-btn') ? event.target : event.target.closest('.compound-assign-btn');
+            const compoundId = button.dataset.compound;
+            const routeSelect = document.querySelector(`.compound-route-select[data-compound="${compoundId}"]`);
+            const routeId = routeSelect.value;
+            
+            if (!routeId) {
+                alert('Please select a route for assignment');
+                return;
+            }
+            
+            // Get all unassigned tasks for this compound
+            const taskCheckboxes = document.querySelectorAll(`.task-checkbox[data-compound="${compoundId}"]`);
+            const taskIds = Array.from(taskCheckboxes).map(cb => cb.value);
+            
+            if (taskIds.length === 0) {
+                alert('No unassigned tasks found for this compound');
+                return;
+            }
+            
+            if (confirm(`Assign all ${taskIds.length} unassigned tasks in this compound to the selected team?`)) {
+                assignTasksToRoute(taskIds, routeId);
+            }
+        }
+        
+        // Individual task assignment
+        if (event.target.classList.contains('task-assign-btn') || event.target.closest('.task-assign-btn')) {
+            const button = event.target.classList.contains('task-assign-btn') ? event.target : event.target.closest('.task-assign-btn');
+            const taskId = button.dataset.task;
+            const routeSelect = document.querySelector(`.task-route-select[data-task="${taskId}"]`);
+            const routeId = routeSelect.value;
+            
+            if (!routeId) {
+                alert('Please select a team for this task');
+                return;
+            }
+            
+            if (confirm(`Assign this task to the selected team?`)) {
+                assignTasksToRoute([taskId], routeId);
+            }
+        }
+    });
+    
+    // Shift-specific assignment buttons
+    document.querySelectorAll('.shift-assign-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const compoundId = this.dataset.compound;
+            const shiftId = this.dataset.shift;
+            const routeSelect = document.querySelector(`.shift-route-select[data-compound="${compoundId}"][data-shift="${shiftId}"]`);
+            const routeId = routeSelect.value;
+            
+            if (!routeId) {
+                alert('Please select a team for assignment');
+                return;
+            }
+            
+            // Get tasks for this specific shift in this compound
+            const taskCheckboxes = document.querySelectorAll(`.task-checkbox[data-compound="${compoundId}"]`);
+            const taskIds = Array.from(taskCheckboxes).map(cb => cb.value);
+            
+            if (taskIds.length === 0) {
+                alert('No tasks found for this shift');
+                return;
+            }
+            
+            if (confirm(`Assign all tasks in this shift to the selected team?`)) {
+                assignTasksToRoute(taskIds, routeId);
+            }
+        });
+    });
+    
+    // Shift route selection change
+    document.querySelectorAll('.shift-route-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const compoundId = this.dataset.compound;
+            const shiftId = this.dataset.shift;
+            const assignBtn = document.querySelector(`.shift-assign-btn[data-compound="${compoundId}"][data-shift="${shiftId}"]`);
+            assignBtn.disabled = !this.value;
+        });
+    });
+    
+    // Assign selected tasks
+    if (assignSelectedBtn && routeSelect) {
+        assignSelectedBtn.addEventListener('click', function() {
+            const checkedBoxes = document.querySelectorAll('.task-checkbox:checked');
+            const taskIds = Array.from(checkedBoxes).map(cb => cb.value);
+            const routeId = routeSelect.value;
+            
+            if (taskIds.length === 0 || !routeId) return;
+            
+            assignTasksToRoute(taskIds, routeId);
+        });
+    }
+    
+    // Bulk assign all tasks
+    if (bulkAssignBtn) {
+        bulkAssignBtn.addEventListener('click', function() {
+            if (!confirm('This will assign ALL unassigned tasks for the selected camp. Continue?')) {
+                return;
+            }
+            
+            const campId = campSelect.value;
+            if (!campId) return;
+            
+            bulkAssignTasks(campId);
+        });
+    }
+    
+    // Refresh page
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            window.location.reload();
+        });
+    }
+    
+    // Individual task assignment
+    window.showRouteAssignment = function(taskId) {
+        currentTaskId = taskId;
+        document.getElementById('route-assignment-modal').classList.remove('hidden');
+    };
+    
+    // Modal controls
+    document.getElementById('cancel-assignment').addEventListener('click', function() {
+        document.getElementById('route-assignment-modal').classList.add('hidden');
+        currentTaskId = null;
+    });
+    
+    document.getElementById('confirm-assignment').addEventListener('click', function() {
+        const routeId = document.getElementById('modal-route-select').value;
+        if (currentTaskId && routeId) {
+            assignTasksToRoute([currentTaskId], routeId);
+            document.getElementById('route-assignment-modal').classList.add('hidden');
+            currentTaskId = null;
+        }
+    });
+    
+    // API functions
+    function assignTasksToRoute(taskIds, routeId) {
+        fetch('{% url "accounts:assign_tasks_to_route" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                task_ids: taskIds,
+                route_id: routeId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Successfully assigned ${data.assigned_count} tasks to route`);
+                if (data.errors.length > 0) {
+                    alert('Errors: ' + data.errors.join(', '));
+                }
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while assigning tasks');
+        });
+    }
+    
+    function bulkAssignTasks(campId) {
+        fetch('{% url "accounts:bulk_task_assignment" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                camp_id: campId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Successfully assigned ${data.assigned_count} tasks`);
+                if (data.errors.length > 0) {
+                    alert('Errors: ' + data.errors.join(', '));
+                }
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while bulk assigning tasks');
+        });
+    }
+});
+</script>
+{% endblock %}

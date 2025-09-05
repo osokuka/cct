@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ shift.name }} - Shift Details{% endblock %}
+{% block page_title %}{{ shift.name|upper }}{% endblock %}
+{% block page_subtitle %}{{ shift.camp.name }} • {{ shift.start_time|time:"H:i" }} - {{ shift.end_time|time:"H:i" }}{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="p-6 border-b border-gray-300 bg-white">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'accounts:shift_list' %}" class="text-steel-blue hover:text-steel-blue-dark">
+                <i class="fa-solid fa-arrow-left text-xl"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-charcoal-black">{{ shift.name }}</h1>
+                <p class="text-dark-graphite mt-1">{{ shift.camp.name }} • {{ shift.start_time|time:"H:i" }} - {{ shift.end_time|time:"H:i" }}</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'accounts:shift_update' shift.id %}" 
+               class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors">
+                <i class="fa-solid fa-edit mr-2"></i>
+                Edit Shift
+            </a>
+            {% if shift.is_active %}
+                <a href="{% url 'accounts:shift_deactivate' shift.id %}" 
+                   class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
+                    <i class="fa-solid fa-pause mr-2"></i>
+                    Deactivate
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:shift_activate' shift.id %}" 
+                   class="inline-flex items-center px-4 py-2 bg-safety-green text-white text-sm font-medium rounded-md hover:bg-safety-green-dark transition-colors">
+                    <i class="fa-solid fa-play mr-2"></i>
+                    Activate
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Status Badge -->
+<div class="p-6">
+    <div class="mb-6">
+        {% if shift.is_active %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-safety-green bg-opacity-10 text-safety-green">
+                <i class="fa-solid fa-check-circle mr-2"></i>
+                Active Shift
+            </span>
+        {% else %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-industrial-gray bg-opacity-10 text-dark-graphite">
+                <i class="fa-solid fa-pause-circle mr-2"></i>
+                Inactive Shift
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Shift Information -->
+        <div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Shift Information</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="font-medium text-dark-graphite">Name:</span>
+                            <span class="text-charcoal-black">{{ shift.name }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="font-medium text-dark-graphite">Camp:</span>
+                            <a href="{% url 'locations:camp_breakdown' shift.camp.id %}" class="text-steel-blue hover:text-steel-blue-dark font-medium">
+                                {{ shift.camp.name }}
+                            </a>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="font-medium text-dark-graphite">Start Time:</span>
+                            <span class="text-charcoal-black">{{ shift.start_time|time:"H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="font-medium text-dark-graphite">End Time:</span>
+                            <span class="text-charcoal-black">{{ shift.end_time|time:"H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="font-medium text-dark-graphite">Duration:</span>
+                            <span class="text-charcoal-black">
+                                {% if shift.duration_display %}
+                                    {{ shift.duration_display }}
+                                {% else %}
+                                    Not specified
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="font-medium text-dark-graphite">Status:</span>
+                            {% if shift.is_active %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-safety-green bg-opacity-10 text-safety-green">
+                                    <i class="fa-solid fa-check-circle mr-1"></i>
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-industrial-gray bg-opacity-10 text-dark-graphite">
+                                    <i class="fa-solid fa-pause-circle mr-1"></i>
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="font-medium text-dark-graphite">Created:</span>
+                            <span class="text-charcoal-black">{{ shift.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="font-medium text-dark-graphite">Last Updated:</span>
+                            <span class="text-charcoal-black">{{ shift.updated_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Routes Using This Shift -->
+        <div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Routes Using This Shift</h3>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-steel-blue bg-opacity-10 text-steel-blue">
+                        {{ routes_count }}
+                    </span>
+                </div>
+                <div class="p-6">
+                    {% if routes %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Team</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Compounds</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Priority</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for route in routes %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <a href="{% url 'accounts:team_view' route.team.id %}" class="text-steel-blue hover:text-steel-blue-dark font-medium">
+                                                {{ route.team.name }}
+                                            </a>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {% for compound in route.compounds.all %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mr-1">{{ compound.name }}</span>
+                                            {% empty %}
+                                                <span class="text-gray-500">No compounds</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                {{ route.priority }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {% if route.is_active %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-safety-green bg-opacity-10 text-safety-green">
+                                                    <i class="fa-solid fa-check-circle mr-1"></i>
+                                                    Active
+                                                </span>
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-industrial-gray bg-opacity-10 text-dark-graphite">
+                                                    <i class="fa-solid fa-pause-circle mr-1"></i>
+                                                    Inactive
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="{% url 'accounts:route_view' route.id %}" 
+                                               class="text-steel-blue hover:text-steel-blue-dark" title="View Route">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <div class="w-16 h-16 bg-industrial-gray bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fa-solid fa-route text-industrial-gray text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-dark-graphite mb-2">No routes using this shift</h3>
+                            <p class="text-sm text-gray-500 mb-4">Create a route to assign this shift to a team.</p>
+                            <a href="{% url 'accounts:route_create' %}" 
+                               class="inline-flex items-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark">
+                                <i class="fa-solid fa-plus mr-2"></i>
+                                Create Route
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mt-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Quick Actions</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <a href="{% url 'accounts:shift_update' shift.id %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors">
+                        <i class="fa-solid fa-edit mr-2"></i>
+                        Edit Shift
+                    </a>
+                    <a href="{% url 'accounts:route_create' %}?shift={{ shift.id }}" 
+                       class="inline-flex items-center justify-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
+                        <i class="fa-solid fa-plus mr-2"></i>
+                        Create Route
+                    </a>
+                    <a href="{% url 'accounts:shift_list' %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 bg-industrial-gray text-dark-graphite text-sm font-medium rounded-md hover:bg-gray-700 hover:text-white transition-colors">
+                        <i class="fa-solid fa-list mr-2"></i>
+                        All Shifts
+                    </a>
+                    {% if shift.is_active %}
+                        <a href="{% url 'accounts:shift_deactivate' shift.id %}" 
+                           class="inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
+                            <i class="fa-solid fa-pause mr-2"></i>
+                            Deactivate
+                        </a>
+                    {% else %}
+                        <a href="{% url 'accounts:shift_activate' shift.id %}" 
+                           class="inline-flex items-center justify-center px-4 py-2 bg-safety-green text-white text-sm font-medium rounded-md hover:bg-safety-green-dark transition-colors">
+                            <i class="fa-solid fa-play mr-2"></i>
+                            Activate
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

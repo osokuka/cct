@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Task Generation Dashboard{% endblock %}
+{% block page_title %}TASK GENERATION DASHBOARD{% endblock %}
+{% block page_subtitle %}Generate and manage daily cleaning tasks based on SLA requirements{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="p-6 border-b border-gray-300 bg-white">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div>
+                <h1 class="text-2xl font-bold text-charcoal-black">Task Generation</h1>
+                <p class="text-dark-graphite mt-1">Generate daily cleaning tasks based on room requirements and SLA thresholds</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'accounts:task_list' %}" class="inline-flex items-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
+                <i class="fa-solid fa-list mr-2"></i>
+                View All Tasks
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="p-6">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-tasks text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Tasks (7 days)</p>
+                    <p class="text-2xl font-semibold text-charcoal-black">{{ stats.total_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-check-circle text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Completed</p>
+                    <p class="text-2xl font-semibold text-green-600">{{ stats.completed_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-times-circle text-red-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Missed</p>
+                    <p class="text-2xl font-semibold text-red-600">{{ stats.missed_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-percentage text-amber-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">SLA %</p>
+                    <p class="text-2xl font-semibold text-amber-600">{{ stats.sla_percentage|floatformat:1 }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Generation Form -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-charcoal-black">Generate Tasks</h3>
+            <p class="text-sm text-gray-600 mt-1">Generate daily cleaning tasks based on room requirements and SLA thresholds</p>
+        </div>
+        
+        <div class="p-6">
+            <form id="task-generation-form">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Camp Selection -->
+                    <div>
+                        <label for="camp_id" class="block text-sm font-medium text-gray-700 mb-2">Camp</label>
+                        <select id="camp_id" name="camp_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent" required>
+                            <option value="">Select a camp</option>
+                            {% for camp in camps %}
+                                <option value="{{ camp.id }}">{{ camp.name }} ({{ camp.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Start Date -->
+                    <div>
+                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent" required>
+                    </div>
+                    
+                    <!-- End Date -->
+                    <div>
+                        <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                        <input type="date" id="end_date" name="end_date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent" required>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex items-end space-x-2">
+                        <button type="button" id="preview-btn" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors">
+                            <i class="fa-solid fa-eye mr-2"></i>
+                            Preview
+                        </button>
+                        <button type="button" id="generate-btn" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
+                            <i class="fa-solid fa-play mr-2"></i>
+                            Generate
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview Results -->
+    <div id="preview-results" class="mt-8 hidden">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                <h3 class="text-lg font-semibold text-blue-800">Preview Results</h3>
+                <p class="text-sm text-blue-600 mt-1">Review the tasks that will be generated before executing</p>
+            </div>
+            
+            <div class="p-6">
+                <div id="preview-content">
+                    <!-- Preview content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generation Results -->
+    <div id="generation-results" class="mt-8 hidden">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <h3 class="text-lg font-semibold text-green-800">Generation Results</h3>
+                <p class="text-sm text-green-600 mt-1">Task generation completed successfully</p>
+            </div>
+            
+            <div class="p-6">
+                <div id="generation-content">
+                    <!-- Generation results will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default dates
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    
+    document.getElementById('start_date').value = today.toISOString().split('T')[0];
+    document.getElementById('end_date').value = nextWeek.toISOString().split('T')[0];
+    
+    // Preview button
+    document.getElementById('preview-btn').addEventListener('click', function() {
+        previewTasks();
+    });
+    
+    // Generate button
+    document.getElementById('generate-btn').addEventListener('click', function() {
+        generateTasks();
+    });
+    
+    function previewTasks() {
+        const formData = new FormData(document.getElementById('task-generation-form'));
+        const data = Object.fromEntries(formData.entries());
+        
+        fetch('{% url "accounts:task_generation_preview" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+            
+            displayPreviewResults(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while previewing tasks');
+        });
+    }
+    
+    function generateTasks() {
+        const formData = new FormData(document.getElementById('task-generation-form'));
+        const data = Object.fromEntries(formData.entries());
+        
+        if (!confirm('Are you sure you want to generate tasks? This action cannot be undone.')) {
+            return;
+        }
+        
+        fetch('{% url "accounts:task_generation_execute" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+            
+            displayGenerationResults(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while generating tasks');
+        });
+    }
+    
+    function displayPreviewResults(data) {
+        const previewContent = document.getElementById('preview-content');
+        previewContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-charcoal-black">${data.total_rooms}</p>
+                    <p class="text-sm text-gray-600">Rooms</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-blue-600">${data.tasks_created}</p>
+                    <p class="text-sm text-gray-600">Tasks to Create</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-amber-600">${data.tasks_updated}</p>
+                    <p class="text-sm text-gray-600">Tasks to Update</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-red-600">${data.errors.length}</p>
+                    <p class="text-sm text-gray-600">Errors</p>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <h4 class="font-semibold text-gray-800 mb-2">SLA Summary</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Weekly Required SQM</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.total_weekly_required_sqm.toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Monthly Cap SQM</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.total_monthly_cap_sqm.toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Estimated Weekly Tasks</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.estimated_weekly_tasks}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Estimated Monthly Tasks</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.estimated_monthly_tasks}</p>
+                    </div>
+                </div>
+            </div>
+            
+            ${data.errors.length > 0 ? `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-red-800 mb-2">Errors</h4>
+                    <ul class="text-sm text-red-700 space-y-1">
+                        ${data.errors.map(error => `<li>• ${error}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('preview-results').classList.remove('hidden');
+        document.getElementById('generation-results').classList.add('hidden');
+    }
+    
+    function displayGenerationResults(data) {
+        const generationContent = document.getElementById('generation-content');
+        generationContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-charcoal-black">${data.total_rooms}</p>
+                    <p class="text-sm text-gray-600">Rooms Processed</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-green-600">${data.tasks_created}</p>
+                    <p class="text-sm text-gray-600">Tasks Created</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-blue-600">${data.tasks_updated}</p>
+                    <p class="text-sm text-gray-600">Tasks Updated</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-red-600">${data.errors.length}</p>
+                    <p class="text-sm text-gray-600">Errors</p>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-800 mb-2">SLA Summary</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Weekly Required SQM</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.total_weekly_required_sqm.toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Monthly Cap SQM</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.total_monthly_cap_sqm.toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Estimated Weekly Tasks</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.estimated_weekly_tasks}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Estimated Monthly Tasks</p>
+                        <p class="text-lg font-semibold text-charcoal-black">${data.sla_summary.estimated_monthly_tasks}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('generation-results').classList.remove('hidden');
+        document.getElementById('preview-results').classList.add('hidden');
+        
+        // Show success message
+        alert('Tasks generated successfully!');
+    }
+});
+</script>
+{% endblock %}

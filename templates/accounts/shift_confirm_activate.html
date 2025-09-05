@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Activate {{ shift.name }}{% endblock %}
+{% block page_title %}ACTIVATE SHIFT{% endblock %}
+{% block page_subtitle %}Confirm activation of {{ shift.name }}{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="p-6 border-b border-gray-300 bg-white">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'accounts:shift_view' shift.id %}" class="text-steel-blue hover:text-steel-blue-dark">
+                <i class="fa-solid fa-arrow-left text-xl"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-charcoal-black">Activate Shift</h1>
+                <p class="text-dark-graphite mt-1">Confirm activation of {{ shift.name }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="p-6">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <h3 class="text-lg font-semibold text-green-800 uppercase tracking-wide flex items-center">
+                    <i class="fa-solid fa-play-circle mr-3"></i>
+                    Activate Shift
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-check-circle text-safety-green text-3xl"></i>
+                    </div>
+                    <h4 class="text-xl font-semibold text-charcoal-black mb-2">Activate "{{ shift.name }}"</h4>
+                    <p class="text-dark-graphite">
+                        This will make the shift available for new route assignments.
+                    </p>
+                </div>
+
+                <!-- Shift Details -->
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h6 class="text-sm font-semibold text-steel-blue uppercase tracking-wide mb-4">Shift Details</h6>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span class="font-medium text-dark-graphite">Name:</span>
+                            <span class="text-charcoal-black">{{ shift.name }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span class="font-medium text-dark-graphite">Camp:</span>
+                            <span class="text-charcoal-black">{{ shift.camp.name }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span class="font-medium text-dark-graphite">Time:</span>
+                            <span class="text-charcoal-black">{{ shift.start_time|time:"H:i" }} - {{ shift.end_time|time:"H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="font-medium text-dark-graphite">Routes:</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-steel-blue bg-opacity-10 text-steel-blue">
+                                    {{ shift.routes.count }}
+                                </span>
+                                {% if shift.routes.count > 0 %}
+                                    <span class="text-xs text-gray-500">(existing routes will remain active)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fa-solid fa-info-circle text-steel-blue"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">Note:</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <p class="font-medium">Activating this shift will:</p>
+                                <ul class="mt-2 space-y-1">
+                                    <li class="flex items-start">
+                                        <i class="fa-solid fa-check text-steel-blue mr-2 mt-0.5 text-xs"></i>
+                                        Make it available for new route assignments
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fa-solid fa-check text-steel-blue mr-2 mt-0.5 text-xs"></i>
+                                        Not affect existing routes that use this shift
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fa-solid fa-check text-steel-blue mr-2 mt-0.5 text-xs"></i>
+                                        Allow teams to be assigned to this shift
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                        <a href="{% url 'accounts:shift_view' shift.id %}" 
+                           class="inline-flex items-center px-4 py-2 bg-industrial-gray text-dark-graphite text-sm font-medium rounded-md hover:bg-gray-700 hover:text-white transition-colors">
+                            <i class="fa-solid fa-arrow-left mr-2"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                                class="inline-flex items-center px-6 py-2 bg-safety-green text-white text-sm font-medium rounded-md hover:bg-safety-green-dark transition-colors">
+                            <i class="fa-solid fa-play mr-2"></i>
+                            Activate Shift
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

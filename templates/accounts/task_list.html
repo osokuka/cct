@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Daily Cleaning Tasks{% endblock %}
+{% block page_title %}DAILY CLEANING TASKS{% endblock %}
+{% block page_subtitle %}Manage and monitor cleaning tasks{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="p-6 border-b border-gray-300 bg-white">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div>
+                <h1 class="text-2xl font-bold text-charcoal-black">Daily Cleaning Tasks</h1>
+                <p class="text-dark-graphite mt-1">Monitor and manage daily cleaning tasks across all locations</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'accounts:task_generation_dashboard' %}" class="inline-flex items-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
+                <i class="fa-solid fa-plus mr-2"></i>
+                Generate Tasks
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="p-6">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-tasks text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Tasks</p>
+                    <p class="text-2xl font-semibold text-charcoal-black">{{ stats.total_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-check-circle text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Completed</p>
+                    <p class="text-2xl font-semibold text-green-600">{{ stats.completed_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-clock text-amber-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Planned</p>
+                    <p class="text-2xl font-semibold text-amber-600">{{ stats.planned_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-play text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">In Progress</p>
+                    <p class="text-2xl font-semibold text-blue-600">{{ stats.in_progress_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-times-circle text-red-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Missed</p>
+                    <p class="text-2xl font-semibold text-red-600">{{ stats.missed_tasks }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <input type="text" id="search" name="search" value="{{ search }}" placeholder="Room code, description, team..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+            </div>
+            
+            <div>
+                <label for="state" class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                <select id="state" name="state" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                    <option value="">All States</option>
+                    <option value="planned" {% if state_filter == 'planned' %}selected{% endif %}>Planned</option>
+                    <option value="in_progress" {% if state_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="done" {% if state_filter == 'done' %}selected{% endif %}>Done</option>
+                    <option value="missed" {% if state_filter == 'missed' %}selected{% endif %}>Missed</option>
+                    <option value="re_clean_required" {% if state_filter == 're_clean_required' %}selected{% endif %}>Re-clean Required</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                <input type="date" id="date" name="date" value="{{ date_filter }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+            </div>
+            
+            <div class="flex items-end space-x-2">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
+                    <i class="fa-solid fa-search mr-2"></i>
+                    Filter
+                </button>
+                <a href="{% url 'accounts:task_list' %}" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-times mr-2"></i>
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tasks Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-charcoal-black">Tasks</h3>
+            <p class="text-sm text-gray-600 mt-1">Daily cleaning tasks with SLA tracking</p>
+        </div>
+        
+        {% if page_obj %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">State</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SLA Credit</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for task in page_obj %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10">
+                                            <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                <i class="fa-solid fa-door-open text-gray-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-charcoal-black">{{ task.room.room_code }}</div>
+                                            <div class="text-sm text-gray-500">{{ task.room.room_description|truncatechars:30 }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-charcoal-black">{{ task.task_date|date:"M d, Y" }}</div>
+                                    <div class="text-sm text-gray-500">Index: {{ task.index_in_day }}</div>
+                                </td>
+                                
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if task.state == 'done' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fa-solid fa-check-circle mr-1"></i>
+                                            Done
+                                        </span>
+                                    {% elif task.state == 'missed' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fa-solid fa-times-circle mr-1"></i>
+                                            Missed
+                                        </span>
+                                    {% elif task.state == 'in_progress' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            <i class="fa-solid fa-play mr-1"></i>
+                                            In Progress
+                                        </span>
+                                    {% elif task.state == 're_clean_required' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                            <i class="fa-solid fa-redo mr-1"></i>
+                                            Re-clean Required
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            <i class="fa-solid fa-clock mr-1"></i>
+                                            Planned
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if task.assigned_to_team %}
+                                        <div class="text-sm text-charcoal-black">{{ task.assigned_to_team.name }}</div>
+                                        <div class="text-sm text-gray-500">{{ task.assigned_to_team.camp.name }}</div>
+                                    {% else %}
+                                        <span class="text-sm text-gray-500 italic">Unassigned</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-charcoal-black">{{ task.sla_credit_sqm }} m²</div>
+                                    <div class="text-sm text-gray-500">{{ task.task_type|title }}</div>
+                                </td>
+                                
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex items-center space-x-2">
+                                        <a href="{% url 'accounts:task_detail' task.id %}" class="text-steel-blue hover:text-steel-blue-dark">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        
+                                        {% if task.state == 'planned' and user.profile.role in 'admin,manager,supervisor' %}
+                                            <button onclick="markTaskDone('{{ task.id }}')" class="text-green-600 hover:text-green-800">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                        
+                                        {% if user.profile.role in 'admin,manager' %}
+                                            <button onclick="assignTask('{{ task.id }}')" class="text-blue-600 hover:text-blue-800">
+                                                <i class="fa-solid fa-user-plus"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            {% if page_obj.has_previous %}
+                                <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if state_filter %}&state={{ state_filter }}{% endif %}{% if date_filter %}&date={{ date_filter }}{% endif %}" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Previous
+                                </a>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <span class="px-3 py-2 text-sm font-medium text-white bg-steel-blue border border-steel-blue rounded-md">{{ num }}</span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if state_filter %}&state={{ state_filter }}{% endif %}{% if date_filter %}&date={{ date_filter }}{% endif %}" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                        {{ num }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if state_filter %}&state={{ state_filter }}{% endif %}{% if date_filter %}&date={{ date_filter }}{% endif %}" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Next
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fa-solid fa-tasks text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
+                <p class="text-gray-500 mb-6">No tasks match your current filters.</p>
+                <a href="{% url 'accounts:task_generation_dashboard' %}" class="inline-flex items-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Generate Tasks
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function markTaskDone(taskId) {
+    if (!confirm('Are you sure you want to mark this task as done?')) {
+        return;
+    }
+    
+    fetch(`/accounts/tasks/${taskId}/mark-done/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the task');
+    });
+}
+
+function assignTask(taskId) {
+    // This would open a modal or redirect to assignment page
+    alert('Task assignment functionality coming soon!');
+}
+</script>
+{% endblock %}

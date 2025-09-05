@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}View Team - {{ team.name }}{% endblock %}
+{% block page_title %}TEAM DETAILS{% endblock %}
+{% block page_subtitle %}View team information and members for {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="space-y-8">
+            
+            <!-- Basic Information Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-users text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TEAM INFORMATION</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Team Name</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ team.name }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Camp</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ team.camp.name }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Team Leader</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded bg-{% if team.team_leader.profile.role == 'admin' %}red-600{% elif team.team_leader.profile.role == 'manager' %}warning-orange{% else %}purple-600{% endif %} flex items-center justify-center mr-3">
+                                    <span class="text-white font-semibold text-sm">{{ team.team_leader.first_name|first|default:team.team_leader.username|first|upper }}</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-dark-graphite">{{ team.team_leader.get_full_name|default:team.team_leader.username }}</div>
+                                    <div class="text-xs text-gray-500">{{ team.team_leader.profile.get_role_display }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Status</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                {% if team.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                <i class="fa-solid fa-{% if team.is_active %}check-circle{% else %}times-circle{% endif %} mr-2"></i>
+                                {% if team.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Members Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-user-friends text-steel-blue mr-3"></i>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TEAM MEMBERS</h3>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        {{ team.members.count }} member{{ team.members.count|pluralize }}
+                    </div>
+                </div>
+                
+                {% if team.members.exists %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for member in team.members.all %}
+                    <div class="flex items-center p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div class="w-10 h-10 rounded bg-green-600 flex items-center justify-center mr-3">
+                            <span class="text-white font-semibold text-sm">{{ member.first_name|first|default:member.username|first|upper }}</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-dark-graphite">{{ member.get_full_name|default:member.username }}</div>
+                            <div class="text-xs text-gray-500">{{ member.username }}</div>
+                            <div class="text-xs text-gray-500">{{ member.email|default:"No email" }}</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if member.is_active and member.profile.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if member.is_active and member.profile.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fa-solid fa-user-slash text-4xl mb-4"></i>
+                    <p class="text-lg font-medium">No members assigned</p>
+                    <p class="text-sm">This team doesn't have any members yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Team Statistics Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-chart-bar text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TEAM STATISTICS</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-steel-blue heading-font mb-2">{{ team.members.count }}</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Total Members</div>
+                        <div class="text-xs text-gray-500 mt-1">Currently assigned</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600 heading-font mb-2">{{ active_members_count }}</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Active Members</div>
+                        <div class="text-xs text-gray-500 mt-1">Ready for work</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-warning-orange heading-font mb-2">{{ team.routes.count }}</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Assigned Routes</div>
+                        <div class="text-xs text-gray-500 mt-1">Current assignments</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Routes Section -->
+            {% if team.routes.exists %}
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-route text-steel-blue mr-3"></i>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ASSIGNED ROUTES</h3>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        {{ team.routes.count }} route{{ team.routes.count|pluralize }}
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for route in team.routes.all %}
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded bg-steel-blue flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-map-marker-alt text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-dark-graphite">{{ route.compound.name }}</div>
+                                <div class="text-xs text-gray-500">{{ route.shift.name }} ({{ route.shift.start_time }} - {{ route.shift.end_time }})</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Priority {{ route.priority }}
+                            </span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if route.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if route.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-300">
+                <a href="{% url 'accounts:team_list' %}" 
+                   class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-gray-400 transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                    Back to Teams
+                </a>
+                
+                <div class="flex space-x-4">
+                    {% if request.user.profile.role == 'admin' or request.user.profile.role == 'manager' %}
+                    <a href="{% url 'accounts:team_update' team.id %}" 
+                       class="px-6 py-3 bg-steel-blue text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-blue-700 transition-colors">
+                        <i class="fa-solid fa-edit mr-2"></i>
+                        Edit Team
+                    </a>
+                    
+                    {% if request.user.profile.role == 'admin' %}
+                        {% if team.is_active %}
+                        <a href="{% url 'accounts:team_delete' team.id %}" 
+                           class="px-6 py-3 bg-red-600 text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-red-700 transition-colors"
+                           onclick="return confirm('Are you sure you want to deactivate this team?')">
+                            <i class="fa-solid fa-ban mr-2"></i>
+                            Deactivate Team
+                        </a>
+                        {% else %}
+                        <a href="{% url 'accounts:team_activate' team.id %}" 
+                           class="px-6 py-3 bg-green-600 text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-green-700 transition-colors"
+                           onclick="return confirm('Are you sure you want to activate this team?')">
+                            <i class="fa-solid fa-check mr-2"></i>
+                            Activate Team
+                        </a>
+                        {% endif %}
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

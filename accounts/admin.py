@@ -106,20 +106,25 @@ class ShiftAdmin(admin.ModelAdmin):
 
 @admin.register(Route)
 class RouteAdmin(admin.ModelAdmin):
-    list_display = ['team', 'compound', 'shift', 'priority', 'is_active', 'created_at']
-    list_filter = ['is_active', 'team__camp', 'compound', 'shift', 'created_at']
-    search_fields = ['team__name', 'compound__name', 'shift__name']
+    list_display = ['team', 'get_compounds', 'shift', 'priority', 'is_active', 'created_at']
+    list_filter = ['is_active', 'team__camp', 'compounds', 'shift', 'created_at']
+    search_fields = ['team__name', 'compounds__name', 'shift__name']
     readonly_fields = ['id', 'created_at', 'updated_at']
+    filter_horizontal = ['compounds']
     
     fieldsets = (
         ('Route Information', {
-            'fields': ('id', 'team', 'shift', 'compound', 'priority', 'is_active')
+            'fields': ('id', 'team', 'shift', 'compounds', 'priority', 'is_active')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
+    
+    def get_compounds(self, obj):
+        return ", ".join([c.name for c in obj.compounds.all()])
+    get_compounds.short_description = 'Compounds'
 
 
 # Unregister the default User admin and register our custom one

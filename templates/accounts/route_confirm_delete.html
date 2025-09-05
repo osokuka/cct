@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Route Action - NATO Camp Cleaning Tracker{% endblock %}
+
+{% block page_title %}{% if action == 'deactivate' %}DEACTIVATE ROUTE{% else %}ACTIVATE ROUTE{% endif %}{% endblock %}
+{% block page_subtitle %}{% if action == 'deactivate' %}Remove Route from Active Assignment{% else %}Restore Route to Active Assignment{% endif %}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-4">
+    <div class="metallic-card rounded-lg border border-gray-300 max-w-2xl mx-auto">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">
+                {% if action == 'deactivate' %}DEACTIVATE ROUTE{% else %}ACTIVATE ROUTE{% endif %}
+            </h3>
+        </div>
+        
+        <div class="p-6">
+            <!-- Route Information -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <h4 class="text-sm font-semibold text-dark-graphite mb-3">Route Details:</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-steel-blue"></i>
+                        <span class="text-sm font-medium">{{ route.team.name }}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-clock text-warning-orange"></i>
+                        <span class="text-sm font-medium">{{ route.shift.name }}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-building text-purple-600"></i>
+                        <span class="text-sm font-medium">{{ route.compound.name }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmation Message -->
+            <div class="mb-6">
+                {% if action == 'deactivate' %}
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        <i class="fa-solid fa-exclamation-triangle text-yellow-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-2">Deactivate Route Assignment</h4>
+                        <p class="text-sm text-gray-600 mb-3">
+                            Are you sure you want to deactivate this route? This will:
+                        </p>
+                        <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                            <li>• Remove this route from active task assignment</li>
+                            <li>• Stop generating new tasks for this team/compound/shift combination</li>
+                            <li>• Leave existing planned tasks unchanged</li>
+                        </ul>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        <i class="fa-solid fa-check-circle text-green-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-2">Activate Route Assignment</h4>
+                        <p class="text-sm text-gray-600 mb-3">
+                            Are you sure you want to activate this route? This will:
+                        </p>
+                        <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                            <li>• Restore this route to active task assignment</li>
+                            <li>• Allow new tasks to be generated for this team/compound/shift combination</li>
+                            <li>• Make this route available for future task assignments</li>
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between">
+                <a href="{% url 'accounts:route_view' route.id %}" class="bg-gray-500 text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Cancel</span>
+                </a>
+                
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="{% if action == 'deactivate' %}bg-red-600 hover:bg-red-700{% else %}bg-green-600 hover:bg-green-700{% endif %} text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
+                        <i class="fa-solid fa-{% if action == 'deactivate' %}ban{% else %}check{% endif %}"></i>
+                        <span>{% if action == 'deactivate' %}Deactivate Route{% else %}Activate Route{% endif %}</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
