@@ -8,7 +8,5 @@ from . import views
 app_name = 'scans'
 
 urlpatterns = [
-    path('', views.CleanerDashboardView.as_view(), name='dashboard'),
-    path('scan/', views.ScanView.as_view(), name='scan'),
-    path('scan/history/', views.ScanHistoryView.as_view(), name='scan_history'),
+    # URLs will be defined here as needed
 ]

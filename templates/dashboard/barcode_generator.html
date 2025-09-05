@@ -4,6 +4,64 @@
 {% block title %}Barcode Generator - Admin Dashboard{% endblock %}
 
 {% block content %}
+<style>
+/* Barcode size constraints for real-world measurements */
+.barcode-container {
+    max-width: 7cm !important;
+    max-height: 4cm !important;
+    width: 7cm !important;
+    height: 4cm !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    margin: 0 auto !important;
+}
+
+.barcode-container img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Small preview in room list */
+.barcode-preview-small {
+    width: 3.5cm !important;
+    height: 2cm !important;
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-bottom: 8px !important;
+}
+
+/* Print styles for barcodes */
+@media print {
+    .barcode-container {
+        max-width: 7cm !important;
+        max-height: 4cm !important;
+        width: 7cm !important;
+        height: 4cm !important;
+        page-break-inside: avoid !important;
+    }
+    
+    .barcode-container img {
+        max-width: 100% !important;
+        max-height: 100% !important;
+    }
+}
+
+/* Real-world size indicators */
+.size-indicator {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+}
+</style>
 <div class="container mx-auto px-4 lg:px-6 py-6">
     <!-- Header -->
     <div class="mb-8">
@@ -76,6 +134,7 @@
             </h2>
         </div>
         <div class="p-6">
+            {% csrf_token %}
             <div id="rooms-container" class="space-y-2 max-h-96 overflow-y-auto">
                 <!-- Rooms will be loaded here -->
             </div>
@@ -111,10 +170,11 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Barcode Size</label>
                     <select id="barcode-size" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
-                        <option value="small">Small (100x50)</option>
-                        <option value="medium" selected>Medium (200x100)</option>
-                        <option value="large">Large (400x200)</option>
+                        <option value="small">Small (5cm × 3cm)</option>
+                        <option value="medium" selected>Medium (7cm × 4cm)</option>
+                        <option value="large">Large (7cm × 4cm)</option>
                     </select>
+                    <p class="text-xs text-gray-500 mt-1">Target size: 7cm width × 4cm height</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Include Text</label>
@@ -263,19 +323,43 @@ function loadRooms() {
         const container = document.getElementById('rooms-container');
         if (data.rooms && data.rooms.length > 0) {
             container.innerHTML = data.rooms.map(room => `
-                <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div class="flex items-center">
-                        <input type="checkbox" class="room-checkbox mr-3" value="${room.id}" data-room-code="${room.code}">
-                        <div>
+                <div class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3">
+                    <div class="flex items-center flex-1">
+                        <input type="checkbox" class="room-checkbox mr-4" value="${room.id}" data-room-code="${room.code}">
+                        <div class="flex-1">
                             <div class="font-medium text-gray-900">${room.name}</div>
                             <div class="text-sm text-gray-600">${room.hierarchy_path}</div>
                             <div class="text-sm text-gray-500">Code: ${room.code}</div>
+                            <div class="text-sm text-gray-600">${room.sqm} m²</div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-sm text-gray-600">${room.sqm} m²</div>
-                        <div class="text-sm text-gray-500">
-                            ${room.barcode_data ? '<span class="text-green-600">Barcode exists</span>' : '<span class="text-red-600">No barcode</span>'}
+                    <div class="flex items-center space-x-4">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-500 mb-2">
+                                ${room.barcode_data ? '<span class="text-green-600 font-medium">Barcode exists</span>' : '<span class="text-red-600 font-medium">No barcode</span>'}
+                            </div>
+                            ${room.barcode_data ? `
+                                <div class="space-y-2">
+                                    <div class="barcode-preview-small" style="width: 3.5cm; height: 2cm; border: 1px solid #d1d5db; background: white; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                                        <div class="text-xs text-gray-500">Barcode Preview</div>
+                                    </div>
+                                    <button onclick="previewRoomBarcode('${room.id}', '${room.code}')" class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                                        <i class="fas fa-eye mr-1"></i>Preview
+                                    </button>
+                                    <div class="flex space-x-1">
+                                        <button onclick="downloadRoomBarcode('${room.id}', '${room.code}', 'png')" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors">
+                                            <i class="fas fa-download mr-1"></i>PNG
+                                        </button>
+                                        <button onclick="downloadRoomBarcode('${room.id}', '${room.code}', 'pdf')" class="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors">
+                                            <i class="fas fa-file-pdf mr-1"></i>PDF
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : `
+                                <button onclick="generateRoomBarcode('${room.id}', '${room.code}')" class="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition-colors">
+                                    <i class="fas fa-plus mr-1"></i>Generate
+                                </button>
+                            `}
                         </div>
                     </div>
                 </div>
@@ -520,6 +604,114 @@ function displayResults(result) {
     
     resultsContent.innerHTML = html;
     resultsSection.classList.remove('hidden');
+}
+
+// Individual room barcode functions
+function previewRoomBarcode(roomId, roomCode) {
+    const size = document.getElementById('barcode-size').value;
+    const includeText = document.getElementById('include-text').value === 'true';
+    
+    fetch('/admin/barcode/preview/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            room_id: roomId,
+            size: size,
+            include_text: includeText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showBarcodePreview(roomCode, data.barcode_data);
+        } else {
+            alert('Error previewing barcode: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error previewing barcode');
+    });
+}
+
+function downloadRoomBarcode(roomId, roomCode, format) {
+    const size = document.getElementById('barcode-size').value;
+    const includeText = document.getElementById('include-text').value === 'true';
+    
+    const params = new URLSearchParams({
+        room_id: roomId,
+        format: format,
+        size: size,
+        include_text: includeText
+    });
+    
+    window.open(`/admin/barcode/generate/?${params}`, '_blank');
+}
+
+function generateRoomBarcode(roomId, roomCode) {
+    if (!confirm(`Generate barcode for ${roomCode}?`)) {
+        return;
+    }
+    
+    fetch('/admin/barcode/regenerate/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            room_ids: [roomId]
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Barcode generated successfully!');
+            loadRooms(); // Reload to show updated status
+        } else {
+            alert('Error generating barcode: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating barcode');
+    });
+}
+
+function showBarcodePreview(roomCode, barcodeData) {
+    const previewDiv = document.getElementById('barcode-preview');
+    const previewContent = document.getElementById('preview-content');
+    
+    previewContent.innerHTML = `
+        <div class="text-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Barcode Preview - ${roomCode}</h3>
+            <div class="inline-block p-4 bg-white border-2 border-gray-300 rounded-lg">
+                <div class="barcode-container" style="max-width: 7cm; max-height: 4cm; width: 7cm; height: 4cm; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e5e7eb;">
+                    <img src="data:image/png;base64,${barcodeData}" 
+                         alt="Barcode for ${roomCode}" 
+                         style="max-width: 100%; max-height: 100%; object-fit: contain; width: auto; height: auto;">
+                </div>
+                <div class="mt-2 text-sm text-gray-600">
+                    <div>Size: 7cm × 4cm (70mm × 40mm)</div>
+                    <div>Room Code: ${roomCode}</div>
+                </div>
+            </div>
+            <div class="mt-4 space-x-2">
+                <button onclick="downloadRoomBarcode('${roomCode}', '${roomCode}', 'png')" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    <i class="fas fa-download mr-1"></i>Download PNG
+                </button>
+                <button onclick="downloadRoomBarcode('${roomCode}', '${roomCode}', 'pdf')" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    <i class="fas fa-file-pdf mr-1"></i>Download PDF
+                </button>
+            </div>
+        </div>
+    `;
+    
+    previewDiv.classList.remove('hidden');
+    previewDiv.scrollIntoView({ behavior: 'smooth' });
 }
 </script>
 {% endblock %}

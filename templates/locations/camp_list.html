@@ -1,0 +1,878 @@
+{% extends 'base.html' %}
+
+{% block title %}Camp Management - NATO Camp Cleaning Tracker{% endblock %}
+
+{% block page_title %}CAMP MANAGEMENT{% endblock %}
+{% block page_subtitle %}Manage all camps and their information{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-fixed {
+        table-layout: fixed;
+    }
+    
+    .break-words {
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .camp-row:hover {
+        background-color: #f9fafb;
+    }
+    
+    .compound-row:hover {
+        background-color: #f0f9ff;
+        transform: translateX(2px);
+    }
+    
+    @media (max-width: 1279px) {
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header Section -->
+    <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div class="flex flex-wrap gap-3">
+                <button onclick="openModal('campModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-building mr-2"></i>ADD CAMP
+                </button>
+                <button onclick="openModal('compoundModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-map-marker-alt mr-2"></i>ADD COMPOUND
+                </button>
+                <button onclick="openModal('buildingModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-building mr-2"></i>ADD BUILDING
+                </button>
+                <button onclick="openModal('floorModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-layer-group mr-2"></i>ADD FLOOR
+                </button>
+                <a href="{% url 'locations:room_create' %}" class="px-6 py-3 bg-warning-orange text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-door-open mr-2"></i>ADD ROOM
+                </a>
+            </div>
+        </div>
+        
+        <!-- Filter Section -->
+        <div class="bg-gray-50 rounded-lg p-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Filter & Search</h3>
+                <div class="text-sm text-gray-600">
+                    Total Camps: <span class="font-semibold text-steel-blue">{{ camps.count }}</span>
+                </div>
+            </div>
+            
+            <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                    <input type="text" class="form-control w-full" id="search" name="search" 
+                           value="{{ search_query|default:'' }}" 
+                           placeholder="Search camps, codes, descriptions...">
+                </div>
+                <div>
+                    <label for="status_filter" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select class="form-control w-full" id="status_filter" name="status_filter">
+                        <option value="">All Status</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="flex items-end space-x-2">
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded btn-industrial font-medium uppercase tracking-wide flex-1 metallic-shine transition-all">
+                        <i class="fa-solid fa-search mr-2"></i>SEARCH
+                    </button>
+                    <a href="{% url 'locations:camp_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-times"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Camp Details Section (Hidden by default) -->
+    <div id="campDetails" class="metallic-card rounded-lg border border-gray-300 mb-6 hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-dark-graphite">Camp Details</h3>
+                <div class="flex items-center space-x-2">
+                    {% if user.profile.role == 'admin' %}
+                    <button id="editCampBtn" onclick="editCamp()" class="px-4 py-2 bg-steel-blue text-white rounded font-semibold text-sm uppercase tracking-wide metallic-shine transition-all hover:bg-blue-700">
+                        <i class="fa-solid fa-edit mr-1"></i>Edit
+                    </button>
+                    {% endif %}
+                    <button onclick="closeCampDetails()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="p-6">
+            <div id="campInfo" class="space-y-6 mb-6">
+                <!-- Camp information will be populated here -->
+            </div>
+            <div id="campBreakdown" class="mt-6">
+                <!-- Compounds breakdown will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Camps Table -->
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-dark-graphite">All Camps</h3>
+        </div>
+        
+        <!-- Desktop Table View (XL screens) -->
+        <div class="hidden xl:block overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200 table-fixed">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                        <th class="w-48 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="w-64 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th class="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for camp in camps %}
+                    <tr class="hover:bg-gray-50 cursor-pointer camp-row" data-camp-id="{{ camp.id }}"
+                        data-camp-code="{{ camp.code }}"
+                        data-camp-name="{{ camp.name }}"
+                        data-camp-timezone="{{ camp.timezone|default:'Europe/Berlin' }}"
+                        data-camp-active="{{ camp.is_active|yesno:"true,false" }}">
+                        <td class="px-4 py-4">
+                            <div class="text-sm font-medium text-dark-graphite break-words">{{ camp.code }}</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words" title="{{ camp.name }}">
+                                {{ camp.name }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words" title="{{ camp.description }}">
+                                {{ camp.description|default:"No description" }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words">
+                                {{ camp.location|default:"Not specified" }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            {% if camp.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex space-x-2" onclick="event.stopPropagation()">
+                                <a href="#" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
+                                    <i class="fa-solid fa-edit"></i>
+                                </a>
+                                {% if user.profile.role == 'admin' %}
+                                <a href="#" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-building text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No camps found</p>
+                                <p class="text-sm">Try adjusting your filters or add a new camp</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Medium Screen Table View (LG screens) -->
+        <div class="hidden lg:block xl:hidden overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for camp in camps %}
+                    <tr class="hover:bg-gray-50 cursor-pointer camp-row" data-camp-id="{{ camp.id }}"
+                        data-camp-code="{{ camp.code }}"
+                        data-camp-name="{{ camp.name }}"
+                        data-camp-timezone="{{ camp.timezone|default:'Europe/Berlin' }}"
+                        data-camp-active="{{ camp.is_active|yesno:"true,false" }}">
+                        <td class="px-4 py-4">
+                            <div class="text-sm font-medium text-dark-graphite break-words">{{ camp.code }}</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words max-w-xs" title="{{ camp.name }}">
+                                {{ camp.name }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words max-w-xs" title="{{ camp.description }}">
+                                {{ camp.description|default:"No description" }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            {% if camp.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex space-x-2" onclick="event.stopPropagation()">
+                                <a href="#" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
+                                    <i class="fa-solid fa-edit"></i>
+                                </a>
+                                {% if user.profile.role == 'admin' %}
+                                <a href="#" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-building text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No camps found</p>
+                                <p class="text-sm">Try adjusting your filters or add a new camp</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile/Tablet Card View -->
+        <div class="lg:hidden">
+            {% for camp in camps %}
+            <div class="border-b border-gray-200 p-4 hover:bg-gray-50 cursor-pointer transition-colors camp-row" data-camp-id="{{ camp.id }}"
+                        data-camp-code="{{ camp.code }}"
+                        data-camp-name="{{ camp.name }}"
+                        data-camp-timezone="{{ camp.timezone|default:'Europe/Berlin' }}"
+                        data-camp-active="{{ camp.is_active|yesno:"true,false" }}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <h4 class="text-sm font-medium text-dark-graphite">{{ camp.code }}</h4>
+                            {% if camp.is_active %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 mb-2 truncate" title="{{ camp.name }}">
+                            {{ camp.name }}
+                        </div>
+                        
+                        <div class="text-xs text-gray-500 truncate" title="{{ camp.description }}">
+                            {{ camp.description|default:"No description" }}
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col space-y-2 ml-4" onclick="event.stopPropagation()">
+                        <a href="#" class="text-steel-blue hover:text-steel-blue/80 p-1 transition-colors" title="Edit">
+                            <i class="fa-solid fa-edit"></i>
+                        </a>
+                        {% if user.profile.role == 'admin' %}
+                        <a href="#" class="text-warning-orange hover:text-warning-orange/80 p-1 transition-colors" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center text-sm text-gray-500">
+                <div class="flex flex-col items-center">
+                    <i class="fa-solid fa-building text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-lg font-medium">No camps found</p>
+                    <p class="text-sm">Try adjusting your filters or add a new camp</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<!-- Camp Modal -->
+<div id="campModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Camp</h3>
+                <button onclick="closeModal('campModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'locations:camp_create' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                        <input type="text" name="code" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="name" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea name="description" class="form-control w-full" rows="3"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                        <input type="text" name="location" class="form-control w-full">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="camp_active" checked class="mr-2">
+                        <label for="camp_active" class="text-sm text-gray-700">Active</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('campModal')" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                        <i class="fa-solid fa-times mr-2"></i>CANCEL
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-building mr-2"></i>CREATE CAMP
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Compound Modal -->
+<div id="compoundModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Compound</h3>
+                <button onclick="closeModal('compoundModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'locations:compound_create' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Camp *</label>
+                        <select name="camp" class="form-control w-full" required>
+                            <option value="">Select Camp</option>
+                            {% for camp in camps %}
+                            <option value="{{ camp.id }}">{{ camp.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                        <input type="text" name="code" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="name" class="form-control w-full" required>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="compound_active" checked class="mr-2">
+                        <label for="compound_active" class="text-sm text-gray-700">Active</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('compoundModal')" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                        <i class="fa-solid fa-times mr-2"></i>CANCEL
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-map-marker-alt mr-2"></i>CREATE COMPOUND
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Building Modal -->
+<div id="buildingModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Building</h3>
+                <button onclick="closeModal('buildingModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'locations:building_create' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Compound *</label>
+                        <select name="compound" class="form-control w-full" required>
+                            <option value="">Select Compound</option>
+                            {% for compound in compounds %}
+                            <option value="{{ compound.id }}">{{ compound.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                        <input type="text" name="code" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="name" class="form-control w-full" required>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="building_active" checked class="mr-2">
+                        <label for="building_active" class="text-sm text-gray-700">Active</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('buildingModal')" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                        <i class="fa-solid fa-times mr-2"></i>CANCEL
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-building mr-2"></i>CREATE BUILDING
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Floor Modal -->
+<div id="floorModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Floor</h3>
+                <button onclick="closeModal('floorModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'locations:floor_create' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Building *</label>
+                        <select name="building" class="form-control w-full" required>
+                            <option value="">Select Building</option>
+                            {% for building in buildings %}
+                            <option value="{{ building.id }}">{{ building.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                        <input type="text" name="code" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="name" class="form-control w-full" required>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="floor_active" checked class="mr-2">
+                        <label for="floor_active" class="text-sm text-gray-700">Active</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('floorModal')" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                        <i class="fa-solid fa-times mr-2"></i>CANCEL
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-layer-group mr-2"></i>CREATE FLOOR
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+}
+
+// Add event listeners for camp row clicks
+document.addEventListener('DOMContentLoaded', function() {
+    const campRows = document.querySelectorAll('.camp-row');
+    
+    campRows.forEach((row) => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicking on action buttons
+            if (e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            
+            const campId = this.getAttribute('data-camp-id');
+            const code = this.getAttribute('data-camp-code');
+            const name = this.getAttribute('data-camp-name');
+            const timezone = this.getAttribute('data-camp-timezone') || 'Europe/Berlin';
+            const isActive = this.getAttribute('data-camp-active') === 'true';
+            
+            showCampDetails(campId, code, name, timezone, isActive);
+        });
+    });
+});
+
+// Camp details functions
+function showCampDetails(campId, code, name, timezone, isActive) {
+    // Show the camp details section
+    const campDetails = document.getElementById('campDetails');
+    
+    if (!campDetails) {
+        console.error('Camp details element not found!');
+        return;
+    }
+    
+    campDetails.classList.remove('hidden');
+    
+    // Set camp ID on edit button
+    const editBtn = document.getElementById('editCampBtn');
+    if (editBtn) {
+        editBtn.setAttribute('data-camp-id', campId);
+    }
+    
+    // Populate camp information
+    const campInfo = document.getElementById('campInfo');
+    campInfo.innerHTML = `
+        <div class="space-y-6">
+            <!-- Camp Header -->
+            <div class="metallic-card rounded-lg border border-gray-300 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 bg-steel-blue rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-building text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-dark-graphite">${name}</h3>
+                            <p class="text-lg text-gray-600">Code: ${code}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            <i class="fa-solid fa-circle text-xs mr-2"></i>
+                            ${isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        <p class="text-sm text-gray-500 mt-1">${timezone || 'Europe/Berlin'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+                    <div class="text-3xl font-bold text-steel-blue mb-2" id="totalCompounds">-</div>
+                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Compounds</div>
+                </div>
+                <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+                    <div class="text-3xl font-bold text-steel-blue mb-2" id="totalBuildings">-</div>
+                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Buildings</div>
+                </div>
+                <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+                    <div class="text-3xl font-bold text-steel-blue mb-2" id="totalRooms">-</div>
+                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Rooms</div>
+                </div>
+                <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+                    <div class="text-3xl font-bold text-warning-orange mb-2" id="totalSQM">-</div>
+                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total SQM</div>
+                </div>
+            </div>
+
+            <!-- Additional Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="metallic-card rounded-lg border border-gray-300 p-6">
+                    <h4 class="text-lg font-bold text-dark-graphite mb-4 flex items-center">
+                        <i class="fa-solid fa-cog mr-3 text-warning-orange"></i>
+                        Settings
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span class="font-medium text-gray-700">Week Cutoff:</span>
+                            <span class="text-dark-graphite font-semibold" id="weekCutoff">Loading...</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span class="font-medium text-gray-700">Month Cutoff:</span>
+                            <span class="text-dark-graphite font-semibold" id="monthCutoff">Loading...</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span class="font-medium text-gray-700">Skip Holidays:</span>
+                            <span class="text-dark-graphite font-semibold" id="skipHolidays">Loading...</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="font-medium text-gray-700">Created:</span>
+                            <span class="text-dark-graphite font-semibold" id="createdAt">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metallic-card rounded-lg border border-gray-300 p-6">
+                    <h4 class="text-lg font-bold text-dark-graphite mb-4 flex items-center">
+                        <i class="fa-solid fa-chart-line mr-3 text-green-600"></i>
+                        Activity
+                    </h4>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-green-600 mb-2" id="activeRooms">-</div>
+                        <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Rooms</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Load camp breakdown data
+    loadCampBreakdown(campId);
+    
+    // Scroll to camp details
+    campDetails.scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeCampDetails() {
+    const campDetails = document.getElementById('campDetails');
+    campDetails.classList.add('hidden');
+}
+
+function editCamp() {
+    const campId = document.getElementById('editCampBtn').getAttribute('data-camp-id');
+    if (campId) {
+        window.location.href = `/locations/camps/${campId}/edit/`;
+    }
+}
+
+function navigateToCompound(compoundId) {
+    // Navigate to compound details page
+    window.location.href = `/locations/compounds/${compoundId}/`;
+}
+
+function loadCampBreakdown(campId) {
+    const breakdown = document.getElementById('campBreakdown');
+    breakdown.innerHTML = `
+        <div class="bg-white rounded-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-dark-graphite">Compounds Breakdown</h3>
+            </div>
+            <div class="p-6">
+                <div class="text-center text-gray-500">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading camp breakdown data...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Make AJAX call to get actual data
+    const url = `/locations/camps/${campId}/breakdown/`;
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Update statistics
+            document.getElementById('totalCompounds').textContent = data.statistics.total_compounds;
+            document.getElementById('totalBuildings').textContent = data.statistics.total_buildings;
+            document.getElementById('totalRooms').textContent = data.statistics.total_rooms;
+            document.getElementById('totalSQM').textContent = `${data.statistics.total_sqm} m²`;
+            document.getElementById('activeRooms').textContent = data.statistics.active_rooms;
+            
+            // Update cutoff information
+            const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const weekDay = weekDays[data.camp.week_cutoff_day] || 'Unknown';
+            const weekHour = `${data.camp.week_cutoff_hour.toString().padStart(2, '0')}:00`;
+            document.getElementById('weekCutoff').textContent = `${weekDay} at ${weekHour}`;
+            
+            let monthCutoffText = '';
+            if (data.camp.month_cutoff_day === 0) {
+                monthCutoffText = 'End of Month';
+            } else {
+                monthCutoffText = `Day ${data.camp.month_cutoff_day}`;
+            }
+            const monthHour = `${data.camp.month_cutoff_hour.toString().padStart(2, '0')}:00`;
+            document.getElementById('monthCutoff').textContent = `${monthCutoffText} at ${monthHour}`;
+            
+            // Update additional camp settings
+            document.getElementById('skipHolidays').textContent = data.camp.skip_holidays ? 'Yes' : 'No';
+            document.getElementById('createdAt').textContent = data.camp.created_at || 'Unknown';
+            
+            // Build compounds breakdown table
+            let compoundsTable = '';
+            if (data.compound_breakdown.length > 0) {
+                compoundsTable = data.compound_breakdown.map(compound => `
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer compound-row" data-compound-id="${compound.id}" onclick="navigateToCompound('${compound.id}')">
+                        <td class="px-6 py-4 text-sm font-semibold text-dark-graphite">${compound.name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">${compound.buildings_count}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">${compound.rooms_count}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">${compound.total_sqm} m²</td>
+                    </tr>
+                `).join('');
+            } else {
+                compoundsTable = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-map-marker-alt text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No compounds found</p>
+                                <p class="text-sm">This camp has no compounds yet</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Build buildings breakdown table
+            let buildingsTable = '';
+            if (data.building_breakdown.length > 0) {
+                buildingsTable = data.building_breakdown.map(building => `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 text-sm font-semibold text-dark-graphite">${building.name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">${building.compound_name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">${building.rooms_count}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">${building.total_sqm} m²</td>
+                    </tr>
+                `).join('');
+            } else {
+                buildingsTable = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-building text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No buildings found</p>
+                                <p class="text-sm">This camp has no buildings yet</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Update breakdown section
+            breakdown.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Compounds Breakdown -->
+                    <div class="metallic-card rounded-lg border border-gray-300">
+                        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                            <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                                <i class="fa-solid fa-map-marker-alt mr-2 text-steel-blue"></i>
+                                Compounds Breakdown
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Compound</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Buildings</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total SQM</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${compoundsTable}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Buildings Breakdown -->
+                    <div class="metallic-card rounded-lg border border-gray-300">
+                        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                            <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                                <i class="fa-solid fa-building mr-2 text-warning-orange"></i>
+                                Buildings Breakdown
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Compound</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total SQM</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${buildingsTable}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            console.error('Error loading camp breakdown:', error);
+            breakdown.innerHTML = `
+                <div class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-dark-graphite">Error Loading Data</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="text-center text-red-500">
+                            <i class="fa-solid fa-exclamation-triangle text-2xl mb-2"></i>
+                            <p>Failed to load camp breakdown data: ${error.message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+}
+</script>
+{% endblock %}

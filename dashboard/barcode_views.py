@@ -53,6 +53,37 @@ class GenerateBarcodesView(AdminRequiredMixin, View):
     Generate barcodes for selected rooms.
     """
     
+    def get(self, request):
+        """Handle GET requests for individual room downloads."""
+        room_id = request.GET.get('room_id')
+        format_type = request.GET.get('format', 'png')
+        size = request.GET.get('size', 'medium')
+        include_text = request.GET.get('include_text', 'true').lower() == 'true'
+        
+        if not room_id:
+            return JsonResponse({'error': 'Room ID required'}, status=400)
+        
+        try:
+            room = Room.objects.get(
+                id=room_id,
+                is_active=True
+            )
+            
+            # Generate or regenerate barcode data
+            barcode_data = self.ensure_barcode_data(room)
+            
+            if format_type == 'png':
+                return self.generate_png_barcode(barcode_data, room, size, include_text)
+            elif format_type == 'pdf':
+                return self.generate_pdf_barcode(barcode_data, room, size, include_text)
+            else:
+                return JsonResponse({'error': 'Invalid format'}, status=400)
+                
+        except Room.DoesNotExist:
+            return JsonResponse({'error': 'Room not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
     def post(self, request):
         action = request.POST.get('action')  # 'preview', 'generate_individual', 'generate_bulk'
         room_ids = request.POST.getlist('room_ids')
@@ -197,24 +228,52 @@ class GenerateBarcodesView(AdminRequiredMixin, View):
         
         return room.barcode_data
     
-    def generate_png_barcode(self, barcode_data, room):
+    def generate_png_barcode(self, barcode_data, room, size='medium', include_text=True):
         """Generate PNG barcode for download."""
-        png_data = self.create_png_barcode(barcode_data, room)
+        png_data = self.create_png_barcode(barcode_data, room, size, include_text)
         
         response = HttpResponse(png_data, content_type='image/png')
         response['Content-Disposition'] = f'attachment; filename="{room.code}_barcode.png"'
         return response
-    
-    def generate_pdf_barcode(self, barcode_data, room):
+
+    def generate_pdf_barcode(self, barcode_data, room, size='medium', include_text=True):
         """Generate PDF barcode for download."""
-        pdf_data = self.create_pdf_barcode(barcode_data, room)
+        pdf_data = self.create_pdf_barcode(barcode_data, room, size, include_text)
         
         response = HttpResponse(pdf_data, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{room.code}_barcode.pdf"'
         return response
     
-    def create_png_barcode(self, barcode_data, room):
-        """Create PNG barcode image."""
+    def create_png_barcode(self, barcode_data, room, size='medium', include_text=True):
+        """Create PNG barcode image with real-world size constraints."""
+        # Size configurations in mm (converted to appropriate module widths)
+        # Target: 7cm width (70mm), 4cm height (40mm)
+        size_configs = {
+            'small': {
+                'module_width': 0.12,  # Smaller bars for more compact
+                'module_height': 8.0,  # 8mm height
+                'font_size': 6,
+                'max_width_mm': 50,    # 5cm max width
+                'max_height_mm': 30    # 3cm max height
+            },
+            'medium': {
+                'module_width': 0.15,  # Standard bars
+                'module_height': 10.0, # 10mm height
+                'font_size': 8,
+                'max_width_mm': 70,    # 7cm max width
+                'max_height_mm': 40    # 4cm max height
+            },
+            'large': {
+                'module_width': 0.18,  # Larger bars
+                'module_height': 12.0, # 12mm height
+                'font_size': 10,
+                'max_width_mm': 70,    # 7cm max width
+                'max_height_mm': 40    # 4cm max height
+            }
+        }
+        
+        config = size_configs.get(size, size_configs['medium'])
+        
         # Generate Code128 barcode
         code128 = barcode.get_barcode_class('code128')
         barcode_instance = code128(barcode_data, writer=ImageWriter())
@@ -222,18 +281,21 @@ class GenerateBarcodesView(AdminRequiredMixin, View):
         # Create image
         buffer = BytesIO()
         barcode_instance.write(buffer, options={
-            'module_width': 0.4,
-            'module_height': 15.0,
-            'quiet_zone': 6.5,
-            'font_size': 10,
-            'text_distance': 5.0,
+            'module_width': config['module_width'],
+            'module_height': config['module_height'],
+            'quiet_zone': 4.0,  # Reduced quiet zone for better fit
+            'font_size': config['font_size'],
+            'text_distance': 3.0,
             'background': 'white',
             'foreground': 'black',
+            'write_text': include_text,
+            'text': f"{room.code}" if include_text else "",  # Shorter text for better fit
+            'center_text': True
         })
         
         return buffer.getvalue()
     
-    def create_pdf_barcode(self, barcode_data, room):
+    def create_pdf_barcode(self, barcode_data, room, size='medium', include_text=True):
         """Create PDF with barcode and room information."""
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)
@@ -261,11 +323,16 @@ class GenerateBarcodesView(AdminRequiredMixin, View):
             y_position -= 20
         
         # Generate barcode image
-        png_data = self.create_png_barcode(barcode_data, room)
+        png_data = self.create_png_barcode(barcode_data, room, size, include_text)
         
-        # Save barcode image to PDF
+        # Save barcode image to PDF with real-world size constraints
+        # 7cm = 198.425 points (1cm = 28.35 points)
+        # 4cm = 113.4 points
+        barcode_width = 198.425  # 7cm in points
+        barcode_height = 113.4   # 4cm in points
+        
         barcode_buffer = BytesIO(png_data)
-        p.drawImage(barcode_buffer, 50, y_position - 200, width=300, height=100)
+        p.drawImage(barcode_buffer, 50, y_position - 200, width=barcode_width, height=barcode_height)
         
         # Footer
         p.setFont("Helvetica", 8)

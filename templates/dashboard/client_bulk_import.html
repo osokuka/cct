@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Client Acceptance List Import{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 p-6">
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-upload mr-2 text-blue-600"></i>
+                    Client Acceptance List Import
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <h5 class="text-lg font-medium text-blue-900 flex items-center mb-2">
+                        <i class="fas fa-info-circle mr-2"></i>Import Format
+                    </h5>
+                    <p class="text-blue-800 mb-3">This import accepts CSV files in the exact format provided by the client:</p>
+                    <ul class="text-blue-800 space-y-1">
+                        <li><strong>BLDG Location</strong> - Building location description</li>
+                        <li><strong>m²</strong> - Room area in square meters</li>
+                        <li><strong>Qty of rooms</strong> - Quantity of rooms</li>
+                        <li><strong>Actual Sqm (m2)</strong> - Effective area for SLA</li>
+                        <li><strong>Frequency Per Day</strong> - Daily cleaning frequency</li>
+                        <li><strong>Frequency Per Week</strong> - Weekly cleaning frequency</li>
+                        <li><strong>Max Frequency Per Month</strong> - Monthly cleaning cap</li>
+                        <li><strong>Total m² Week</strong> - Weekly SLA baseline</li>
+                        <li><strong>EoM Invoicing max. Sqm (m2)</strong> - Monthly invoicing cap</li>
+                        <li><strong># Weeks of service</strong> - Service duration</li>
+                        <li><strong>Start Date</strong> - Service start (DD-MMM-YY)</li>
+                        <li><strong>End Date</strong> - Service end (DD-MMM-YY)</li>
+                    </ul>
+                </div>
+
+                <form id="importForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label for="campSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Camp</label>
+                            <select id="campSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                <option value="">Choose a camp...</option>
+                                {% for camp in camps %}
+                                <option value="{{ camp.id }}">{{ camp.name }} ({{ camp.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="compoundSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Compound</label>
+                            <select id="compoundSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                <option value="">Choose a compound...</option>
+                                {% for compound in compounds %}
+                                <option value="{{ compound.id }}" data-camp="{{ compound.camp.id }}">{{ compound.name }} ({{ compound.code }})</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-sm text-gray-500 mt-1">Create compound manually first, then import data for it</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="csvFile" class="block text-sm font-medium text-gray-700 mb-1">Select CSV File</label>
+                        <input type="file" id="csvFile" name="csv_file" accept=".csv" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <p class="text-sm text-gray-500 mt-1">Upload a CSV file with the client acceptance list format</p>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button type="button" id="dryRunBtn" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center">
+                            <i class="fas fa-eye mr-2"></i>Dry Run
+                        </button>
+                        <button type="button" id="applyBtn" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center">
+                            <i class="fas fa-check mr-2"></i>Apply Import
+                        </button>
+                    </div>
+                </form>
+
+                <div id="results" class="mt-6" style="display: none;">
+                    <!-- Results will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('importForm');
+    const campSelect = document.getElementById('campSelect');
+    const compoundSelect = document.getElementById('compoundSelect');
+    const dryRunBtn = document.getElementById('dryRunBtn');
+    const applyBtn = document.getElementById('applyBtn');
+    const resultsDiv = document.getElementById('results');
+
+    // Filter compounds based on selected camp
+    campSelect.addEventListener('change', function() {
+        const selectedCampId = this.value;
+        const options = compoundSelect.querySelectorAll('option');
+        
+        options.forEach(option => {
+            if (option.value === '') {
+                option.style.display = 'block'; // Keep the placeholder
+            } else {
+                const campId = option.getAttribute('data-camp');
+                option.style.display = campId === selectedCampId ? 'block' : 'none';
+            }
+        });
+        
+        // Reset compound selection
+        compoundSelect.value = '';
+    });
+
+    dryRunBtn.addEventListener('click', function() {
+        performImport('dry_run');
+    });
+
+    applyBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to apply the import? This will create/update data in the database.')) {
+            performImport('apply');
+        }
+    });
+
+    function performImport(action) {
+        const campId = campSelect.value;
+        const compoundId = compoundSelect.value;
+        
+        if (!campId || !compoundId) {
+            alert('Please select both a camp and compound');
+            return;
+        }
+        
+        const formData = new FormData(form);
+        formData.append('action', action);
+        formData.append('camp_id', campId);
+        formData.append('compound_id', compoundId);
+
+        // Show loading state
+        const btn = action === 'dry_run' ? dryRunBtn : applyBtn;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+        btn.disabled = true;
+
+        fetch('{% url "dashboard:client_import_process" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayResults(data.result, action);
+            } else {
+                showError(data.error);
+            }
+        })
+        .catch(error => {
+            showError('An error occurred: ' + error.message);
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+
+    function displayResults(result, action) {
+        let html = '<div class="bg-white rounded-lg shadow-lg">';
+        html += '<div class="px-6 py-4 border-b border-gray-200"><h5 class="text-lg font-semibold text-gray-900">Import Results</h5></div>';
+        html += '<div class="p-6">';
+
+        if (action === 'dry_run') {
+            html += '<div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4"><strong>Dry Run Complete</strong> - No data was modified</div>';
+            
+            // Summary
+            html += '<h6 class="text-lg font-medium text-gray-900 mb-3">Summary:</h6>';
+            html += '<ul class="space-y-1 text-gray-700">';
+            html += `<li><strong>Camp:</strong> ${result.summary.camp}</li>`;
+            html += `<li><strong>Compound:</strong> ${result.summary.compound}</li>`;
+            html += `<li><strong>Buildings:</strong> ${result.summary.buildings}</li>`;
+            html += `<li><strong>Floors:</strong> ${result.summary.floors}</li>`;
+            html += `<li><strong>Rooms:</strong> ${result.summary.rooms}</li>`;
+            html += `<li><strong>Total Rows:</strong> ${result.summary.total_rows}</li>`;
+            html += '</ul>';
+
+            // Would create
+            if (result.would_create && result.would_create.length > 0) {
+                html += '<h6 class="text-lg font-medium text-gray-900 mb-3 mt-6">Would Create:</h6>';
+                html += '<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">';
+                html += '<thead class="bg-gray-50"><tr>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>';
+                html += '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
+                result.would_create.forEach(item => {
+                    html += '<tr class="hover:bg-gray-50">';
+                    html += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.type}</td>`;
+                    html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.name}</td>`;
+                    html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.action}</td>`;
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+            }
+
+            // Validation warnings
+            if (result.validation_warnings && result.validation_warnings.length > 0) {
+                html += '<h6 class="text-lg font-medium text-gray-900 mb-3 mt-6">Validation Warnings:</h6>';
+                html += '<div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">';
+                result.validation_warnings.forEach(warning => {
+                    html += `<div class="mb-1">Row ${warning.row_num}: ${warning.warning}</div>`;
+                });
+                html += '</div>';
+            }
+
+            // Conflicts/Errors
+            if (result.conflicts && result.conflicts.length > 0) {
+                html += '<h6 class="text-lg font-medium text-gray-900 mb-3 mt-6">Conflicts/Errors:</h6>';
+                html += '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">';
+                result.conflicts.forEach(conflict => {
+                    html += `<div class="mb-1">Row ${conflict.row_num}: ${conflict.error}</div>`;
+                });
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"><strong>Import Applied Successfully</strong></div>';
+            html += `<p class="text-gray-700 mb-2"><strong>Camp:</strong> ${result.camp}</p>`;
+            html += `<p class="text-gray-700 mb-2"><strong>Compound:</strong> ${result.compound}</p>`;
+            html += `<p class="text-gray-700 mb-2"><strong>Created:</strong> ${result.created_count} items</p>`;
+            html += `<p class="text-gray-700 mb-4"><strong>Updated:</strong> ${result.updated_count} items</p>`;
+            
+            if (result.errors && result.errors.length > 0) {
+                html += '<h6 class="text-lg font-medium text-gray-900 mb-3">Errors:</h6>';
+                html += '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">';
+                result.errors.forEach(error => {
+                    html += `<div class="mb-1">Row ${error.row_num}: ${error.error}</div>`;
+                });
+                html += '</div>';
+            }
+        }
+
+        html += '</div></div>';
+        resultsDiv.innerHTML = html;
+        resultsDiv.style.display = 'block';
+    }
+
+    function showError(message) {
+        resultsDiv.innerHTML = `
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <strong>Error:</strong> ${message}
+            </div>
+        `;
+        resultsDiv.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Camp - {{ camp.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header Section -->
+    <div class="metallic-card rounded-lg border border-gray-300 mb-6">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">EDIT CAMP</h2>
+            <p class="text-gray-600 mt-1 text-sm">Update camp information and settings</p>
+        </div>
+        <div class="p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded bg-steel-blue flex items-center justify-center mr-4">
+                        <i class="fa-solid fa-building text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="heading-font font-semibold text-lg text-dark-graphite">{{ camp.name }}</h3>
+                        <p class="text-sm text-gray-600">Code: {{ camp.code }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <a href="{% url 'locations:camp_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase tracking-wide metallic-shine hover:bg-gray-400 transition-all">
+                        <i class="fa-solid fa-arrow-left mr-2"></i>Back to Camps
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">CAMP SETTINGS</h3>
+        </div>
+        
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <!-- Display form errors -->
+            {% if form.errors %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    <h4 class="font-bold">Please correct the following errors:</h4>
+                    <ul class="list-disc list-inside mt-2">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ field }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Camp Code *</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.code.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Camp Name *</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div>
+                <label for="{{ form.timezone.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Timezone</label>
+                {{ form.timezone }}
+                {% if form.timezone.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.timezone.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" class="ml-2 text-sm text-gray-600">Active Status</label>
+                {% if form.is_active.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.is_active.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Week Settings -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.week_cutoff_day_choice.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Week Cutoff Day</label>
+                    {{ form.week_cutoff_day_choice }}
+                    {% if form.week_cutoff_day_choice.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.week_cutoff_day_choice.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.week_cutoff_hour_choice.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Week Cutoff Hour</label>
+                    {{ form.week_cutoff_hour_choice }}
+                    {% if form.week_cutoff_hour_choice.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.week_cutoff_hour_choice.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Month Settings -->
+            <div>
+                <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">Month Cutoff Type</label>
+                <div class="flex space-x-6">
+                    <div class="flex items-center">
+                        {{ form.month_cutoff_type.0 }}
+                        <label for="{{ form.month_cutoff_type.0.id_for_label }}" class="ml-2 text-sm text-gray-600">
+                            End of Month (EoM) - Automatically uses last day of each month
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        {{ form.month_cutoff_type.1 }}
+                        <label for="{{ form.month_cutoff_type.1.id_for_label }}" class="ml-2 text-sm text-gray-600">
+                            Specific Date - Choose a fixed day (1-31)
+                        </label>
+                    </div>
+                </div>
+                {% if form.month_cutoff_type.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.month_cutoff_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div id="month-day-field" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.month_cutoff_day_choice.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Month Cutoff Day</label>
+                    {{ form.month_cutoff_day_choice }}
+                    {% if form.month_cutoff_day_choice.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.month_cutoff_day_choice.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.month_cutoff_hour_choice.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Month Cutoff Hour</label>
+                    {{ form.month_cutoff_hour_choice }}
+                    {% if form.month_cutoff_hour_choice.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.month_cutoff_hour_choice.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Additional Settings -->
+            <div class="flex items-center">
+                {{ form.skip_holidays }}
+                <label for="{{ form.skip_holidays.id_for_label }}" class="ml-2 text-sm text-gray-600">Skip Holidays in Scheduling</label>
+                {% if form.skip_holidays.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.skip_holidays.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Form Actions -->
+            <div class="px-6 py-4 border-t border-gray-300 flex items-center justify-end space-x-3">
+                <a href="{% url 'locations:camp_list' %}" class="bg-industrial-gray text-dark-graphite px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine">Cancel</a>
+                <button type="submit" class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-blue-700">Update Camp</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Project Definition Styling */
+::-webkit-scrollbar { display: none; }
+body { font-family: 'Inter', sans-serif; }
+.heading-font { font-family: 'Montserrat', sans-serif; }
+.metallic-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
+.metallic-card { background: linear-gradient(145deg, #F5F6F7 0%, #E8E9EA 50%, #F5F6F7 100%); box-shadow: 2px 2px 8px rgba(43, 46, 50, 0.15), -1px -1px 4px rgba(255, 255, 255, 0.8); }
+.metallic-shine:hover { background: linear-gradient(135deg, #C0C3C8 0%, #B0B3B8 50%, #C0C3C8 100%); transition: all 0.3s ease; }
+
+/* Form styling */
+input[type="text"], input[type="number"], select {
+    @apply w-full border border-industrial-gray rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-steel-blue;
+}
+
+input[type="checkbox"], input[type="radio"] {
+    @apply h-4 w-4 text-steel-blue focus:ring-steel-blue border-gray-300 rounded;
+}
+
+/* Custom colors */
+.bg-industrial-gray { background-color: #B0B3B8; }
+.bg-dark-graphite { background-color: #2B2E32; }
+.bg-steel-blue { background-color: #3F5876; }
+.bg-warning-orange { background-color: #F28C28; }
+.bg-off-white { background-color: #F5F6F7; }
+.text-dark-graphite { color: #2B2E32; }
+.text-steel-blue { color: #3F5876; }
+.text-warning-orange { color: #F28C28; }
+.border-industrial-gray { border-color: #B0B3B8; }
+.border-steel-blue { border-color: #3F5876; }
+.border-warning-orange { border-color: #F28C28; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const monthCutoffType = document.querySelectorAll('input[name="month_cutoff_type"]');
+    const monthDayField = document.getElementById('month-day-field');
+    const monthDaySelect = document.querySelector('select[name="month_cutoff_day_choice"]');
+    
+    function toggleMonthDayField() {
+        const selectedType = document.querySelector('input[name="month_cutoff_type"]:checked');
+        if (selectedType && selectedType.value === 'eom') {
+            monthDayField.style.display = 'none';
+            monthDaySelect.required = false;
+        } else {
+            monthDayField.style.display = 'grid';
+            monthDaySelect.required = true;
+        }
+    }
+    
+    // Initial state
+    toggleMonthDayField();
+    
+    // Add event listeners
+    monthCutoffType.forEach(radio => {
+        radio.addEventListener('change', toggleMonthDayField);
+    });
+});
+</script>
+{% endblock %}

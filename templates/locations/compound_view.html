@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compound Details - {{ compound.name }}{% endblock %}
+
+{% block page_title %}COMPOUND DETAILS{% endblock %}
+{% block page_subtitle %}{{ compound.name }} - {{ compound.camp.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-fixed {
+        table-layout: fixed;
+    }
+    
+    .break-words {
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .building-row:hover {
+        background-color: #f0f9ff;
+        transform: translateX(2px);
+    }
+    
+    @media (max-width: 1279px) {
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header Section -->
+    <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 bg-steel-blue rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-map-marker-alt text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-dark-graphite">{{ compound.name }}</h2>
+                    <p class="text-lg text-gray-600">Code: {{ compound.code }}</p>
+                    <p class="text-sm text-gray-500">Camp: {{ compound.camp.name }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 mt-4 sm:mt-0">
+                {% if user.profile.role == 'admin' %}
+                <a href="{% url 'locations:compound_edit' compound.id %}" class="px-4 py-2 bg-steel-blue text-white rounded font-semibold text-sm uppercase tracking-wide metallic-shine transition-all hover:bg-blue-700">
+                    <i class="fa-solid fa-edit mr-1"></i>Edit
+                </a>
+                {% endif %}
+                <a href="{% url 'locations:compound_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                    <i class="fa-solid fa-arrow-left mr-1"></i>Back to Compounds
+                </a>
+            </div>
+        </div>
+        
+        <!-- Status Badge -->
+        <div class="flex items-center justify-between">
+            <div>
+                {% if compound.is_active %}
+                    <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <i class="fa-solid fa-circle text-xs mr-2"></i>
+                        Active
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                        <i class="fa-solid fa-circle text-xs mr-2"></i>
+                        Inactive
+                    </span>
+                {% endif %}
+            </div>
+            <div class="text-sm text-gray-500">
+                Created: {{ compound.created_at|date:"M d, Y" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-steel-blue mb-2">{{ total_buildings }}</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Buildings</div>
+        </div>
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-steel-blue mb-2">{{ total_rooms }}</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Rooms</div>
+        </div>
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-warning-orange mb-2">{{ total_sqm }} m²</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total SQM</div>
+        </div>
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ active_rooms }}</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Rooms</div>
+        </div>
+    </div>
+
+    <!-- Buildings Breakdown -->
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-building mr-2 text-warning-orange"></i>
+                Buildings Breakdown
+            </h3>
+        </div>
+        
+        {% if building_breakdown %}
+        <div class="overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Code</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total SQM</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for building in building_breakdown %}
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer building-row" onclick="navigateToBuilding('{{ building.id }}')">
+                        <td class="px-6 py-4 text-sm font-semibold text-dark-graphite">{{ building.name }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ building.code }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ building.rooms_count }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ building.total_sqm }} m²</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium" onclick="event.stopPropagation()">
+                            <a href="{% url 'locations:building_edit' building.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit Building">
+                                <i class="fa-solid fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-sm text-gray-500">
+            <div class="flex flex-col items-center">
+                <i class="fa-solid fa-building text-4xl text-gray-300 mb-4"></i>
+                <p class="text-lg font-medium">No buildings found</p>
+                <p class="text-sm">This compound has no buildings yet</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function navigateToBuilding(buildingId) {
+    // Navigate to building edit page
+    window.location.href = `/locations/buildings/${buildingId}/edit/`;
+}
+</script>
+{% endblock %}

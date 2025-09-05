@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compound Assignment Management{% endblock %}
+{% block page_title %}COMPOUND ASSIGNMENT MANAGEMENT{% endblock %}
+{% block page_subtitle %}Manage compound assignments for authority users{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="metallic-card rounded-lg p-6 border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-200 mb-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-dark-graphite">Compound Assignments</h3>
+                <a href="{% url 'accounts:compound_assignment_create' %}" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Add New Assignment
+                </a>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compound</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Camp</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for assignment in assignments %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-dark-graphite">{{ assignment.user.get_full_name|default:assignment.user.username }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ assignment.compound.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ assignment.compound.camp.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ assignment.assigned_date|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <a href="{% url 'accounts:compound_assignment_update' assignment.id %}" class="text-indigo-600 hover:text-indigo-900" title="Edit">
+                                    <i class="fa-solid fa-edit"></i>
+                                </a>
+                                {% if user.profile.role == 'admin' %}
+                                <a href="{% url 'accounts:compound_assignment_delete' assignment.id %}" class="text-red-600 hover:text-red-900" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No compound assignments found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

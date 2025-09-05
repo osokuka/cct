@@ -1,3 +1,7 @@
+"""
+Report views for the NATO Camp Cleaning Tracker.
+"""
+
 from django.shortcuts import render
 
-# Create your views here.
+# Views will be defined here as needed

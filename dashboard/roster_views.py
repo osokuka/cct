@@ -12,7 +12,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from datetime import datetime, timedelta, date
 from cct.mixins import AdminRequiredMixin
-from locations.models import Camp, Compound, Building, Room, Shift
+from locations.models import Camp, Compound, Building, Room, Shift, Team, Route
 from scans.models import DailyCleaningTask
 from accounts.models import UserProfile
 
@@ -187,10 +187,12 @@ class GenerateRosterView(AdminRequiredMixin, View):
         }
         
         with transaction.atomic():
-            # Get all active rooms in this camp
+            # Get all active rooms in this camp within service window
             rooms = Room.objects.filter(
                 floor__building__compound__camp=camp,
-                is_active=True
+                is_active=True,
+                service_start__lte=start_date + timedelta(days=days_ahead - 1),
+                service_end__gte=start_date
             ).select_related('floor__building__compound')
             
             # Get shifts for this camp
@@ -223,13 +225,22 @@ class GenerateRosterView(AdminRequiredMixin, View):
                             # Determine shift for this task
                             shift = self.get_shift_for_task(room, task_index, shifts)
                             
+                            # Find team assigned to this compound and shift via route
+                            route = Route.objects.filter(
+                                compound=room.floor.building.compound,
+                                shift=shift,
+                                is_active=True
+                            ).first()
+                            
                             # Create the task
                             task = DailyCleaningTask.objects.create(
                                 room=room,
                                 date=date,
                                 index_in_day=task_index,
                                 shift=shift,
-                                state='PLANNED'
+                                assigned_to_team=route.team if route else None,
+                                state='planned',  # Tasks start as planned and remain open
+                                is_requested_task=False  # Regular scheduled task
                             )
                             
                             result['created_tasks'] += 1

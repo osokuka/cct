@@ -5,239 +5,214 @@ Forms for user management in the NATO Camp Cleaning Tracker.
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import UserProfile, CompoundAssignment
-from locations.models import Compound
+from .models import UserProfile, Team, Shift, Route, CompoundAssignment
+from locations.models import Camp, Compound
 
 
-class UserCreationFormWithProfile(UserCreationForm):
-    """User creation form with profile fields."""
+class UserCreateForm(UserCreationForm):
+    """Form for creating new users with profile information."""
     
-    # Profile fields
-    role = forms.ChoiceField(
-        choices=UserProfile.ROLE_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    phone_number = forms.CharField(
-        max_length=20,
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone number'})
-    )
-    employee_id = forms.CharField(
-        max_length=50,
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Employee ID'})
-    )
-    compounds = forms.ModelMultipleChoiceField(
-        queryset=Compound.objects.all(),
-        required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-        help_text="Select compounds for Authority users"
-    )
+    ROLE_CHOICES = [
+        ('admin', 'Admin'),
+        ('manager', 'Manager'),
+        ('cleaner', 'Cleaner'),
+        ('authority', 'Authority'),
+    ]
+    
+    first_name = forms.CharField(max_length=30, required=True)
+    last_name = forms.CharField(max_length=30, required=True)
+    email = forms.EmailField(required=True)
+    role = forms.ChoiceField(choices=ROLE_CHOICES, required=True)
+    camp = forms.ModelChoiceField(queryset=Camp.objects.filter(is_active=True), required=False)
+    is_team_leader = forms.BooleanField(required=False)
+    phone_number = forms.CharField(max_length=20, required=False)
     
     class Meta:
         model = User
         fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2')
+    
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        # If user is not admin, limit role choices
+        if self.request and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile'):
+                if self.request.user.profile.role == 'manager':
+                    self.fields['role'].choices = [
+                        ('cleaner', 'Cleaner'),
+                        ('authority', 'Authority'),
+                    ]
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        
+        if commit:
+            user.save()
+            # Create user profile
+            UserProfile.objects.create(
+                user=user,
+                role=self.cleaned_data['role'],
+                camp=self.cleaned_data.get('camp'),
+                is_team_leader=self.cleaned_data.get('is_team_leader', False),
+                phone_number=self.cleaned_data.get('phone_number', ''),
+                is_active=True
+            )
+        return user
+
+
+class UserUpdateForm(forms.ModelForm):
+    """Form for updating user information."""
+    
+    ROLE_CHOICES = [
+        ('admin', 'Admin'),
+        ('manager', 'Manager'),
+        ('cleaner', 'Cleaner'),
+        ('authority', 'Authority'),
+    ]
+    
+    role = forms.ChoiceField(choices=ROLE_CHOICES, required=True)
+    camp = forms.ModelChoiceField(queryset=Camp.objects.filter(is_active=True), required=False)
+    is_team_leader = forms.BooleanField(required=False)
+    phone_number = forms.CharField(max_length=20, required=False)
+    is_active = forms.BooleanField(required=False)
+    
+    class Meta:
+        model = User
+        fields = ('username', 'first_name', 'last_name', 'email', 'is_active')
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            try:
+                profile = self.instance.profile
+                self.fields['role'].initial = profile.role
+                self.fields['camp'].initial = profile.camp
+                self.fields['is_team_leader'].initial = profile.is_team_leader
+                self.fields['phone_number'].initial = profile.phone_number
+                self.fields['is_active'].initial = profile.is_active
+            except UserProfile.DoesNotExist:
+                pass
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        if commit:
+            user.save()
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.role = self.cleaned_data['role']
+            profile.camp = self.cleaned_data.get('camp')
+            profile.is_team_leader = self.cleaned_data.get('is_team_leader', False)
+            profile.phone_number = self.cleaned_data.get('phone_number', '')
+            profile.is_active = self.cleaned_data.get('is_active', True)
+            profile.save()
+        return user
+
+
+class TeamCreateForm(forms.ModelForm):
+    """Form for creating teams."""
+    
+    class Meta:
+        model = Team
+        fields = ['name', 'camp', 'team_leader', 'members', 'is_active']
         widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First name'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last name'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email address'}),
+            'members': forms.CheckboxSelectMultiple(),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter team leaders to only managers and admins
+        if self.request:
+            self.fields['team_leader'].queryset = User.objects.filter(
+                profile__role__in=['admin', 'manager'],
+                profile__is_active=True
+            )
+            
+            # Filter members to only cleaners
+            self.fields['members'].queryset = User.objects.filter(
+                profile__role='cleaner',
+                profile__is_active=True
+            )
+
+
+class TeamUpdateForm(forms.ModelForm):
+    """Form for updating teams."""
+    
+    class Meta:
+        model = Team
+        fields = ['name', 'camp', 'team_leader', 'members', 'is_active']
+        widgets = {
+            'members': forms.CheckboxSelectMultiple(),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Add CSS classes to password fields
-        self.fields['password1'].widget.attrs.update({'class': 'form-control'})
-        self.fields['password2'].widget.attrs.update({'class': 'form-control'})
-    
-    def clean_email(self):
-        """Validate email uniqueness."""
-        email = self.cleaned_data.get('email')
-        if email and User.objects.filter(email=email).exists():
-            raise forms.ValidationError("A user with this email already exists.")
-        return email
-    
-    def clean_compounds(self):
-        """Validate compound assignments."""
-        compounds = self.cleaned_data.get('compounds')
-        role = self.cleaned_data.get('role')
         
-        if role == 'authority' and not compounds:
-            raise forms.ValidationError("Authority users must be assigned to at least one compound.")
+        # Filter team leaders to only managers and admins
+        self.fields['team_leader'].queryset = User.objects.filter(
+            profile__role__in=['admin', 'manager'],
+            profile__is_active=True
+        )
         
-        return compounds
+        # Filter members to only cleaners
+        self.fields['members'].queryset = User.objects.filter(
+            profile__role='cleaner',
+            profile__is_active=True
+        )
 
 
-class UserProfileForm(forms.ModelForm):
-    """Form for updating user profile."""
-    
-    # User fields
-    first_name = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    last_name = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    email = forms.EmailField(
-        widget=forms.EmailInput(attrs={'class': 'form-control'})
-    )
-    is_active = forms.BooleanField(
-        required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
-    )
-    
-    # Profile fields
-    role = forms.ChoiceField(
-        choices=UserProfile.ROLE_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    phone_number = forms.CharField(
-        max_length=20,
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    employee_id = forms.CharField(
-        max_length=50,
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    compounds = forms.ModelMultipleChoiceField(
-        queryset=Compound.objects.all(),
-        required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-        help_text="Select compounds for Authority users"
-    )
+class ShiftCreateForm(forms.ModelForm):
+    """Form for creating shifts."""
     
     class Meta:
-        model = UserProfile
-        fields = ('role', 'phone_number', 'employee_id')
+        model = Shift
+        fields = ['name', 'camp', 'start_time', 'end_time', 'is_active']
+        widgets = {
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+        }
+
+
+class RouteCreateForm(forms.ModelForm):
+    """Form for creating routes."""
+    
+    class Meta:
+        model = Route
+        fields = ['team', 'shift', 'compound', 'priority', 'is_active']
     
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
-        if self.user:
-            # Populate user fields
-            self.fields['first_name'].initial = self.user.first_name
-            self.fields['last_name'].initial = self.user.last_name
-            self.fields['email'].initial = self.user.email
-            self.fields['is_active'].initial = self.user.is_active
-            
-            # Populate profile fields - handle case where profile doesn't exist
-            try:
-                profile = self.user.profile
-                self.fields['role'].initial = profile.role
-                self.fields['phone_number'].initial = profile.phone_number
-                self.fields['employee_id'].initial = profile.employee_id
-            except UserProfile.DoesNotExist:
-                # Set default values if no profile exists
-                self.fields['role'].initial = 'cleaner'
-                self.fields['phone_number'].initial = ''
-                self.fields['employee_id'].initial = ''
-            
-            # Populate compound assignments
-            compound_ids = list(
-                CompoundAssignment.objects
-                .filter(user=self.user)
-                .values_list('compound_id', flat=True)
-            )
-            self.fields['compounds'].initial = compound_ids
-    
-    def clean_email(self):
-        """Validate email uniqueness."""
-        email = self.cleaned_data.get('email')
-        if email and User.objects.filter(email=email).exclude(pk=self.user.pk).exists():
-            raise forms.ValidationError("A user with this email already exists.")
-        return email
-    
-    def clean_compounds(self):
-        """Validate compound assignments."""
-        compounds = self.cleaned_data.get('compounds')
-        role = self.cleaned_data.get('role')
-        
-        if role == 'authority' and not compounds:
-            raise forms.ValidationError("Authority users must be assigned to at least one compound.")
-        
-        return compounds
-    
-    def save(self, commit=True):
-        """Save user and profile data."""
-        # Update user fields
-        self.user.first_name = self.cleaned_data['first_name']
-        self.user.last_name = self.cleaned_data['last_name']
-        self.user.email = self.cleaned_data['email']
-        self.user.is_active = self.cleaned_data['is_active']
-        
-        if commit:
-            self.user.save()
-        
-        # Update profile
-        profile = super().save(commit=False)
-        profile.user = self.user
-        if commit:
-            profile.save()
-        
-        return profile
+        if self.request and hasattr(self.request.user, 'profile'):
+            # Filter by user's camp if not admin
+            if self.request.user.profile.role != 'admin':
+                camp = self.request.user.profile.camp
+                if camp:
+                    self.fields['team'].queryset = Team.objects.filter(camp=camp, is_active=True)
+                    self.fields['shift'].queryset = Shift.objects.filter(camp=camp, is_active=True)
+                    self.fields['compound'].queryset = Compound.objects.filter(camp=camp, is_active=True)
 
 
 class CompoundAssignmentForm(forms.ModelForm):
-    """Form for managing compound assignments."""
+    """Form for assigning compounds to authority users."""
     
     class Meta:
         model = CompoundAssignment
-        fields = ('compound',)
-        widgets = {
-            'compound': forms.Select(attrs={'class': 'form-control'})
-        }
+        fields = ['user', 'compound', 'is_active']
     
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        if self.user:
-            # Filter compounds based on user role
-            from accounts.models import get_user_role
-            role = get_user_role(self.user)
-            
-            if role == 'authority':
-                # Authority users can only be assigned to compounds they don't already have
-                existing_compound_ids = list(
-                    CompoundAssignment.objects
-                    .filter(user=self.user)
-                    .values_list('compound_id', flat=True)
-                )
-                self.fields['compound'].queryset = Compound.objects.exclude(
-                    id__in=existing_compound_ids
-                )
-            else:
-                # Other roles can be assigned to any compound
-                self.fields['compound'].queryset = Compound.objects.all()
-
-
-class UserSearchForm(forms.Form):
-    """Form for searching users."""
-    
-    search = forms.CharField(
-        max_length=100,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Search by username, name, or email...'
-        })
-    )
-    role = forms.ChoiceField(
-        choices=[('', 'All Roles')] + list(UserProfile.ROLE_CHOICES),
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    status = forms.ChoiceField(
-        choices=[
-            ('', 'All Status'),
-            ('active', 'Active'),
-            ('inactive', 'Inactive')
-        ],
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
+        # Only show authority users
+        self.fields['user'].queryset = User.objects.filter(
+            profile__role='authority',
+            profile__is_active=True
+        )
+        
+        # Only show active compounds
+        self.fields['compound'].queryset = Compound.objects.filter(is_active=True)

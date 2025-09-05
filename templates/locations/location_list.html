@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Room Management{% endblock %}
+{% block page_title %}ROOM MANAGEMENT{% endblock %}
+{% block page_subtitle %}Manage all rooms with advanced filtering and easy creation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-fixed {
+        table-layout: fixed;
+    }
+    
+    .break-words {
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .room-row:hover {
+        background-color: #f9fafb;
+    }
+    
+    @media (max-width: 1279px) {
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header Section -->
+    <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div class="flex flex-wrap gap-3">
+                <button onclick="openModal('compoundModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-map-marker-alt mr-2"></i>ADD COMPOUND
+                </button>
+                <button onclick="openModal('buildingModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-building mr-2"></i>ADD BUILDING
+                </button>
+                <button onclick="openModal('floorModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-layer-group mr-2"></i>ADD FLOOR
+                </button>
+                <a href="{% url 'locations:room_create' %}" class="px-6 py-3 bg-warning-orange text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-door-open mr-2"></i>ADD ROOM
+                </a>
+            </div>
+        </div>
+        
+        <!-- Filter Section -->
+        <div class="bg-gray-50 rounded-lg p-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Filter & Search</h3>
+                <div class="text-sm text-gray-600">
+                    Total Rooms: <span class="font-semibold text-steel-blue">{{ rooms.count }}</span>
+                </div>
+            </div>
+            
+            <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                    <input type="text" class="form-control w-full" id="search" name="search" 
+                           value="{{ search_query|default:'' }}" 
+                           placeholder="Search rooms, descriptions...">
+                </div>
+                <div>
+                    <label for="camp_filter" class="block text-sm font-medium text-gray-700 mb-1">Camp</label>
+                    <select class="form-control w-full" id="camp_filter" name="camp_filter" onchange="updateCompounds()">
+                        <option value="">All Camps</option>
+                        {% for camp in camps %}
+                        <option value="{{ camp.id }}" {% if camp_filter == camp.id|stringformat:"s" %}selected{% endif %}>
+                            {{ camp.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="compound_filter" class="block text-sm font-medium text-gray-700 mb-1">Compound</label>
+                    <select class="form-control w-full" id="compound_filter" name="compound_filter">
+                        <option value="">All Compounds</option>
+                        {% for compound in compounds %}
+                        <option value="{{ compound.id }}" data-camp="{{ compound.camp.id }}" {% if compound_filter == compound.id|stringformat:"s" %}selected{% endif %}>
+                            {{ compound.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex items-end space-x-2">
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded btn-industrial font-medium uppercase tracking-wide flex-1 metallic-shine transition-all">
+                        <i class="fa-solid fa-search mr-2"></i>SEARCH
+                    </button>
+                    <a href="{% url 'locations:location_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-times"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rooms Table -->
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-dark-graphite">All Rooms</h3>
+        </div>
+        
+        <!-- Desktop Table View -->
+        <div class="hidden xl:block overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200 table-fixed">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room Code</th>
+                        <th class="w-48 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th class="w-64 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SQM</th>
+                        <th class="w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
+                        <th class="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for room in rooms %}
+                    <tr class="hover:bg-gray-50 cursor-pointer room-row" data-room-url="{% url 'locations:room_view' room.id %}">
+                        <td class="px-4 py-4">
+                            <div class="text-sm font-medium text-dark-graphite break-words">{{ room.room_code }}</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words" title="{{ room.room_description }}">
+                                {{ room.room_description|default:"No description" }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900">
+                                <div class="font-medium break-words">{{ room.camp.name }}</div>
+                                <div class="text-gray-500 break-words text-xs">{{ room.compound.name }} → {{ room.building.name }} → {{ room.floor.name }}</div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words">{{ room.square_meters|floatformat:1 }} m²</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words">{{ room.frequency_per_week }}/week</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            {% if room.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex space-x-2" onclick="event.stopPropagation()">
+                                <a href="{% url 'locations:room_view' room.id %}" class="text-blue-600 hover:text-blue-800 transition-colors" title="View">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <a href="{% url 'locations:room_update' room.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
+                                    <i class="fa-solid fa-edit"></i>
+                                </a>
+                                {% if user.profile.role == 'admin' %}
+                                <a href="{% url 'locations:room_delete' room.id %}" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-door-open text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No rooms found</p>
+                                <p class="text-sm">Try adjusting your filters or add a new room</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Medium Screen Table View -->
+        <div class="hidden lg:block xl:hidden overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room Code</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SQM</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for room in rooms %}
+                    <tr class="hover:bg-gray-50 cursor-pointer room-row" data-room-url="{% url 'locations:room_view' room.id %}">
+                        <td class="px-4 py-4">
+                            <div class="text-sm font-medium text-dark-graphite break-words">{{ room.room_code }}</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words max-w-xs" title="{{ room.room_description }}">
+                                {{ room.room_description|default:"No description" }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900">
+                                <div class="font-medium break-words">{{ room.camp.name }}</div>
+                                <div class="text-gray-500 break-words text-xs">{{ room.compound.name }} → {{ room.building.name }} → {{ room.floor.name }}</div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-900 break-words">{{ room.square_meters|floatformat:1 }} m²</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            {% if room.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex space-x-2" onclick="event.stopPropagation()">
+                                <a href="{% url 'locations:room_view' room.id %}" class="text-blue-600 hover:text-blue-800 transition-colors" title="View">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <a href="{% url 'locations:room_update' room.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
+                                    <i class="fa-solid fa-edit"></i>
+                                </a>
+                                {% if user.profile.role == 'admin' %}
+                                <a href="{% url 'locations:room_delete' room.id %}" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-door-open text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No rooms found</p>
+                                <p class="text-sm">Try adjusting your filters or add a new room</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile/Tablet Card View -->
+        <div class="lg:hidden">
+            {% for room in rooms %}
+            <div class="border-b border-gray-200 p-4 hover:bg-gray-50 cursor-pointer transition-colors room-row" data-room-url="{% url 'locations:room_view' room.id %}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <h4 class="text-sm font-medium text-dark-graphite">{{ room.room_code }}</h4>
+                            {% if room.is_active %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 mb-2 truncate" title="{{ room.room_description }}">
+                            {{ room.room_description|default:"No description" }}
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                            <div>
+                                <span class="font-medium">Location:</span> {{ room.camp.name }}
+                            </div>
+                            <div>
+                                <span class="font-medium">Size:</span> {{ room.square_meters|floatformat:1 }} m²
+                            </div>
+                            <div>
+                                <span class="font-medium">Frequency:</span> {{ room.frequency_per_week }}/week
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs text-gray-500 mt-2 truncate">
+                            {{ room.compound.name }} → {{ room.building.name }} → {{ room.floor.name }}
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col space-y-2 ml-4" onclick="event.stopPropagation()">
+                        <a href="{% url 'locations:room_view' room.id %}" class="text-blue-600 hover:text-blue-800 p-1 transition-colors" title="View">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                        <a href="{% url 'locations:room_update' room.id %}" class="text-steel-blue hover:text-steel-blue/80 p-1 transition-colors" title="Edit">
+                            <i class="fa-solid fa-edit"></i>
+                        </a>
+                        {% if user.profile.role == 'admin' %}
+                        <a href="{% url 'locations:room_delete' room.id %}" class="text-warning-orange hover:text-warning-orange/80 p-1 transition-colors" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center text-sm text-gray-500">
+                <div class="flex flex-col items-center">
+                    <i class="fa-solid fa-door-open text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-lg font-medium">No rooms found</p>
+                    <p class="text-sm">Try adjusting your filters or add a new room</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<!-- Compound Modal -->
+<div id="compoundModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Compound</h3>
+                <button onclick="closeModal('compoundModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'locations:compound_create' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Camp *</label>
+                        <select name="camp" class="form-control w-full" required>
+                            <option value="">Select Camp</option>
+                            {% for camp in camps %}
+                            <option value="{{ camp.id }}">{{ camp.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                        <input type="text" name="code" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="name" class="form-control w-full" required>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="compound_active" checked class="mr-2">
+                        <label for="compound_active" class="text-sm text-gray-700">Active</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('compoundModal')" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                        <i class="fa-solid fa-times mr-2"></i>CANCEL
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-map-marker-alt mr-2"></i>CREATE COMPOUND
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Building Modal -->
+<div id="buildingModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Building</h3>
+                <button onclick="closeModal('buildingModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'locations:building_create' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Compound *</label>
+                        <select name="compound" class="form-control w-full" required>
+                            <option value="">Select Compound</option>
+                            {% for compound in compounds %}
+                            <option value="{{ compound.id }}">{{ compound.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                        <input type="text" name="code" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="name" class="form-control w-full" required>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="building_active" checked class="mr-2">
+                        <label for="building_active" class="text-sm text-gray-700">Active</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('buildingModal')" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                        <i class="fa-solid fa-times mr-2"></i>CANCEL
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-building mr-2"></i>CREATE BUILDING
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Floor Modal -->
+<div id="floorModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Floor</h3>
+                <button onclick="closeModal('floorModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'locations:floor_create' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Building *</label>
+                        <select name="building" class="form-control w-full" required>
+                            <option value="">Select Building</option>
+                            {% for building in buildings %}
+                            <option value="{{ building.id }}">{{ building.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                        <input type="text" name="code" class="form-control w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="name" class="form-control w-full" required>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="floor_active" checked class="mr-2">
+                        <label for="floor_active" class="text-sm text-gray-700">Active</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('floorModal')" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
+                        <i class="fa-solid fa-times mr-2"></i>CANCEL
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
+                        <i class="fa-solid fa-layer-group mr-2"></i>CREATE FLOOR
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+}
+
+// Update compounds when camp changes
+function updateCompounds() {
+    const campSelect = document.getElementById('camp_filter');
+    const compoundSelect = document.getElementById('compound_filter');
+    const selectedCampId = campSelect.value;
+    
+    // Reset compound selection
+    compoundSelect.innerHTML = '<option value="">All Compounds</option>';
+    
+    if (selectedCampId) {
+        // Show only compounds for selected camp
+        const compoundOptions = document.querySelectorAll('option[data-camp]');
+        compoundOptions.forEach(option => {
+            if (option.dataset.camp === selectedCampId) {
+                compoundSelect.appendChild(option.cloneNode(true));
+            }
+        });
+    } else {
+        // Show all compounds
+        const compoundOptions = document.querySelectorAll('option[data-camp]');
+        compoundOptions.forEach(option => {
+            compoundSelect.appendChild(option.cloneNode(true));
+        });
+    }
+}
+
+// Handle room row clicks
+document.addEventListener('DOMContentLoaded', function() {
+    const roomRows = document.querySelectorAll('.room-row');
+    roomRows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't navigate if clicking on action buttons
+            if (e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            const roomUrl = this.getAttribute('data-room-url');
+            if (roomUrl) {
+                window.location.href = roomUrl;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

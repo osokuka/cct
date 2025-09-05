@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Team Management{% endblock %}
+{% block page_title %}TEAM MANAGEMENT{% endblock %}
+{% block page_subtitle %}Manage cleaning teams and their members{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="metallic-card rounded-lg p-6 border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-200 mb-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-dark-graphite">Teams</h3>
+                <a href="{% url 'accounts:team_create' %}" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Add New Team
+                </a>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for team in teams %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-dark-graphite">{{ team.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ team.description|truncatechars:50|default:"-" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ team.members.count }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if team.is_active %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <a href="{% url 'accounts:team_update' team.id %}" class="text-indigo-600 hover:text-indigo-900" title="Edit">
+                                    <i class="fa-solid fa-edit"></i>
+                                </a>
+                                {% if user.profile.role == 'admin' %}
+                                <a href="{% url 'accounts:team_delete' team.id %}" class="text-red-600 hover:text-red-900" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No teams found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

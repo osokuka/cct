@@ -10,375 +10,337 @@
     <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     
-    <!-- Custom Styles -->
+    <!-- Highcharts for charts -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    
     <style>
         ::-webkit-scrollbar { display: none;}
         body { font-family: 'Inter', sans-serif; }
         .heading-font { font-family: 'Montserrat', sans-serif; }
         .metallic-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
-        .metallic-bg { background: linear-gradient(145deg, #B0B3B8 0%, #9CA0A5 25%, #A8ABAF 50%, #9CA0A5 75%, #B0B3B8 100%); }
         .metallic-card { background: linear-gradient(145deg, #F5F6F7 0%, #E8E9EA 50%, #F5F6F7 100%); box-shadow: 2px 2px 8px rgba(43, 46, 50, 0.15), -1px -1px 4px rgba(255, 255, 255, 0.8); }
         .metallic-shine:hover { background: linear-gradient(135deg, #C0C3C8 0%, #B0B3B8 50%, #C0C3C8 100%); transition: all 0.3s ease; }
-        .shield-logo { background: linear-gradient(145deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
-        
         .highlighted-section {
             outline: 2px solid #3F20FB;
             background-color: rgba(63, 32, 251, 0.1);
         }
-        
         .edit-button {
             position: absolute;
             z-index: 1000;
         }
-        
+        ::-webkit-scrollbar {
+            display: none;
+        }
         html, body {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 1023px) {
+            .mobile-menu-button {
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 60;
+            }
+            
+            .sidebar-mobile {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            
+            .sidebar-mobile.open {
+                transform: translateX(0);
+            }
+            
+            .main-content-mobile {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+        
+        /* Prevent body scroll when mobile menu is open */
+        body.mobile-menu-open {
+            overflow: hidden;
+        }
     </style>
     
-    <!-- Tailwind Config -->
-    <script>
-        tailwind.config = {
-            "theme": {
-                "extend": {
-                    "colors": {
-                        "industrial-gray": "#B0B3B8",
-                        "dark-graphite": "#2B2E32",
-                        "steel-blue": "#3F5876",
-                        "warning-orange": "#F28C28",
-                        "off-white": "#F5F6F7"
-                    },
-                    "fontFamily": {
-                        "sans": ["Inter", "sans-serif"]
-                    }
-                }
-            }
-        };
-    </script>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "industrial-gray": "#B0B3B8",
+        "dark-graphite": "#2B2E32",
+        "steel-blue": "#3F5876",
+        "warning-orange": "#F28C28",
+        "off-white": "#F5F6F7"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap">
     
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-off-white">
-    
-    {% if user.is_authenticated %}
-        <!-- Mobile Header -->
-        <div class="lg:hidden bg-dark-graphite text-white shadow-lg sticky top-0 z-50">
-            <div class="flex items-center justify-between px-4 py-3">
-                <div class="flex items-center space-x-3">
-                    <button onclick="toggleMobileMenu()" class="p-2 rounded-lg hover:bg-gray-700">
-                        <i class="fa-solid fa-bars text-white"></i>
-                    </button>
-                    <div class="flex items-center">
-                        <div class="w-6 h-6 mr-2 bg-industrial-gray rounded flex items-center justify-center">
-                            <i class="fa-solid fa-shield-halved text-dark-graphite text-sm"></i>
-                        </div>
-                        <div>
-                            <div class="heading-font font-bold text-sm">CONTROL</div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <div class="w-6 h-6 bg-steel-blue rounded-full flex items-center justify-center">
-                        <i class="fa-solid fa-user text-white text-xs"></i>
-                    </div>
-                    <span class="text-sm font-medium">{{ user.get_full_name|default:user.username }}</span>
-                </div>
+
+<!-- Mobile Menu Button -->
+<div class="lg:hidden">
+    <button id="mobile-menu-button" class="mobile-menu-button bg-dark-graphite text-white p-3 rounded-lg shadow-lg hover:bg-gray-800 transition-colors">
+        <i class="fa-solid fa-bars text-lg"></i>
+    </button>
+</div>
+
+<!-- Mobile Overlay -->
+<div id="mobile-overlay" class="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+<!-- Sidebar Navigation -->
+<div id="sidebar" class="bg-dark-graphite w-64 min-h-screen fixed left-0 top-0 flex flex-col text-white z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+    <div class="p-6 flex items-center justify-between border-b border-gray-700">
+        <div class="flex items-center">
+            <div class="w-8 h-8 mr-3 bg-industrial-gray rounded flex items-center justify-center">
+                <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
+            </div>
+            <div>
+                <div class="heading-font font-bold text-lg">CONTROL</div>
+                <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
             </div>
         </div>
+        <!-- Mobile Close Button -->
+        <button id="sidebar-close" class="lg:hidden text-gray-400 hover:text-white transition-colors">
+            <i class="fa-solid fa-times text-xl"></i>
+        </button>
+    </div>
+    
+    <nav class="flex-1 mt-6 overflow-y-auto">
+        <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-3 flex items-center {% if request.resolver_match.url_name == 'dashboard' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-gauge-high mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if request.resolver_match.url_name == 'dashboard' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Dashboard</span>
+        </a>
+        
+        {% if user.is_authenticated %}
+            {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
+            <a href="{% url 'accounts:user_list' %}" class="px-4 py-3 flex items-center {% if 'user' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+                <i class="fa-solid fa-users mr-3 {% if 'user' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                <span class="{% if 'user' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">User Management</span>
+            </a>
+            <a href="{% url 'accounts:team_list' %}" class="px-4 py-3 flex items-center {% if 'team' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+                <i class="fa-solid fa-user-friends mr-3 {% if 'team' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                <span class="{% if 'team' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Team Management</span>
+            </a>
+            <div class="relative">
+                <a href="{% url 'locations:location_list' %}" class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+                    <i class="fa-solid fa-map-marker-alt mr-3 {% if 'location' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                    <span class="{% if 'location' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Location Management</span>
+                    <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400"></i>
+                </a>
+                <!-- Sub-menu -->
+                <div class="ml-8 mt-2 space-y-1">
+                    <a href="{% url 'locations:location_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'location_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-door-open mr-3 text-xs"></i>
+                        <span class="text-xs">Rooms</span>
+                    </a>
+                    <a href="{% url 'locations:camp_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'camp_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-building mr-3 text-xs"></i>
+                        <span class="text-xs">Camps</span>
+                    </a>
+                    <a href="{% url 'locations:compound_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'compound_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-map-marker-alt mr-3 text-xs"></i>
+                        <span class="text-xs">Compounds</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user.profile.role == 'admin' %}
+            <a href="{% url 'accounts:compound_assignment_list' %}" class="px-4 py-3 flex items-center {% if 'compound-assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+                <i class="fa-solid fa-building mr-3 {% if 'compound-assignment' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                <span class="{% if 'compound-assignment' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Compound Assignments</span>
+            </a>
+            {% endif %}
+            
+            {% if user.profile.role == 'cleaner' %}
+            <a href="{% url 'scans:scan' %}" class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
+                <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
+                <span class="text-sm">QR Scanner</span>
+            </a>
+            {% endif %}
+        {% endif %}
+        
+        <div class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
+            <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>
+            <span class="text-sm">Reports</span>
+        </div>
+        <div class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
+            <i class="fa-solid fa-clipboard-check mr-3 text-gray-400"></i>
+            <span class="text-sm">Audit Logs</span>
+        </div>
+        <div class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
+            <i class="fa-solid fa-exclamation-triangle mr-3 text-warning-orange"></i>
+            <span class="text-sm">Re-clean Requests</span>
+        </div>
+    </nav>
+    
+    <div class="mt-auto border-t border-gray-700">
+        <div class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
+            <i class="fa-solid fa-cog mr-3 text-gray-400"></i>
+            <span class="text-sm">Settings</span>
+        </div>
+        <div class="p-4 flex items-center">
+            <div class="w-10 h-10 rounded bg-industrial-gray flex items-center justify-center mr-3 flex-shrink-0">
+                <span class="text-dark-graphite font-semibold text-sm">
+                    {% if user.is_authenticated %}
+                        {{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|default:""|upper }}
+                    {% else %}
+                        GU
+                    {% endif %}
+                </span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">
+                    {% if user.is_authenticated %}
+                        {{ user.get_full_name|default:user.username }}
+                    {% else %}
+                        Guest User
+                    {% endif %}
+                </div>
+                <div class="text-xs text-gray-400 truncate">
+                    {% if user.is_authenticated and user.profile %}
+                        {{ user.profile.get_role_display }}
+                    {% else %}
+                        Guest
+                    {% endif %}
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-up ml-auto text-xs text-gray-400 flex-shrink-0"></i>
+        </div>
+    </div>
+</div>
 
-        <!-- Mobile Menu Overlay -->
-        <div id="mobile-menu" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden lg:hidden">
-            <div class="bg-dark-graphite w-80 h-full shadow-xl">
-                <div class="p-4 border-b border-gray-700">
+<!-- Main Content -->
+<div class="lg:ml-64 main-content-mobile">
+    <!-- Top Header Bar -->
+    <div id="header" class="metallic-gradient px-4 lg:px-6 py-4 border-b border-gray-300">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+                <h1 class="heading-font font-bold text-lg lg:text-2xl text-dark-graphite uppercase tracking-wider truncate">{% block page_title %}DASHBOARD CONTROL{% endblock %}</h1>
+                <p class="text-xs lg:text-sm text-gray-600 mt-1 truncate">{% block page_subtitle %}System Overview & Monitoring{% endblock %}</p>
+            </div>
+            <div class="flex items-center space-x-2 lg:space-x-4">
+                <div class="relative hidden sm:block">
+                    <i class="fa-solid fa-bell text-dark-graphite text-lg cursor-pointer hover:text-steel-blue"></i>
+                    <span class="absolute -top-2 -right-2 bg-warning-orange text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                </div>
+                <div class="text-xs lg:text-sm text-dark-graphite hidden lg:block">
+                    <div class="font-medium">Last Update:</div>
+                    <div class="text-xs">{% now "Y-m-d H:i" %}</div>
+                </div>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'admin:logout' %}" class="bg-steel-blue text-white px-2 lg:px-4 py-2 rounded uppercase text-xs lg:text-sm tracking-wide metallic-shine flex items-center space-x-1 lg:space-x-2">
+                        <i class="fa-solid fa-sign-out-alt"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </a>
+                {% else %}
+                    <a href="{% url 'admin:login' %}" class="bg-steel-blue text-white px-2 lg:px-4 py-2 rounded uppercase text-xs lg:text-sm tracking-wide metallic-shine flex items-center space-x-1 lg:space-x-2">
+                        <i class="fa-solid fa-sign-in-alt"></i>
+                        <span class="hidden sm:inline">Login</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="px-4 lg:px-6 py-4">
+            {% for message in messages %}
+                <div class="metallic-card rounded-lg p-3 lg:p-4 border border-gray-300 mb-4 {% if message.tags == 'error' %}border-red-500 bg-red-50{% elif message.tags == 'success' %}border-green-500 bg-green-50{% elif message.tags == 'warning' %}border-yellow-500 bg-yellow-50{% else %}border-blue-500 bg-blue-50{% endif %}">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <div class="w-8 h-8 mr-3 bg-industrial-gray rounded flex items-center justify-center">
-                                <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
-                            </div>
-                            <div>
-                                <div class="heading-font font-bold text-lg text-white">CONTROL</div>
-                                <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
-                            </div>
+                        <div class="flex items-center flex-1 min-w-0">
+                            <i class="fa-solid fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} mr-2 lg:mr-3 text-{% if message.tags == 'error' %}red-600{% elif message.tags == 'success' %}green-600{% elif message.tags == 'warning' %}yellow-600{% else %}blue-600{% endif %} flex-shrink-0"></i>
+                            <span class="text-xs lg:text-sm font-medium text-dark-graphite truncate">{{ message }}</span>
                         </div>
-                        <button onclick="toggleMobileMenu()" class="p-2 rounded-lg hover:bg-gray-700">
-                            <i class="fa-solid fa-times text-white"></i>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-2">
+                            <i class="fa-solid fa-times"></i>
                         </button>
                     </div>
                 </div>
-                <nav class="flex-1 mt-6 p-4">
-                    <!-- Mobile Navigation Items -->
-                    <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2 {% if request.resolver_match.url_name == 'dashboard' %}bg-steel-blue bg-opacity-30{% endif %}">
-                        <i class="fa-solid fa-gauge-high mr-3 text-gray-400"></i>
-                        <span class="text-sm text-white">Dashboard</span>
-                    </a>
-                    
-                    {% if request.role == 'admin' %}
-                        <a href="{% url 'accounts:user_list' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2 {% if 'accounts' in request.resolver_match.namespace %}bg-steel-blue bg-opacity-30{% endif %}">
-                            <i class="fa-solid fa-users mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">User Management</span>
-                        </a>
-                        <a href="{% url 'dashboard:reports' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2">
-                            <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Reports</span>
-                        </a>
-                        <a href="{% url 'dashboard:audit_logs' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2">
-                            <i class="fa-solid fa-clipboard-check mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Audit Logs</span>
-                        </a>
-                        <a href="{% url 'dashboard:bulk_import' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2">
-                            <i class="fa-solid fa-upload mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Bulk Import</span>
-                        </a>
-                        <a href="{% url 'dashboard:roster_management' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2">
-                            <i class="fa-solid fa-calendar-days mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Roster Management</span>
-                        </a>
-                        <a href="{% url 'dashboard:barcode_generator' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2">
-                            <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Barcode Generator</span>
-                        </a>
-                    {% endif %}
-                    
-                    {% if request.role == 'cleaner' %}
-                        <a href="{% url 'scans:dashboard' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2 {% if 'scans' in request.resolver_match.namespace %}bg-steel-blue bg-opacity-30{% endif %}">
-                            <i class="fa-solid fa-home mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Dashboard</span>
-                        </a>
-                        <a href="{% url 'scans:scan' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2">
-                            <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Room Scanner</span>
-                        </a>
-                        <a href="{% url 'scans:scan_history' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg mb-2">
-                            <i class="fa-solid fa-history mr-3 text-gray-400"></i>
-                            <span class="text-sm text-white">Scan History</span>
-                        </a>
-                    {% endif %}
-                </nav>
-                
-                <!-- Mobile User Info & Logout -->
-                <div class="mt-auto border-t border-gray-700 p-4">
-                    <div class="px-4 py-3 border-b border-gray-700 mb-3">
-                        <div class="flex items-center">
-                            <div class="w-8 h-8 bg-steel-blue rounded-full flex items-center justify-center mr-3">
-                                <i class="fa-solid fa-user text-white text-sm"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm font-medium text-white">{{ user.get_full_name|default:user.username }}</div>
-                                <div class="text-xs text-gray-400 uppercase tracking-wider">{{ request.role|default:"User" }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <a href="{% url 'accounts:logout' %}" class="px-4 py-3 flex items-center hover:bg-gray-700 rounded-lg">
-                        <i class="fa-solid fa-sign-out-alt mr-3 text-gray-400"></i>
-                        <span class="text-sm text-white">Logout</span>
-                    </a>
-                </div>
-            </div>
+            {% endfor %}
         </div>
-
-        <!-- Desktop Sidebar Navigation -->
-        <div id="sidebar" class="hidden lg:flex bg-dark-graphite w-64 min-h-screen fixed left-0 top-0 flex-col text-white">
-            <div class="p-6 flex items-center border-b border-gray-700">
-                <div class="w-8 h-8 mr-3 bg-industrial-gray rounded flex items-center justify-center">
-                    <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
-                </div>
-                <div>
-                    <div class="heading-font font-bold text-lg">CONTROL</div>
-                    <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
-                </div>
-            </div>
-            
-            <nav class="flex-1 mt-6">
-                <!-- Dashboard -->
-                <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer {% if request.resolver_match.url_name == 'dashboard' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% endif %}">
-                    <i class="fa-solid fa-gauge-high mr-3 text-gray-400"></i>
-                    <span class="text-sm">Dashboard</span>
-                </a>
-                
-                {% if request.role == 'admin' %}
-                    <!-- User Management -->
-                    <a href="{% url 'accounts:user_list' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer {% if 'accounts' in request.resolver_match.namespace %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% endif %}">
-                        <i class="fa-solid fa-users mr-3 text-gray-400"></i>
-                        <span class="text-sm">User Management</span>
-                    </a>
-                    
-                    <!-- Reports -->
-                    <a href="{% url 'dashboard:reports' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer {% if 'reports' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% endif %}">
-                        <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>
-                        <span class="text-sm">Reports</span>
-                    </a>
-                    
-                    <!-- Audit Logs -->
-                    <a href="{% url 'dashboard:audit_logs' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer {% if 'audit_logs' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% endif %}">
-                        <i class="fa-solid fa-clipboard-check mr-3 text-gray-400"></i>
-                        <span class="text-sm">Audit Logs</span>
-                    </a>
-                    
-                    <!-- Bulk Import -->
-                    <a href="{% url 'dashboard:bulk_import' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer {% if 'bulk_import' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% endif %}">
-                        <i class="fa-solid fa-upload mr-3 text-gray-400"></i>
-                        <span class="text-sm">Bulk Import</span>
-                    </a>
-                    
-                    <!-- Roster Management -->
-                    <a href="{% url 'dashboard:roster_management' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer {% if 'roster_management' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% endif %}">
-                        <i class="fa-solid fa-calendar-days mr-3 text-gray-400"></i>
-                        <span class="text-sm">Roster Management</span>
-                    </a>
-                    
-                    <!-- Barcode Generator -->
-                    <a href="{% url 'dashboard:barcode_generator' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer {% if 'barcode_generator' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% endif %}">
-                        <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
-                        <span class="text-sm">Barcode Generator</span>
-                    </a>
-                {% endif %}
-                
-                {% if request.role == 'authority' %}
-                    <!-- Authority Dashboard -->
-                    <a href="#" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer opacity-50">
-                        <i class="fa-solid fa-building mr-3 text-gray-400"></i>
-                        <span class="text-sm">Authority Dashboard</span>
-                    </a>
-                    
-                    <!-- Re-clean Requests -->
-                    <a href="#" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer opacity-50">
-                        <i class="fa-solid fa-exclamation-triangle mr-3 text-warning-orange"></i>
-                        <span class="text-sm">Re-clean Requests</span>
-                    </a>
-                    
-                    <!-- Urgent Cleaning -->
-                    <a href="#" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer opacity-50">
-                        <i class="fa-solid fa-fire mr-3 text-red-500"></i>
-                        <span class="text-sm">Urgent Cleaning</span>
-                    </a>
-                {% endif %}
-                
-                {% if request.role == 'cleaner' %}
-                    <!-- Scanner -->
-                    <a href="#" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer opacity-50">
-                        <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
-                        <span class="text-sm">Room Scanner</span>
-                    </a>
-                {% endif %}
-            </nav>
-            
-            <!-- User Info & Logout -->
-            <div class="mt-auto border-t border-gray-700">
-                <div class="px-4 py-3 border-b border-gray-700">
-                    <div class="flex items-center">
-                        <div class="w-8 h-8 bg-steel-blue rounded-full flex items-center justify-center mr-3">
-                            <i class="fa-solid fa-user text-white text-sm"></i>
-                        </div>
-                        <div>
-                            <div class="text-sm font-medium">{{ user.get_full_name|default:user.username }}</div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider">{{ request.role|default:"User" }}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <a href="{% url 'accounts:logout' %}" class="px-4 py-2 flex items-center hover:bg-gray-800 cursor-pointer">
-                    <i class="fa-solid fa-sign-out-alt mr-3 text-gray-400"></i>
-                    <span class="text-sm">Logout</span>
-                </a>
-            </div>
-        </div>
-        
-        <!-- Main Content -->
-        <div class="lg:ml-64 min-h-screen">
-            <!-- Desktop Top Bar -->
-            <div class="hidden lg:block bg-white border-b border-gray-200 px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="heading-font font-bold text-2xl text-dark-graphite uppercase tracking-wider">
-                            {% block page_title %}Dashboard{% endblock %}
-                        </h1>
-                        <p class="text-sm text-gray-600 uppercase tracking-wide">
-                            {% block page_subtitle %}Control Panel{% endblock %}
-                        </p>
-                    </div>
-                    
-                    <div class="flex items-center space-x-4">
-                        <!-- Notifications -->
-                        <div class="relative">
-                            <button class="p-2 text-gray-600 hover:text-steel-blue transition-colors">
-                                <i class="fa-solid fa-bell text-lg"></i>
-                                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
-                            </button>
-                        </div>
-                        
-                        <!-- User Menu -->
-                        <div class="relative">
-                            <button class="flex items-center space-x-2 text-gray-600 hover:text-steel-blue transition-colors">
-                                <div class="w-8 h-8 bg-steel-blue rounded-full flex items-center justify-center">
-                                    <i class="fa-solid fa-user text-white text-sm"></i>
-                                </div>
-                                <span class="text-sm font-medium">{{ user.get_full_name|default:user.username }}</span>
-                                <i class="fa-solid fa-chevron-down text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Messages -->
-            {% if messages %}
-                <div class="px-6 py-4">
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% elif message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% elif message.tags == 'warning' %}bg-yellow-100 border border-yellow-400 text-yellow-700{% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
-                            <div class="flex items-center">
-                                <i class="fa-solid fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} mr-2"></i>
-                                {{ message }}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            
-            <!-- Page Content -->
-            <div class="p-4 lg:p-6">
-                {% block content %}{% endblock %}
-            </div>
-        </div>
-    {% else %}
-        <!-- Not authenticated - show login page -->
-        {% block login_content %}{% endblock %}
     {% endif %}
     
-    {% block extra_js %}{% endblock %}
+    <!-- Page Content -->
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+// Mobile menu functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const sidebar = document.getElementById('sidebar');
+    const mobileOverlay = document.getElementById('mobile-overlay');
+    const sidebarClose = document.getElementById('sidebar-close');
     
-    <script>
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
+    // Open sidebar
+    function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        mobileOverlay.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+    
+    // Close sidebar
+    function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        mobileOverlay.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+    
+    // Event listeners
+    if (mobileMenuButton) {
+        mobileMenuButton.addEventListener('click', openSidebar);
+    }
+    
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeSidebar);
+    }
+    
+    if (mobileOverlay) {
+        mobileOverlay.addEventListener('click', closeSidebar);
+    }
+    
+    // Close sidebar when clicking on navigation links (mobile only)
+    const navLinks = sidebar.querySelectorAll('a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth < 1024) { // lg breakpoint
+                closeSidebar();
+            }
+        });
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) { // lg breakpoint
+            closeSidebar();
         }
+    });
+    
+    // Close sidebar on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !sidebar.classList.contains('-translate-x-full')) {
+            closeSidebar();
+        }
+    });
+});
+</script>
 
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', function(event) {
-            const menu = document.getElementById('mobile-menu');
-            const menuButton = event.target.closest('[onclick="toggleMobileMenu()"]');
-            
-            if (!menuButton && menu && !menu.contains(event.target)) {
-                menu.classList.add('hidden');
-            }
-        });
-
-        // Close mobile menu on escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                const menu = document.getElementById('mobile-menu');
-                if (menu && !menu.classList.contains('hidden')) {
-                    menu.classList.add('hidden');
-                }
-            }
-        });
-    </script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

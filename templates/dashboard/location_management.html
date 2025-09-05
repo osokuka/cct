@@ -1,0 +1,1184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Location Management - Admin Dashboard{% endblock %}
+
+{% block content %}
+<style>
+/* Location Management Styles */
+.location-tabs {
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 2rem;
+}
+
+.location-tab {
+    padding: 1rem 2rem;
+    border: none;
+    background: none;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.location-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+.location-tab:hover {
+    color: #3b82f6;
+    background-color: #f8fafc;
+}
+
+.data-table {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.table-header {
+    background: #f8fafc;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-content {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.btn-success {
+    background-color: #10b981;
+    color: white;
+    border-color: #10b981;
+}
+
+.btn-success:hover {
+    background-color: #059669;
+    border-color: #059669;
+}
+
+.btn-warning {
+    background-color: #f59e0b;
+    color: white;
+    border-color: #f59e0b;
+}
+
+.btn-warning:hover {
+    background-color: #d97706;
+    border-color: #d97706;
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 0.5rem;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    background-color: white;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.pagination button {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    border-radius: 0.375rem;
+}
+
+.pagination button:hover:not(:disabled) {
+    background: #f3f4f6;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination .active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.search-box {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    width: 300px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #3b82f6;
+}
+
+.stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+</style>
+
+<div class="container mx-auto px-4 lg:px-6 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="heading-font font-bold text-3xl text-dark-graphite uppercase tracking-wider">
+            <i class="fa-solid fa-building mr-3"></i>
+            Location Management
+        </h1>
+        <p class="text-gray-600 mt-2">Manage camps, compounds, buildings, floors, and rooms</p>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ camps_count }}</div>
+            <div class="stat-label">Camps</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ compounds_count }}</div>
+            <div class="stat-label">Compounds</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ buildings_count }}</div>
+            <div class="stat-label">Buildings</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ floors_count }}</div>
+            <div class="stat-label">Floors</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ rooms_count }}</div>
+            <div class="stat-label">Rooms</div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="location-tabs">
+        <button class="location-tab active" data-tab="camps">Camps</button>
+        <button class="location-tab" data-tab="compounds">Compounds</button>
+        <button class="location-tab" data-tab="buildings">Buildings</button>
+        <button class="location-tab" data-tab="floors">Floors</button>
+        <button class="location-tab" data-tab="rooms">Rooms</button>
+    </div>
+
+    <!-- Camps Tab -->
+    <div id="camps-tab" class="tab-content">
+        <div class="data-table">
+            <div class="table-header">
+                <h3 class="text-lg font-semibold">Camps</h3>
+                <div class="search-box">
+                    <input type="text" id="camps-search" class="search-input" placeholder="Search camps...">
+                    <button class="btn-sm btn-primary" onclick="openModal('camp')">
+                        <i class="fas fa-plus mr-1"></i>Add Camp
+                    </button>
+                </div>
+            </div>
+            <div class="table-content">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th>Country</th>
+                            <th>Timezone</th>
+                            <th>Status</th>
+                            <th>Compounds</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="camps-table-body">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+                <div id="camps-pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compounds Tab -->
+    <div id="compounds-tab" class="tab-content" style="display: none;">
+        <div class="data-table">
+            <div class="table-header">
+                <h3 class="text-lg font-semibold">Compounds</h3>
+                <div class="search-box">
+                    <select id="compounds-camp-filter" class="form-select" style="width: 200px;">
+                        <option value="">All Camps</option>
+                    </select>
+                    <input type="text" id="compounds-search" class="search-input" placeholder="Search compounds...">
+                    <button class="btn-sm btn-primary" onclick="openModal('compound')">
+                        <i class="fas fa-plus mr-1"></i>Add Compound
+                    </button>
+                </div>
+            </div>
+            <div class="table-content">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th>Camp</th>
+                            <th>Status</th>
+                            <th>Buildings</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compounds-table-body">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+                <div id="compounds-pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buildings Tab -->
+    <div id="buildings-tab" class="tab-content" style="display: none;">
+        <div class="data-table">
+            <div class="table-header">
+                <h3 class="text-lg font-semibold">Buildings</h3>
+                <div class="search-box">
+                    <select id="buildings-compound-filter" class="form-select" style="width: 200px;">
+                        <option value="">All Compounds</option>
+                    </select>
+                    <input type="text" id="buildings-search" class="search-input" placeholder="Search buildings...">
+                    <button class="btn-sm btn-primary" onclick="openModal('building')">
+                        <i class="fas fa-plus mr-1"></i>Add Building
+                    </button>
+                </div>
+            </div>
+            <div class="table-content">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th>Compound</th>
+                            <th>Camp</th>
+                            <th>Status</th>
+                            <th>Floors</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="buildings-table-body">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+                <div id="buildings-pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floors Tab -->
+    <div id="floors-tab" class="tab-content" style="display: none;">
+        <div class="data-table">
+            <div class="table-header">
+                <h3 class="text-lg font-semibold">Floors</h3>
+                <div class="search-box">
+                    <select id="floors-building-filter" class="form-select" style="width: 200px;">
+                        <option value="">All Buildings</option>
+                    </select>
+                    <input type="text" id="floors-search" class="search-input" placeholder="Search floors...">
+                    <button class="btn-sm btn-primary" onclick="openModal('floor')">
+                        <i class="fas fa-plus mr-1"></i>Add Floor
+                    </button>
+                </div>
+            </div>
+            <div class="table-content">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Level</th>
+                            <th>Building</th>
+                            <th>Compound</th>
+                            <th>Camp</th>
+                            <th>Status</th>
+                            <th>Rooms</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="floors-table-body">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+                <div id="floors-pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rooms Tab -->
+    <div id="rooms-tab" class="tab-content" style="display: none;">
+        <div class="data-table">
+            <div class="table-header">
+                <h3 class="text-lg font-semibold">Rooms</h3>
+                <div class="search-box">
+                    <select id="rooms-floor-filter" class="form-select" style="width: 200px;">
+                        <option value="">All Floors</option>
+                    </select>
+                    <input type="text" id="rooms-search" class="search-input" placeholder="Search rooms...">
+                    <button class="btn-sm btn-primary" onclick="openModal('room')">
+                        <i class="fas fa-plus mr-1"></i>Add Room
+                    </button>
+                </div>
+            </div>
+            <div class="table-content">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th>SQM</th>
+                            <th>Floor</th>
+                            <th>Building</th>
+                            <th>Compound</th>
+                            <th>Camp</th>
+                            <th>Status</th>
+                            <th>Frequency</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rooms-table-body">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+                <div id="rooms-pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="locationModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title" class="text-lg font-semibold">Add Location</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="location-form">
+                <input type="hidden" id="location-id" name="id">
+                <input type="hidden" id="location-type" name="type">
+                
+                <!-- Camp Fields -->
+                <div id="camp-fields" class="location-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="camp-name">Name *</label>
+                        <input type="text" id="camp-name" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="camp-code">Code *</label>
+                        <input type="text" id="camp-code" name="code" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="camp-country">Country *</label>
+                        <input type="text" id="camp-country" name="country" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="camp-timezone">Timezone</label>
+                        <select id="camp-timezone" name="timezone" class="form-select">
+                            <option value="UTC">UTC</option>
+                            <option value="Europe/Berlin">Europe/Berlin</option>
+                            <option value="Europe/London">Europe/London</option>
+                            <option value="America/New_York">America/New_York</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="camp-description">Description</label>
+                        <textarea id="camp-description" name="description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="camp-is-active" name="is_active" checked> Active
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Compound Fields -->
+                <div id="compound-fields" class="location-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="compound-camp">Camp *</label>
+                        <select id="compound-camp" name="camp_id" class="form-select" required>
+                            <option value="">Select Camp</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="compound-name">Name *</label>
+                        <input type="text" id="compound-name" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="compound-code">Code *</label>
+                        <input type="text" id="compound-code" name="code" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="compound-description">Description</label>
+                        <textarea id="compound-description" name="description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="compound-is-active" name="is_active" checked> Active
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Building Fields -->
+                <div id="building-fields" class="location-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="building-compound">Compound *</label>
+                        <select id="building-compound" name="compound_id" class="form-select" required>
+                            <option value="">Select Compound</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="building-name">Name *</label>
+                        <input type="text" id="building-name" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="building-code">Code *</label>
+                        <input type="text" id="building-code" name="code" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="building-description">Description</label>
+                        <textarea id="building-description" name="description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="building-is-active" name="is_active" checked> Active
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Floor Fields -->
+                <div id="floor-fields" class="location-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="floor-building">Building *</label>
+                        <select id="floor-building" name="building_id" class="form-select" required>
+                            <option value="">Select Building</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="floor-name">Name *</label>
+                        <input type="text" id="floor-name" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="floor-level">Level *</label>
+                        <input type="number" id="floor-level" name="level" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="floor-description">Description</label>
+                        <textarea id="floor-description" name="description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="floor-is-active" name="is_active" checked> Active
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Room Fields -->
+                <div id="room-fields" class="location-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="room-floor">Floor *</label>
+                        <select id="room-floor" name="floor_id" class="form-select" required>
+                            <option value="">Select Floor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="room-name">Name *</label>
+                        <input type="text" id="room-name" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="room-code">Code *</label>
+                        <input type="text" id="room-code" name="code" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="room-sqm">SQM *</label>
+                        <input type="number" id="room-sqm" name="sqm" class="form-input" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="room-frequency-day">Frequency per Day</label>
+                        <input type="number" id="room-frequency-day" name="frequency_per_day" class="form-input" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="room-frequency-week">Frequency per Week</label>
+                        <input type="number" id="room-frequency-week" name="frequency_per_week" class="form-input" min="1" max="7" value="7">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="room-description">Description</label>
+                        <textarea id="room-description" name="description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="room-is-active" name="is_active" checked> Active
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal()" class="btn-sm" style="background: #6b7280; color: white;">Cancel</button>
+            <button onclick="saveLocation()" class="btn-sm btn-primary">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let currentTab = 'camps';
+let currentPage = 1;
+let hierarchyData = {};
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    loadHierarchyData();
+    setupEventListeners();
+    loadTabData('camps');
+});
+
+// Setup event listeners
+function setupEventListeners() {
+    // Tab switching
+    document.querySelectorAll('.location-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+        });
+    });
+
+    // Search functionality
+    document.getElementById('camps-search').addEventListener('input', debounce(() => loadTabData('camps'), 300));
+    document.getElementById('compounds-search').addEventListener('input', debounce(() => loadTabData('compounds'), 300));
+    document.getElementById('buildings-search').addEventListener('input', debounce(() => loadTabData('buildings'), 300));
+    document.getElementById('floors-search').addEventListener('input', debounce(() => loadTabData('floors'), 300));
+    document.getElementById('rooms-search').addEventListener('input', debounce(() => loadTabData('rooms'), 300));
+
+    // Filter changes
+    document.getElementById('compounds-camp-filter').addEventListener('change', () => loadTabData('compounds'));
+    document.getElementById('buildings-compound-filter').addEventListener('change', () => loadTabData('buildings'));
+    document.getElementById('floors-building-filter').addEventListener('change', () => loadTabData('floors'));
+    document.getElementById('rooms-floor-filter').addEventListener('change', () => loadTabData('rooms'));
+}
+
+// Load hierarchy data for dropdowns
+async function loadHierarchyData() {
+    try {
+        const response = await fetch('/admin/locations/hierarchy/');
+        hierarchyData = await response.json();
+        
+        // Populate camp dropdowns
+        populateDropdown('compounds-camp-filter', hierarchyData.camps);
+        populateDropdown('compound-camp', hierarchyData.camps);
+        populateDropdown('building-compound', hierarchyData.compounds);
+        populateDropdown('floor-building', hierarchyData.buildings);
+        populateDropdown('room-floor', hierarchyData.floors);
+        
+    } catch (error) {
+        console.error('Error loading hierarchy data:', error);
+    }
+}
+
+// Populate dropdown with options
+function populateDropdown(selectId, data) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // Clear existing options except the first one
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name;
+        select.appendChild(option);
+    });
+}
+
+// Switch between tabs
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.location-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    document.getElementById(`${tabName}-tab`).style.display = 'block';
+    
+    currentTab = tabName;
+    currentPage = 1;
+    loadTabData(tabName);
+}
+
+// Load data for current tab
+async function loadTabData(tabName) {
+    const search = document.getElementById(`${tabName}-search`).value;
+    const filter = document.getElementById(`${tabName}-${getFilterField(tabName)}-filter`);
+    const filterValue = filter ? filter.value : '';
+    
+    try {
+        const params = new URLSearchParams({
+            page: currentPage,
+            search: search,
+            per_page: 25
+        });
+        
+        if (filterValue) {
+            params.append(getFilterParam(tabName), filterValue);
+        }
+        
+        const response = await fetch(`/admin/locations/${tabName}/?${params}`);
+        const data = await response.json();
+        
+        renderTable(tabName, data);
+        renderPagination(tabName, data);
+        
+    } catch (error) {
+        console.error(`Error loading ${tabName}:`, error);
+    }
+}
+
+// Get filter field name for each tab
+function getFilterField(tabName) {
+    const fields = {
+        'compounds': 'camp',
+        'buildings': 'compound',
+        'floors': 'building',
+        'rooms': 'floor'
+    };
+    return fields[tabName] || '';
+}
+
+// Get filter parameter name for each tab
+function getFilterParam(tabName) {
+    const params = {
+        'compounds': 'camp_id',
+        'buildings': 'compound_id',
+        'floors': 'building_id',
+        'rooms': 'floor_id'
+    };
+    return params[tabName] || '';
+}
+
+// Render table data
+function renderTable(tabName, data) {
+    const tbody = document.getElementById(`${tabName}-table-body`);
+    const items = data[tabName] || [];
+    
+    tbody.innerHTML = items.map(item => {
+        switch(tabName) {
+            case 'camps':
+                return renderCampRow(item);
+            case 'compounds':
+                return renderCompoundRow(item);
+            case 'buildings':
+                return renderBuildingRow(item);
+            case 'floors':
+                return renderFloorRow(item);
+            case 'rooms':
+                return renderRoomRow(item);
+            default:
+                return '';
+        }
+    }).join('');
+}
+
+// Render individual rows
+function renderCampRow(item) {
+    return `
+        <tr>
+            <td>${item.name}</td>
+            <td>${item.code}</td>
+            <td>${item.country}</td>
+            <td>${item.timezone}</td>
+            <td><span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${item.compounds_count}</td>
+            <td>${item.created_at}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-sm btn-primary" onclick="editLocation('camp', '${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-sm btn-danger" onclick="deleteLocation('camp', '${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function renderCompoundRow(item) {
+    return `
+        <tr>
+            <td>${item.name}</td>
+            <td>${item.code}</td>
+            <td>${item.camp_name}</td>
+            <td><span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${item.buildings_count}</td>
+            <td>${item.created_at}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-sm btn-primary" onclick="editLocation('compound', '${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-sm btn-danger" onclick="deleteLocation('compound', '${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function renderBuildingRow(item) {
+    return `
+        <tr>
+            <td>${item.name}</td>
+            <td>${item.code}</td>
+            <td>${item.compound_name}</td>
+            <td>${item.camp_name}</td>
+            <td><span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${item.floors_count}</td>
+            <td>${item.created_at}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-sm btn-primary" onclick="editLocation('building', '${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-sm btn-danger" onclick="deleteLocation('building', '${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function renderFloorRow(item) {
+    return `
+        <tr>
+            <td>${item.name}</td>
+            <td>${item.level}</td>
+            <td>${item.building_name}</td>
+            <td>${item.compound_name}</td>
+            <td>${item.camp_name}</td>
+            <td><span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${item.rooms_count}</td>
+            <td>${item.created_at}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-sm btn-primary" onclick="editLocation('floor', '${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-sm btn-danger" onclick="deleteLocation('floor', '${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function renderRoomRow(item) {
+    return `
+        <tr>
+            <td>${item.name}</td>
+            <td>${item.code}</td>
+            <td>${item.sqm}</td>
+            <td>${item.floor_name}</td>
+            <td>${item.building_name}</td>
+            <td>${item.compound_name}</td>
+            <td>${item.camp_name}</td>
+            <td><span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${item.frequency_per_day}/${item.frequency_per_week}</td>
+            <td>${item.created_at}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-sm btn-primary" onclick="editLocation('room', '${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-sm btn-danger" onclick="deleteLocation('room', '${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+// Render pagination
+function renderPagination(tabName, data) {
+    const pagination = document.getElementById(`${tabName}-pagination`);
+    if (!pagination) return;
+    
+    const { current_page, pages, has_next, has_previous } = data;
+    
+    let html = `
+        <button ${!has_previous ? 'disabled' : ''} onclick="changePage(${current_page - 1})">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+    `;
+    
+    for (let i = 1; i <= pages; i++) {
+        if (i === current_page) {
+            html += `<button class="active" disabled>${i}</button>`;
+        } else {
+            html += `<button onclick="changePage(${i})">${i}</button>`;
+        }
+    }
+    
+    html += `
+        <button ${!has_next ? 'disabled' : ''} onclick="changePage(${current_page + 1})">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+    
+    pagination.innerHTML = html;
+}
+
+// Change page
+function changePage(page) {
+    currentPage = page;
+    loadTabData(currentTab);
+}
+
+// Open modal for adding/editing
+function openModal(type, id = null) {
+    const modal = document.getElementById('locationModal');
+    const title = document.getElementById('modal-title');
+    const form = document.getElementById('location-form');
+    
+    // Reset form
+    form.reset();
+    document.getElementById('location-id').value = id || '';
+    document.getElementById('location-type').value = type;
+    
+    // Show/hide appropriate fields
+    document.querySelectorAll('.location-fields').forEach(fields => {
+        fields.style.display = 'none';
+    });
+    document.getElementById(`${type}-fields`).style.display = 'block';
+    
+    // Set title
+    title.textContent = id ? `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Add ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    
+    // Load data if editing
+    if (id) {
+        loadLocationData(type, id);
+    }
+    
+    modal.style.display = 'block';
+}
+
+// Load location data for editing
+async function loadLocationData(type, id) {
+    try {
+        const response = await fetch(`/admin/locations/${type}s/${id}/`);
+        const data = await response.json();
+        
+        // Populate form fields
+        Object.keys(data).forEach(key => {
+            const field = document.getElementById(`${type}-${key}`);
+            if (field) {
+                if (field.type === 'checkbox') {
+                    field.checked = data[key];
+                } else {
+                    field.value = data[key];
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error(`Error loading ${type} data:`, error);
+    }
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('locationModal').style.display = 'none';
+}
+
+// Save location
+async function saveLocation() {
+    const form = document.getElementById('location-form');
+    const formData = new FormData(form);
+    const type = formData.get('type');
+    const id = formData.get('id');
+    
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+        if (key !== 'id' && key !== 'type') {
+            data[key] = value;
+        }
+    }
+    
+    try {
+        const url = id ? `/admin/locations/${type}s/${id}/` : `/admin/locations/${type}s/`;
+        const method = id ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeModal();
+            loadTabData(type + 's'); // Convert singular to plural
+            showMessage(result.message, 'success');
+        } else {
+            showMessage(result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error(`Error saving ${type}:`, error);
+        showMessage('An error occurred while saving', 'error');
+    }
+}
+
+// Edit location
+function editLocation(type, id) {
+    openModal(type, id);
+}
+
+// Delete location
+async function deleteLocation(type, id) {
+    if (!confirm(`Are you sure you want to delete this ${type}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/locations/${type}s/${id}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            loadTabData(type + 's'); // Convert singular to plural
+            showMessage(result.message, 'success');
+        } else {
+            showMessage(result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error(`Error deleting ${type}:`, error);
+        showMessage('An error occurred while deleting', 'error');
+    }
+}
+
+// Show message
+function showMessage(message, type) {
+    // Create a simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        document.body.removeChild(toast);
+    }, 3000);
+}
+
+// Debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+</script>
+
+<!-- Add CSRF token -->
+{% csrf_token %}
+{% endblock %}

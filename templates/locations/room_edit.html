@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Room{% endblock %}
+{% block page_title %}EDIT ROOM{% endblock %}
+{% block page_subtitle %}Update room information and cleaning requirements{% endblock %}
+
+{% block extra_css %}
+<style>
+    ::-webkit-scrollbar { display: none;}
+    body { font-family: 'Inter', sans-serif; }
+    .heading-font { font-family: 'Montserrat', sans-serif; }
+    .metallic-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
+    .metallic-card { background: linear-gradient(145deg, #F5F6F7 0%, #E8E9EA 50%, #F5F6F7 100%); box-shadow: 2px 2px 8px rgba(43, 46, 50, 0.15), -1px -1px 4px rgba(255, 255, 255, 0.8); }
+    .metallic-shine:hover { background: linear-gradient(135deg, #C0C3C8 0%, #B0B3B8 50%, #C0C3C8 100%); transition: all 0.3s ease; }
+    .btn-industrial { transition: all 0.2s ease; }
+    .btn-industrial:hover { box-shadow: 0 0 15px rgba(176, 179, 184, 0.4); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-dark-graphite">
+                Edit Room: {{ form.instance.room_code }}
+            </h2>
+            <a href="{% url 'locations:location_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide btn-industrial">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Back to Rooms
+            </a>
+        </div>
+
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="p-3 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-800{% elif message.tags == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <form method="post" class="space-y-6" action="{% url 'locations:room_update' form.instance.pk %}" id="roomForm">
+            {% csrf_token %}
+            
+            <!-- Location Information (Read-Only) -->
+            <div class="metallic-card rounded-lg border border-gray-300">
+                <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                    <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-map-marker-alt mr-3 text-steel-blue"></i>
+                        Location Information
+                    </h4>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-building mr-1"></i>Camp
+                            </label>
+                            <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                                {{ room.camp.name }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-map-marker-alt mr-1"></i>Compound
+                            </label>
+                            <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                                {{ room.compound.name }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-building mr-1"></i>Building
+                            </label>
+                            <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                                {{ room.building.name }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-layer-group mr-1"></i>Floor
+                            </label>
+                            <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                                {{ room.floor.name }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden fields to maintain form data -->
+                    <input type="hidden" name="{{ form.camp.name }}" value="{{ room.camp.id }}">
+                    <input type="hidden" name="{{ form.compound.name }}" value="{{ room.compound.id }}">
+                    <input type="hidden" name="{{ form.building.name }}" value="{{ room.building.id }}">
+                    <input type="hidden" name="{{ form.floor.name }}" value="{{ room.floor.id }}">
+                </div>
+            </div>
+            
+            <!-- Room Details -->
+            <div class="metallic-card rounded-lg border border-gray-300">
+                <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                    <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-door-open mr-3 text-green-600"></i>
+                        Room Details
+                    </h4>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div>
+                            <label for="{{ form.room_code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-tag mr-1"></i>Room Code <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.room_code }}
+                            {% if form.room_code.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.room_code.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.space_type.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-home mr-1"></i>Space Type <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.space_type }}
+                            {% if form.space_type.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.space_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.building_code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-building mr-1"></i>Building Code <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.building_code }}
+                            {% if form.building_code.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.building_code.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.room_description.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-align-left mr-1"></i>Description
+                            </label>
+                            {{ form.room_description }}
+                            {% if form.room_description.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.room_description.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Measurements -->
+            <div class="metallic-card rounded-lg border border-gray-300">
+                <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                    <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-ruler-combined mr-3 text-warning-orange"></i>
+                        Measurements
+                    </h4>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label for="{{ form.square_meters.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-square mr-1"></i>Square Meters <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.square_meters }}
+                            {% if form.square_meters.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.square_meters.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.actual_sqm.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-ruler mr-1"></i>Actual SQM
+                            </label>
+                            {{ form.actual_sqm }}
+                            {% if form.actual_sqm.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.actual_sqm.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.quantity_of_rooms.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-hashtag mr-1"></i>Quantity of Rooms
+                            </label>
+                            {{ form.quantity_of_rooms }}
+                            {% if form.quantity_of_rooms.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.quantity_of_rooms.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cleaning Schedule -->
+            <div class="metallic-card rounded-lg border border-gray-300">
+                <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                    <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-calendar-alt mr-3 text-steel-blue"></i>
+                        Cleaning Schedule
+                    </h4>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div>
+                            <label for="{{ form.frequency_per_day.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-sun mr-1"></i>Frequency/Day
+                            </label>
+                            {{ form.frequency_per_day }}
+                            {% if form.frequency_per_day.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.frequency_per_day.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.frequency_per_week.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-calendar-week mr-1"></i>Frequency/Week <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.frequency_per_week }}
+                            {% if form.frequency_per_week.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.frequency_per_week.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.max_frequency_per_month.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-calendar mr-1"></i>Max Frequency/Month
+                            </label>
+                            {{ form.max_frequency_per_month }}
+                            {% if form.max_frequency_per_month.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.max_frequency_per_month.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.weeks_of_service.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-clock mr-1"></i>Weeks of Service
+                            </label>
+                            {{ form.weeks_of_service }}
+                            {% if form.weeks_of_service.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.weeks_of_service.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Contract Caps -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h5 class="text-md font-bold text-dark-graphite uppercase tracking-wide mb-4 flex items-center">
+                            <i class="fa-solid fa-file-contract mr-2 text-warning-orange"></i>
+                            Contract Caps
+                        </h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.weekly_required_sqm.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                    <i class="fa-solid fa-chart-line mr-1"></i>Weekly Contract Cap SQM <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.weekly_required_sqm }}
+                                {% if form.weekly_required_sqm.help_text %}
+                                    <p class="mt-2 text-sm text-gray-500">{{ form.weekly_required_sqm.help_text }}</p>
+                                {% endif %}
+                                {% if form.weekly_required_sqm.errors %}
+                                    <p class="text-red-500 text-xs italic mt-1">{{ form.weekly_required_sqm.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label for="{{ form.monthly_cap_sqm.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                    <i class="fa-solid fa-chart-bar mr-1"></i>Monthly Contract Cap SQM <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.monthly_cap_sqm }}
+                                {% if form.monthly_cap_sqm.help_text %}
+                                    <p class="mt-2 text-sm text-gray-500">{{ form.monthly_cap_sqm.help_text }}</p>
+                                {% endif %}
+                                {% if form.monthly_cap_sqm.errors %}
+                                    <p class="text-red-500 text-xs italic mt-1">{{ form.monthly_cap_sqm.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service Period -->
+            <div class="metallic-card rounded-lg border border-gray-300">
+                <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                    <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-calendar-check mr-3 text-warning-orange"></i>
+                        Service Period
+                    </h4>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.service_start_date.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-play mr-1"></i>Service Start Date
+                            </label>
+                            {{ form.service_start_date }}
+                            {% if form.service_start_date.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.service_start_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.service_end_date.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-stop mr-1"></i>Service End Date
+                            </label>
+                            {{ form.service_end_date }}
+                            {% if form.service_end_date.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.service_end_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status -->
+            <div class="metallic-card rounded-lg border border-gray-300">
+                <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+                    <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-toggle-on mr-3 text-green-600"></i>
+                        Status Settings
+                    </h4>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                            Active Room
+                        </label>
+                    </div>
+                    {% if form.is_active.errors %}
+                        <p class="text-red-500 text-xs italic mt-1">{{ form.is_active.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <strong class="font-bold">Error!</strong>
+                    {% for error in form.non_field_errors %}
+                        <span class="block sm:inline">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="flex justify-end space-x-4 mt-6">
+                <a href="{% url 'locations:location_list' %}" class="px-6 py-3 border border-industrial-silver text-dark-graphite rounded-lg hover:bg-industrial-silver/10 font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-times mr-2"></i>CANCEL
+                </a>
+                <button type="submit" class="px-6 py-3 bg-steel-blue text-white rounded-lg font-semibold uppercase tracking-wide metallic-shine transition-all">
+                    <i class="fa-solid fa-save mr-2"></i>UPDATE ROOM
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// No JavaScript needed for read-only location fields
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation and other functionality can be added here if needed
+    console.log('Room edit form loaded with read-only location fields');
+});
+</script>
+{% endblock %}
