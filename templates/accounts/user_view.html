@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}View User - {{ viewed_user.username }}{% endblock %}
+{% block page_title %}USER DETAILS{% endblock %}
+{% block page_subtitle %}View user information and permissions for {{ viewed_user.get_full_name|default:viewed_user.username }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="space-y-8">
+            
+            <!-- Basic Information Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-user text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">BASIC INFORMATION</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Username</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.username }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Email Address</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.email|default:"Not provided" }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">First Name</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.first_name|default:"Not provided" }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Last Name</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.last_name|default:"Not provided" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role and Permissions Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-shield-halved text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ROLE & PERMISSIONS</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">User Role</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                {% if viewed_user.profile.role == 'admin' %}bg-red-100 text-red-800
+                                {% elif viewed_user.profile.role == 'supervisor' %}bg-blue-100 text-blue-800
+                                {% elif viewed_user.profile.role == 'cleaner' %}bg-green-100 text-green-800
+                                {% elif viewed_user.profile.role == 'authority' %}bg-purple-100 text-purple-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                <i class="fa-solid fa-{% if viewed_user.profile.role == 'admin' %}crown{% elif viewed_user.profile.role == 'supervisor' %}user-tie{% elif viewed_user.profile.role == 'cleaner' %}broom{% elif viewed_user.profile.role == 'authority' %}building{% else %}user{% endif %} mr-2"></i>
+                                {{ viewed_user.profile.get_role_display|default:"Not assigned" }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Assigned Camp</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.profile.camp.name|default:"Not assigned" }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Phone Number</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.profile.phone_number|default:"Not provided" }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Status</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                    {% if viewed_user.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                    <i class="fa-solid fa-{% if viewed_user.is_active %}check-circle{% else %}times-circle{% endif %} mr-2"></i>
+                                    {% if viewed_user.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                                {% if viewed_user.profile.is_team_leader %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fa-solid fa-star mr-2"></i>
+                                    Team Leader
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compound Assignment Section (for Authority users) -->
+            {% if viewed_user.profile.role == 'authority' and viewed_user.compound_assignments.exists %}
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-building text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">COMPOUND ASSIGNMENTS</h3>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-4">
+                        This user has access to the following compounds:
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for assignment in viewed_user.compound_assignments.all %}
+                            <div class="flex items-center p-3 border border-gray-200 rounded-lg bg-gray-50">
+                                <i class="fa-solid fa-building text-steel-blue mr-3"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-dark-graphite">{{ assignment.compound.name }}</p>
+                                    <p class="text-xs text-gray-500">{{ assignment.compound.camp.name }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Account Information Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-info-circle text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ACCOUNT INFORMATION</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Date Joined</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.date_joined|date:"F d, Y \a\t g:i A" }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Last Login</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ viewed_user.last_login|date:"F d, Y \a\t g:i A"|default:"Never" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-300">
+                <a href="{% url 'accounts:user_list' %}" 
+                   class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-gray-400 transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                    Back to Users
+                </a>
+                
+                <div class="flex space-x-4">
+                    <a href="{% url 'accounts:user_update' viewed_user.profile.uuid %}" 
+                       class="px-6 py-3 bg-steel-blue text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-blue-700 transition-colors">
+                        <i class="fa-solid fa-edit mr-2"></i>
+                        Edit User
+                    </a>
+                    
+                    <a href="{% url 'accounts:password_reset' viewed_user.profile.uuid %}" 
+                       class="px-6 py-3 bg-yellow-600 text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-yellow-700 transition-colors">
+                        <i class="fa-solid fa-key mr-2"></i>
+                        Reset Password
+                    </a>
+                    
+                    <a href="{% url 'accounts:user_delete' viewed_user.profile.uuid %}" 
+                       class="px-6 py-3 bg-red-600 text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-red-700 transition-colors"
+                       onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
+                        <i class="fa-solid fa-trash mr-2"></i>
+                        Delete User
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

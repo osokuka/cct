@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Building Details - {{ building.name }}{% endblock %}
+
+{% block page_title %}BUILDING DETAILS{% endblock %}
+{% block page_subtitle %}{{ building.name }} - {{ building.compound.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Building Header -->
+    <div class="metallic-card rounded-lg border border-gray-300 p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 bg-steel-blue rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-building text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-dark-graphite">{{ building.name }}</h3>
+                    <p class="text-lg text-gray-600">Code: {{ building.code }}</p>
+                    <p class="text-sm text-gray-500">Compound: {{ building.compound.name }}</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="flex items-center space-x-3 mb-2">
+                    <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium {% if building.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        <i class="fa-solid fa-circle text-xs mr-2"></i>
+                        {% if building.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                    {% if user.profile.role == 'admin' %}
+                    <a href="{% url 'locations:building_edit' building.id %}" class="inline-flex items-center px-4 py-2 bg-steel-blue text-white rounded-lg text-sm font-medium hover:bg-steel-blue/90 transition-colors">
+                        <i class="fa-solid fa-edit mr-2"></i>Edit
+                    </a>
+                    {% else %}
+                    <span class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium">
+                        <i class="fa-solid fa-eye mr-2"></i>View Only
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-gray-500">{{ building.compound.camp.name }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-steel-blue mb-2">{{ total_rooms }}</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Rooms</div>
+        </div>
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-warning-orange mb-2">{{ total_sqm }} m²</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total SQM</div>
+        </div>
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ active_rooms }}</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Rooms</div>
+        </div>
+        <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
+            <div class="text-3xl font-bold text-purple-600 mb-2">{{ floors.count }}</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Floors</div>
+        </div>
+    </div>
+
+    <!-- Floors Section -->
+    <div class="metallic-card rounded-lg border border-gray-300 mb-6">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-layer-group mr-2 text-green-600"></i>
+                Floors in this Building
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Code</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for floor_data in floors_with_counts %}
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="navigateToFloor('{{ floor_data.floor.id }}')">
+                        <td class="px-6 py-4 text-sm font-semibold text-dark-graphite">
+                            {{ floor_data.floor.name }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ floor_data.floor.code }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">
+                            {{ floor_data.room_count }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if floor_data.floor.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" onclick="event.stopPropagation()">
+                            {% if user.profile.role == 'admin' %}
+                            <a href="{% url 'locations:floor_edit' floor_data.floor.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
+                                <i class="fa-solid fa-edit"></i>
+                            </a>
+                            {% else %}
+                            <a href="{% url 'locations:floor_view' floor_data.floor.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="View Details">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-layer-group text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No floors found</p>
+                                <p class="text-sm">This building has no floors assigned</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Rooms Section -->
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-door-open mr-2 text-warning-orange"></i>
+                Rooms in this Building
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Room Code</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Description</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">SQM</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for room in rooms %}
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="navigateToRoom('{{ room.id }}')">
+                        <td class="px-6 py-4 text-sm font-semibold text-dark-graphite">{{ room.room_code }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ room.room_description|default:"-" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ room.floor.name|default:"-" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ room.square_meters|default:"-" }} m²</td>
+                        <td class="px-6 py-4">
+                            {% if room.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" onclick="event.stopPropagation()">
+                            <a href="{% url 'locations:room_view' room.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="View Details">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-door-open text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-lg font-medium">No rooms found</p>
+                                <p class="text-sm">This building has no rooms assigned</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-6">
+        <a href="{% url 'locations:compound_list' %}" class="inline-flex items-center px-6 py-3 bg-industrial-gray text-dark-graphite rounded-lg font-semibold uppercase tracking-wide metallic-shine transition-all hover:bg-gray-600">
+            <i class="fa-solid fa-arrow-left mr-2"></i>
+            Back to Compounds
+        </a>
+    </div>
+</div>
+
+<script>
+function navigateToFloor(floorId) {
+    // Navigate to floor page based on user role
+    {% if user.profile.role == 'admin' %}
+    window.location.href = `/locations/floors/${floorId}/edit/`;
+    {% else %}
+    window.location.href = `/locations/floors/${floorId}/`;
+    {% endif %}
+}
+
+function navigateToRoom(roomId) {
+    // Navigate to room view page
+    window.location.href = `/locations/rooms/${roomId}/`;
+}
+</script>
+{% endblock %}

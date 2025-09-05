@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete User{% endblock %}
+{% block page_title %}DELETE USER{% endblock %}
+{% block page_subtitle %}Confirm permanent user deletion{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="metallic-card rounded-lg border border-gray-300 max-w-2xl mx-auto">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">CONFIRM USER DELETION</h3>
+        </div>
+        
+        <div class="p-6">
+            <!-- User Information -->
+            <div class="mb-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-16 h-16 rounded bg-{% if user.profile.role == 'admin' %}red-600{% elif user.profile.role == 'manager' %}warning-orange{% elif user.profile.role == 'cleaner' %}green-600{% else %}purple-600{% endif %} flex items-center justify-center mr-4">
+                        <span class="text-white font-semibold text-lg">{{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|default:""|upper }}</span>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-dark-graphite">{{ user.get_full_name|default:user.username }}</h4>
+                        <p class="text-sm text-gray-600">{{ user.email|default:"No email" }}</p>
+                        <p class="text-xs text-gray-500">Role: {{ user.profile.get_role_display|default:"No Role" }}</p>
+                    </div>
+                </div>
+                
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fa-solid fa-exclamation-triangle text-red-600 text-xl mr-3 mt-1"></i>
+                        <div>
+                            <h5 class="font-semibold text-red-800 mb-2">DANGER: Permanent User Deletion</h5>
+                            <p class="text-sm text-red-700">
+                                This action will PERMANENTLY DELETE the user account and ALL associated data from the database.
+                                This action CANNOT be undone. Consider disabling the user instead.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Details -->
+            <div class="mb-6">
+                <h5 class="font-semibold text-dark-graphite mb-3 uppercase tracking-wide">User Details</h5>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-600">Username:</span>
+                        <span class="font-medium text-dark-graphite">{{ user.username }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Status:</span>
+                        <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded uppercase font-medium">Active</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Last Login:</span>
+                        <span class="font-medium text-dark-graphite">{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Date Joined:</span>
+                        <span class="font-medium text-dark-graphite">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Confirmation Form -->
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                
+                <div class="bg-red-100 border border-red-300 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fa-solid fa-skull-crossbones text-red-700 text-xl mr-3 mt-1"></i>
+                        <div>
+                            <h5 class="font-semibold text-red-900 mb-2">FINAL WARNING: Irreversible Deletion</h5>
+                            <p class="text-sm text-red-800">
+                                This action will PERMANENTLY REMOVE the user and ALL associated data from the database.
+                                This includes: user profile, audit logs, assignments, and any other related records.
+                                <strong>THIS CANNOT BE UNDONE!</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <a href="{% url 'accounts:user_list' %}" class="bg-industrial-gray text-dark-graphite px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Cancel</span>
+                    </a>
+                    
+                    <button type="submit" class="bg-red-700 text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-red-800 flex items-center space-x-2" onclick="return confirm('FINAL CONFIRMATION: Are you absolutely certain you want to PERMANENTLY DELETE this user? This action CANNOT be undone!')">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>DELETE USER PERMANENTLY</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -152,13 +152,21 @@
                         </td>
                         <td class="px-4 py-4">
                             <div class="flex space-x-2" onclick="event.stopPropagation()">
+                                {% if user.profile.role == 'admin' %}
                                 <a href="{% url 'locations:compound_edit' compound.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
                                     <i class="fa-solid fa-edit"></i>
                                 </a>
-                                {% if user.profile.role == 'admin' %}
                                 <a href="#" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
                                     <i class="fa-solid fa-trash"></i>
                                 </a>
+                                {% elif user.profile.role == 'manager' %}
+                                <span class="text-steel-blue cursor-pointer" title="View Details - Click row to see breakdown">
+                                    <i class="fa-solid fa-eye"></i>
+                                </span>
+                                {% else %}
+                                <span class="text-gray-400 cursor-not-allowed" title="View Only - No Edit Permission">
+                                    <i class="fa-solid fa-eye"></i>
+                                </span>
                                 {% endif %}
                             </div>
                         </td>
@@ -219,13 +227,21 @@
                         </td>
                         <td class="px-4 py-4">
                             <div class="flex space-x-2" onclick="event.stopPropagation()">
+                                {% if user.profile.role == 'admin' %}
                                 <a href="{% url 'locations:compound_edit' compound.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
                                     <i class="fa-solid fa-edit"></i>
                                 </a>
-                                {% if user.profile.role == 'admin' %}
                                 <a href="#" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
                                     <i class="fa-solid fa-trash"></i>
                                 </a>
+                                {% elif user.profile.role == 'manager' %}
+                                <span class="text-steel-blue cursor-pointer" title="View Details - Click row to see breakdown">
+                                    <i class="fa-solid fa-eye"></i>
+                                </span>
+                                {% else %}
+                                <span class="text-gray-400 cursor-not-allowed" title="View Only - No Edit Permission">
+                                    <i class="fa-solid fa-eye"></i>
+                                </span>
                                 {% endif %}
                             </div>
                         </td>
@@ -274,13 +290,17 @@
                     </div>
                     
                     <div class="flex flex-col space-y-2 ml-4" onclick="event.stopPropagation()">
-                        <a href="#" class="text-steel-blue hover:text-steel-blue/80 p-1 transition-colors" title="Edit">
+                        {% if user.profile.role == 'admin' %}
+                        <a href="{% url 'locations:compound_edit' compound.id %}" class="text-steel-blue hover:text-steel-blue/80 p-1 transition-colors" title="Edit">
                             <i class="fa-solid fa-edit"></i>
                         </a>
-                        {% if user.profile.role == 'admin' %}
                         <a href="#" class="text-warning-orange hover:text-warning-orange/80 p-1 transition-colors" title="Delete">
                             <i class="fa-solid fa-trash"></i>
                         </a>
+                        {% else %}
+                        <span class="text-gray-400 cursor-not-allowed p-1" title="View Only - No Edit Permission">
+                            <i class="fa-solid fa-eye"></i>
+                        </span>
                         {% endif %}
                     </div>
                 </div>
@@ -539,7 +559,7 @@ function loadCompoundBreakdown(compoundId) {
 }
 
 function displayCompoundDetails(data) {
-    const { compound, statistics, building_breakdown, floor_breakdown } = data;
+    const { compound, statistics, building_breakdown } = data;
     
     // Populate compound information
     const compoundInfo = document.getElementById('compoundInfo');
@@ -563,9 +583,19 @@ function displayCompoundDetails(data) {
                                 <i class="fa-solid fa-circle text-xs mr-2"></i>
                                 ${compound.is_active ? 'Active' : 'Inactive'}
                             </span>
+                            ${'{{ user.profile.role }}' === 'admin' ? `
                             <a href="/locations/compounds/${compound.id}/edit/" class="inline-flex items-center px-4 py-2 bg-steel-blue text-white rounded-lg text-sm font-medium hover:bg-steel-blue/90 transition-colors">
                                 <i class="fa-solid fa-edit mr-2"></i>Edit
                             </a>
+                            ` : '{{ user.profile.role }}' === 'manager' ? `
+                            <span class="inline-flex items-center px-4 py-2 bg-steel-blue text-white rounded-lg text-sm font-medium">
+                                <i class="fa-solid fa-eye mr-2"></i>View Details
+                            </span>
+                            ` : `
+                            <span class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium">
+                                <i class="fa-solid fa-eye mr-2"></i>View Only
+                            </span>
+                            `}
                         </div>
                         <p class="text-sm text-gray-500">${compound.camp}</p>
                     </div>
@@ -635,9 +665,10 @@ function displayCompoundDetails(data) {
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             ${building_breakdown.map(building => `
-                                <tr class="hover:bg-gray-50 transition-colors cursor-pointer building-row" data-building-id="${building.id}" onclick="window.location.href='/locations/buildings/${building.id}/edit/'">
+                                <tr class="hover:bg-gray-50 transition-colors ${'{{ user.profile.role }}' === 'admin' ? 'cursor-pointer building-row' : '{{ user.profile.role }}' === 'manager' ? 'cursor-pointer building-row' : 'cursor-default'}" data-building-id="${building.id}" ${'{{ user.profile.role }}' === 'admin' ? `onclick="window.location.href='/locations/buildings/${building.id}/edit/'"` : '{{ user.profile.role }}' === 'manager' ? `onclick="window.location.href='/locations/buildings/${building.id}/'"` : ''}>
                                     <td class="px-6 py-4 text-sm font-semibold text-dark-graphite">
                                         ${building.name}
+                                        ${'{{ user.profile.role }}' === 'manager' ? '<span class="text-xs text-steel-blue ml-2">(View Details)</span>' : '{{ user.profile.role }}' !== 'admin' ? '<span class="text-xs text-gray-400 ml-2">(View Only)</span>' : ''}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-700 font-medium">${building.rooms}</td>
                                     <td class="px-6 py-4 text-sm text-gray-700 font-medium">${building.sqm} m²</td>
@@ -648,44 +679,12 @@ function displayCompoundDetails(data) {
                 </div>
             </div>
             
-            <!-- Floors Breakdown -->
-            <div class="metallic-card rounded-lg border border-gray-300">
-                <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
-                    <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
-                        <i class="fa-solid fa-layer-group mr-2 text-green-600"></i>
-                        Floors Breakdown
-                    </h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total SQM</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            ${floor_breakdown.map(floor => `
-                                <tr class="hover:bg-gray-50 transition-colors cursor-pointer floor-row" data-floor-id="${floor.id}" onclick="window.location.href='/locations/floors/${floor.id}/edit/'">
-                                    <td class="px-6 py-4 text-sm font-semibold text-dark-graphite">
-                                        ${floor.name}
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-700 font-medium">${floor.building}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-700 font-medium">${floor.rooms}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-700 font-medium">${floor.sqm} m²</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     `;
     
     // Scroll to top of page to show compound details
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 </script>
 {% endblock %}

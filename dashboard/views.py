@@ -2,7 +2,7 @@
 Dashboard views for the NATO Camp Cleaning Tracker.
 """
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from accounts.models import User, UserProfile, Team

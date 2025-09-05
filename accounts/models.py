@@ -21,6 +21,7 @@ class UserProfile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, help_text="User role")
     camp = models.ForeignKey('locations.Camp', on_delete=models.CASCADE, null=True, blank=True, help_text="Assigned camp")
     is_team_leader = models.BooleanField(default=False, help_text="Is this user a team leader?")

@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_filters %}
+
+{% block title %}Create User{% endblock %}
+{% block page_title %}CREATE USER{% endblock %}
+{% block page_subtitle %}Create new system user with role and compound assignments{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-4xl mx-auto">
+        <form method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Basic Information Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-user text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">BASIC INFORMATION</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            Username *
+                        </label>
+                        {{ form.username|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
+                        {% if form.username.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            Email Address *
+                        </label>
+                        {{ form.email|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
+                        {% if form.email.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            First Name *
+                        </label>
+                        {{ form.first_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
+                        {% if form.first_name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.first_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            Last Name *
+                        </label>
+                        {{ form.last_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
+                        {% if form.last_name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.last_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role and Permissions Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-shield-halved text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ROLE & PERMISSIONS</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.role.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            User Role *
+                        </label>
+                        {{ form.role|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
+                        {% if form.role.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.role.errors.0 }}</div>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">
+                            <strong>Admin:</strong> Full system access<br>
+                            <strong>Supervisor:</strong> Management access<br>
+                            <strong>Cleaner:</strong> Task execution access<br>
+                            <strong>Authority:</strong> Read-only compound access
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.camp.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            Assigned Camp
+                        </label>
+                        {{ form.camp|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
+                        {% if form.camp.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.camp.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            Phone Number
+                        </label>
+                        {{ form.phone_number|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
+                        {% if form.phone_number.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.phone_number.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            {{ form.is_team_leader|add_class:"w-4 h-4 text-steel-blue border-gray-300 rounded focus:ring-steel-blue" }}
+                            <label for="{{ form.is_team_leader.id_for_label }}" class="ml-2 text-sm font-medium text-dark-graphite">
+                                Team Leader
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compound Assignment Section (for Authority users) -->
+            <div id="compound-section" class="metallic-card rounded-lg p-6 border border-gray-300" style="display: none;">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-building text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">COMPOUND ASSIGNMENTS</h3>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-4">
+                        Authority users must be assigned to at least one compound. They will only have access to data from their assigned compounds.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for choice in form.compounds %}
+                            <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                {{ choice.tag|add_class:"w-4 h-4 text-steel-blue border-gray-300 rounded focus:ring-steel-blue" }}
+                                <label for="{{ choice.id_for_label }}" class="ml-3 text-sm font-medium text-dark-graphite">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                {% if form.compounds.errors %}
+                    <div class="text-red-600 text-sm">{{ form.compounds.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Password Section -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-key text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">PASSWORD SETUP</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            Password *
+                        </label>
+                        <input type="password" 
+                               id="{{ form.password1.id_for_label }}" 
+                               name="password1" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent"
+                               placeholder="Enter password"
+                               required>
+                        {% if form.password1.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.password1.errors.0 }}</div>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">Minimum 8 characters, must include letters and numbers</p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
+                            Confirm Password *
+                        </label>
+                        <input type="password" 
+                               id="{{ form.password2.id_for_label }}" 
+                               name="password2" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent"
+                               placeholder="Confirm password"
+                               required>
+                        {% if form.password2.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.password2.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-300">
+                <a href="{% url 'accounts:user_list' %}" 
+                   class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-gray-400 transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                    Cancel
+                </a>
+                
+                <button type="submit" 
+                        class="px-6 py-3 bg-steel-blue text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-blue-700 transition-colors">
+                    <i class="fa-solid fa-user-plus mr-2"></i>
+                    Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Show/hide compound assignment section based on role selection
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelect = document.getElementById('id_role');
+    const compoundSection = document.getElementById('compound-section');
+    const form = document.querySelector('form');
+    
+    console.log('DEBUG JS: Create form loaded, roleSelect:', roleSelect);
+    console.log('DEBUG JS: compoundSection:', compoundSection);
+    
+    function toggleCompoundSection() {
+        console.log('DEBUG JS: Role changed to:', roleSelect.value);
+        if (roleSelect.value === 'authority') {
+            compoundSection.style.display = 'block';
+            console.log('DEBUG JS: Showing compound section');
+        } else {
+            compoundSection.style.display = 'none';
+            console.log('DEBUG JS: Hiding compound section');
+        }
+    }
+    
+    // Initial state
+    toggleCompoundSection();
+    
+    // Listen for changes
+    roleSelect.addEventListener('change', toggleCompoundSection);
+    
+    // Form submission debugging
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('DEBUG JS: Create form submitted');
+            console.log('DEBUG JS: Form data:', new FormData(form));
+            
+            // Log all form field values
+            const formData = new FormData(form);
+            for (let [key, value] of formData.entries()) {
+                console.log(`DEBUG JS: ${key}: ${value}`);
+            }
+            
+            // Password validation
+            const password1 = document.querySelector('input[name="password1"]');
+            const password2 = document.querySelector('input[name="password2"]');
+            
+            if (password1 && password2) {
+                if (password1.value !== password2.value) {
+                    e.preventDefault();
+                    alert('Passwords do not match!');
+                    return false;
+                }
+                
+                if (password1.value.length < 8) {
+                    e.preventDefault();
+                    alert('Password must be at least 8 characters long!');
+                    return false;
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

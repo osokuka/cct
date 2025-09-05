@@ -17,6 +17,8 @@ urlpatterns = [
     path('buildings/<uuid:building_id>/edit/', views.building_edit, name='building_edit'),
     path('floors/<uuid:floor_id>/edit/', views.floor_edit, name='floor_edit'),
     path('compounds/<uuid:compound_id>/breakdown/', views.compound_breakdown, name='compound_breakdown'),
+    path('buildings/<uuid:building_id>/', views.building_view, name='building_view'),
+    path('floors/<uuid:floor_id>/', views.floor_view, name='floor_view'),
     
     # Modal form submissions
     path('camps/create/', views.camp_create, name='camp_create'),

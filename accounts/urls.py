@@ -8,11 +8,19 @@ from . import views
 app_name = 'accounts'
 
 urlpatterns = [
+    # Authentication URLs
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    
     # User Management URLs
     path('users/', views.user_list, name='user_list'),
     path('users/create/', views.user_create, name='user_create'),
-    path('users/<int:user_id>/update/', views.user_update, name='user_update'),
-    path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
+    path('users/<uuid:profile_uuid>/', views.user_view, name='user_view'),
+    path('users/<uuid:profile_uuid>/update/', views.user_update, name='user_update'),
+    path('users/<uuid:profile_uuid>/disable/', views.user_disable, name='user_disable'),
+    path('users/<uuid:profile_uuid>/enable/', views.user_enable, name='user_enable'),
+    path('users/<uuid:profile_uuid>/delete/', views.user_delete, name='user_delete'),
+    path('users/<uuid:profile_uuid>/password-reset/', views.password_reset, name='password_reset'),
     
     # Team Management URLs
     path('teams/', views.team_list, name='team_list'),

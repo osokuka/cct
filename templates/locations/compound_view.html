@@ -128,9 +128,15 @@
                         <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ building.rooms_count }}</td>
                         <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ building.total_sqm }} m²</td>
                         <td class="px-6 py-4 text-sm text-gray-700 font-medium" onclick="event.stopPropagation()">
+                            {% if user.profile.role == 'admin' %}
                             <a href="{% url 'locations:building_edit' building.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit Building">
                                 <i class="fa-solid fa-edit"></i>
                             </a>
+                            {% else %}
+                            <a href="{% url 'locations:building_view' building.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="View Building">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -151,8 +157,12 @@
 
 <script>
 function navigateToBuilding(buildingId) {
-    // Navigate to building edit page
+    // Navigate to building page based on user role
+    {% if user.profile.role == 'admin' %}
     window.location.href = `/locations/buildings/${buildingId}/edit/`;
+    {% else %}
+    window.location.href = `/locations/buildings/${buildingId}/`;
+    {% endif %}
 }
 </script>
 {% endblock %}

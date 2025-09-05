@@ -27,7 +27,7 @@ def check_permission(request, required_roles):
     """Check if user has required role."""
     user_role = get_user_role(request)
     if not user_role or user_role not in required_roles:
-        messages.error(request, "You don't have permission to access this page.")
+        messages.error(request, f"You don't have permission to access this page. Your role: {user_role}, Required: {', '.join(required_roles)}")
         return False
     return True
 
@@ -43,9 +43,10 @@ def location_list(request):
     compounds = Compound.objects.select_related('camp').all().order_by('camp__name', 'name')
     rooms = Room.objects.select_related('camp', 'compound', 'building', 'floor').all().order_by('camp__name', 'compound__name', 'building__name', 'floor__name', 'room_code')
     
-    # Filter by camp if manager
+    # Managers can view all locations (no filtering by camp)
+    # Only Authority users are restricted to their assigned camp
     user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
+    if user_role == 'authority' and hasattr(request.user, 'profile'):
         camp = request.user.profile.camp
         if camp:
             compounds = compounds.filter(camp=camp)
@@ -86,8 +87,9 @@ def location_list(request):
     # Get all buildings for modals
     buildings = Building.objects.select_related('compound', 'compound__camp').all().order_by('compound__camp__name', 'compound__name', 'name')
     
-    # Filter buildings by camp if manager
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
+    # Managers can view all buildings (no filtering by camp)
+    # Only Authority users are restricted to their assigned camp
+    if user_role == 'authority' and hasattr(request.user, 'profile'):
         camp = request.user.profile.camp
         if camp:
             buildings = buildings.filter(compound__camp=camp)
@@ -324,9 +326,10 @@ def compound_list(request):
     # Get all compounds with related data
     compounds = Compound.objects.select_related('camp').all().order_by('camp__name', 'name')
     
-    # Filter by camp if manager
+    # Managers can view all compounds (no filtering by camp)
+    # Only Authority users are restricted to their assigned camp
     user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
+    if user_role == 'authority' and hasattr(request.user, 'profile'):
         camp = request.user.profile.camp
         if camp:
             compounds = compounds.filter(camp=camp)
@@ -419,27 +422,6 @@ def compound_breakdown(request, compound_id):
                 'sqm': round(building_sqm, 2)
             })
         
-        # Calculate breakdown by floor
-        floors = Floor.objects.filter(building__compound=compound).select_related('building')
-        floor_breakdown = []
-        for floor in floors:
-            floor_rooms = rooms.filter(floor=floor)
-            
-            # Calculate floor SQM safely
-            floor_sqm = 0
-            for room in floor_rooms:
-                if room.square_meters:
-                    floor_sqm += room.square_meters
-            
-            floor_breakdown.append({
-                'id': floor.id,
-                'name': floor.name,
-                'code': floor.code,
-                'building': floor.building.name,
-                'rooms': floor_rooms.count(),
-                'sqm': round(floor_sqm, 2)
-            })
-        
         data = {
             'compound': {
                 'id': compound.id,
@@ -455,8 +437,7 @@ def compound_breakdown(request, compound_id):
                 'total_sqm': round(total_sqm, 2),
                 'active_rooms': active_rooms
             },
-            'building_breakdown': building_breakdown,
-            'floor_breakdown': floor_breakdown
+            'building_breakdown': building_breakdown
         }
         return JsonResponse(data)
         
@@ -540,6 +521,45 @@ def compound_edit(request, compound_id):
 
 
 @login_required
+def building_view(request, building_id):
+    """View building details - accessible to admin and manager."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    building = get_object_or_404(Building, id=building_id)
+    
+    # Get rooms for this building
+    rooms = Room.objects.filter(building=building).select_related('floor', 'compound', 'camp')
+    
+    # Calculate statistics
+    total_rooms = rooms.count()
+    total_sqm = sum(room.square_meters for room in rooms if room.square_meters)
+    active_rooms = rooms.filter(is_active=True).count()
+    
+    # Get floors for this building with room counts
+    floors = Floor.objects.filter(building=building).order_by('name')
+    floors_with_counts = []
+    for floor in floors:
+        floor_room_count = rooms.filter(floor=floor).count()
+        floors_with_counts.append({
+            'floor': floor,
+            'room_count': floor_room_count
+        })
+    
+    context = {
+        'building': building,
+        'rooms': rooms,
+        'floors': floors,
+        'floors_with_counts': floors_with_counts,
+        'total_rooms': total_rooms,
+        'total_sqm': total_sqm,
+        'active_rooms': active_rooms,
+    }
+    
+    return render(request, 'locations/building_view.html', context)
+
+
+@login_required
 def building_edit(request, building_id):
     """Edit building details - restricted to admin only."""
     if not check_permission(request, ['admin']):
@@ -565,6 +585,33 @@ def building_edit(request, building_id):
     }
     
     return render(request, 'locations/building_edit.html', context)
+
+
+@login_required
+def floor_view(request, floor_id):
+    """View floor details - accessible to admin and manager."""
+    if not check_permission(request, ['admin', 'manager']):
+        return redirect('accounts:login')
+    
+    floor = get_object_or_404(Floor, id=floor_id)
+    
+    # Get rooms for this floor
+    rooms = Room.objects.filter(floor=floor).select_related('building', 'compound', 'camp')
+    
+    # Calculate statistics
+    total_rooms = rooms.count()
+    total_sqm = sum(room.square_meters for room in rooms if room.square_meters)
+    active_rooms = rooms.filter(is_active=True).count()
+    
+    context = {
+        'floor': floor,
+        'rooms': rooms,
+        'total_rooms': total_rooms,
+        'total_sqm': total_sqm,
+        'active_rooms': active_rooms,
+    }
+    
+    return render(request, 'locations/floor_view.html', context)
 
 
 @login_required
@@ -714,9 +761,9 @@ def room_create(request):
 
 @login_required
 def room_update(request, room_id):
-    """Update an existing room."""
-    if not check_permission(request, ['admin', 'manager']):
-        return redirect('accounts:login')
+    """Update an existing room - admin only."""
+    if not check_permission(request, ['admin']):
+        return redirect('locations:compound_list')
     
     room = get_object_or_404(Room, id=room_id)
     
@@ -773,9 +820,9 @@ def room_view(request, room_id):
 
 @login_required
 def room_delete(request, room_id):
-    """Delete a room."""
-    if not check_permission(request, ['admin', 'manager']):
-        return redirect('accounts:login')
+    """Delete a room - admin only."""
+    if not check_permission(request, ['admin']):
+        return redirect('locations:compound_list')
     
     room = get_object_or_404(Room, id=room_id)
     

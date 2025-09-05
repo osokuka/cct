@@ -127,10 +127,6 @@
         
         {% if user.is_authenticated %}
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
-            <a href="{% url 'accounts:user_list' %}" class="px-4 py-3 flex items-center {% if 'user' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
-                <i class="fa-solid fa-users mr-3 {% if 'user' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                <span class="{% if 'user' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">User Management</span>
-            </a>
             <a href="{% url 'accounts:team_list' %}" class="px-4 py-3 flex items-center {% if 'team' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
                 <i class="fa-solid fa-user-friends mr-3 {% if 'team' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
                 <span class="{% if 'team' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Team Management</span>
@@ -159,12 +155,6 @@
             </div>
             {% endif %}
             
-            {% if user.profile.role == 'admin' %}
-            <a href="{% url 'accounts:compound_assignment_list' %}" class="px-4 py-3 flex items-center {% if 'compound-assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
-                <i class="fa-solid fa-building mr-3 {% if 'compound-assignment' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                <span class="{% if 'compound-assignment' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Compound Assignments</span>
-            </a>
-            {% endif %}
             
             {% if user.profile.role == 'cleaner' %}
             <a href="{% url 'scans:scan' %}" class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
@@ -189,9 +179,36 @@
     </nav>
     
     <div class="mt-auto border-t border-gray-700">
-        <div class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
-            <i class="fa-solid fa-cog mr-3 text-gray-400"></i>
-            <span class="text-sm">Settings</span>
+        <div class="relative">
+            <div class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors" onclick="toggleSettingsMenu()">
+                <i class="fa-solid fa-cog mr-3 text-gray-400"></i>
+                <span class="text-sm">Settings</span>
+                <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400" id="settings-chevron"></i>
+            </div>
+            <!-- Settings Sub-menu -->
+            <div id="settings-submenu" class="ml-8 mt-2 space-y-1 hidden">
+                {% if user.is_authenticated and user.profile.role in 'admin,supervisor,manager' %}
+                <a href="{% url 'accounts:user_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'user_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                    <i class="fa-solid fa-users mr-3 text-xs"></i>
+                    <span class="text-xs">User Management</span>
+                    {% if user.profile.role == 'admin' %}
+                        <span class="ml-auto text-xs text-gray-400">(Full Access)</span>
+                    {% else %}
+                        <span class="ml-auto text-xs text-gray-400">(View Only)</span>
+                    {% endif %}
+                </a>
+                {% endif %}
+                {% if user.is_authenticated and user.profile.role == 'admin' %}
+                <a href="{% url 'accounts:compound_assignment_list' %}" class="px-4 py-2 flex items-center {% if 'compound-assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                    <i class="fa-solid fa-building mr-3 text-xs"></i>
+                    <span class="text-xs">Compound Assignments</span>
+                </a>
+                {% endif %}
+                <a href="{% url 'accounts:user_list' %}" class="px-4 py-2 flex items-center hover:bg-gray-700 cursor-pointer transition-colors rounded">
+                    <i class="fa-solid fa-key mr-3 text-xs"></i>
+                    <span class="text-xs">Password Reset</span>
+                </a>
+            </div>
         </div>
         <div class="p-4 flex items-center">
             <div class="w-10 h-10 rounded bg-industrial-gray flex items-center justify-center mr-3 flex-shrink-0">
@@ -243,7 +260,7 @@
                     <div class="text-xs">{% now "Y-m-d H:i" %}</div>
                 </div>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'admin:logout' %}" class="bg-steel-blue text-white px-2 lg:px-4 py-2 rounded uppercase text-xs lg:text-sm tracking-wide metallic-shine flex items-center space-x-1 lg:space-x-2">
+                    <a href="{% url 'accounts:logout' %}" class="bg-steel-blue text-white px-2 lg:px-4 py-2 rounded uppercase text-xs lg:text-sm tracking-wide metallic-shine flex items-center space-x-1 lg:space-x-2">
                         <i class="fa-solid fa-sign-out-alt"></i>
                         <span class="hidden sm:inline">Logout</span>
                     </a>
@@ -339,6 +356,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Settings menu toggle function
+function toggleSettingsMenu() {
+    const submenu = document.getElementById('settings-submenu');
+    const chevron = document.getElementById('settings-chevron');
+    
+    if (submenu.classList.contains('hidden')) {
+        submenu.classList.remove('hidden');
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-up');
+    } else {
+        submenu.classList.add('hidden');
+        chevron.classList.remove('fa-chevron-up');
+        chevron.classList.add('fa-chevron-down');
+    }
+}
 </script>
 
 {% block extra_js %}{% endblock %}

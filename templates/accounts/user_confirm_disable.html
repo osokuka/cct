@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if action == 'disable' %}Disable User{% else %}Enable User{% endif %}{% endblock %}
+{% block page_title %}{% if action == 'disable' %}DISABLE USER{% else %}ENABLE USER{% endif %}{% endblock %}
+{% block page_subtitle %}{% if action == 'disable' %}Confirm user deactivation{% else %}Confirm user activation{% endif %}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="metallic-card rounded-lg border border-gray-300 max-w-2xl mx-auto">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">
+                {% if action == 'disable' %}CONFIRM USER DEACTIVATION{% else %}CONFIRM USER ACTIVATION{% endif %}
+            </h3>
+        </div>
+        
+        <div class="p-6">
+            <!-- User Information -->
+            <div class="mb-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-16 h-16 rounded bg-{% if user.profile.role == 'admin' %}red-600{% elif user.profile.role == 'manager' %}warning-orange{% elif user.profile.role == 'cleaner' %}green-600{% else %}purple-600{% endif %} flex items-center justify-center mr-4">
+                        <span class="text-white font-semibold text-lg">{{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|default:""|upper }}</span>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-dark-graphite">{{ user.get_full_name|default:user.username }}</h4>
+                        <p class="text-sm text-gray-600">{{ user.email|default:"No email" }}</p>
+                        <p class="text-xs text-gray-500">Role: {{ user.profile.get_role_display|default:"No Role" }}</p>
+                    </div>
+                </div>
+                
+                {% if action == 'disable' %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fa-solid fa-exclamation-triangle text-yellow-600 text-xl mr-3 mt-1"></i>
+                        <div>
+                            <h5 class="font-semibold text-yellow-800 mb-2">Warning: User Deactivation</h5>
+                            <p class="text-sm text-yellow-700">
+                                This action will deactivate the user account. The user will no longer be able to log in to the system.
+                                This action can be reversed by an administrator at any time.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fa-solid fa-check-circle text-green-600 text-xl mr-3 mt-1"></i>
+                        <div>
+                            <h5 class="font-semibold text-green-800 mb-2">User Activation</h5>
+                            <p class="text-sm text-green-700">
+                                This action will reactivate the user account. The user will be able to log in to the system again.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- User Details -->
+            <div class="mb-6">
+                <h5 class="font-semibold text-dark-graphite mb-3 uppercase tracking-wide">User Details</h5>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-600">Username:</span>
+                        <span class="font-medium text-dark-graphite">{{ user.username }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Current Status:</span>
+                        {% if user.is_active and user.profile.is_active %}
+                            <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded uppercase font-medium">Active</span>
+                        {% else %}
+                            <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded uppercase font-medium">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Last Login:</span>
+                        <span class="font-medium text-dark-graphite">{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Date Joined:</span>
+                        <span class="font-medium text-dark-graphite">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Confirmation Form -->
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                
+                {% if action == 'disable' %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fa-solid fa-shield-exclamation text-red-600 text-xl mr-3 mt-1"></i>
+                        <div>
+                            <h5 class="font-semibold text-red-800 mb-2">Security Notice</h5>
+                            <p class="text-sm text-red-700">
+                                This action will immediately deactivate the user account. The user will be logged out if currently active.
+                                All user data will be preserved and can be restored by an administrator.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fa-solid fa-info-circle text-blue-600 text-xl mr-3 mt-1"></i>
+                        <div>
+                            <h5 class="font-semibold text-blue-800 mb-2">Activation Notice</h5>
+                            <p class="text-sm text-blue-700">
+                                This action will immediately reactivate the user account. The user will be able to log in to the system.
+                                All user data and permissions will be restored.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <a href="{% url 'accounts:user_list' %}" class="bg-industrial-gray text-dark-graphite px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Cancel</span>
+                    </a>
+                    
+                    {% if action == 'disable' %}
+                    <button type="submit" class="bg-red-500 text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-red-600 flex items-center space-x-2" onclick="return confirm('Are you absolutely sure you want to disable this user? This action can be reversed.')">
+                        <i class="fa-solid fa-user-slash"></i>
+                        <span>Disable User</span>
+                    </button>
+                    {% else %}
+                    <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-green-600 flex items-center space-x-2" onclick="return confirm('Are you sure you want to enable this user?')">
+                        <i class="fa-solid fa-user-check"></i>
+                        <span>Enable User</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
