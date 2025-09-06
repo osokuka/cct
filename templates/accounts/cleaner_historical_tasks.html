@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Historical Tasks - NATO Camp Cleaning Tracker{% endblock %}
+
+{% block page_title %}HISTORICAL TASKS{% endblock %}
+{% block page_subtitle %}All Team Tasks - Complete History{% endblock %}
+
+{% block content %}
+<div class="px-4 lg:px-6 py-6">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-2xl font-bold text-steel-blue">{{ task_stats.total_tasks }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wide">TOTAL TASKS</div>
+                </div>
+                <i class="fa-solid fa-list-check text-steel-blue text-2xl"></i>
+            </div>
+        </div>
+        
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-2xl font-bold text-green-600">{{ task_stats.completed_tasks }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wide">COMPLETED</div>
+                </div>
+                <i class="fa-solid fa-check-circle text-green-600 text-2xl"></i>
+            </div>
+        </div>
+        
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-2xl font-bold text-red-600">{{ task_stats.missed_tasks }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wide">MISSED</div>
+                </div>
+                <i class="fa-solid fa-times-circle text-red-600 text-2xl"></i>
+            </div>
+        </div>
+        
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-2xl font-bold text-blue-600">{{ task_stats.planned_tasks }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wide">PLANNED</div>
+                </div>
+                <i class="fa-solid fa-clock text-blue-600 text-2xl"></i>
+            </div>
+        </div>
+        
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-2xl font-bold text-yellow-600">{{ task_stats.in_progress_tasks }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wide">IN PROGRESS</div>
+                </div>
+                <i class="fa-solid fa-play-circle text-yellow-600 text-2xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks Table -->
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ALL TEAM TASKS</h3>
+                    <p class="text-sm text-gray-600">Complete history of your team's tasks</p>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} tasks
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-300">
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">TASK DATE</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ROOM</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">COMPOUND</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">BUILDING</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">STATUS</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">SQM</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">TEAM</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        <td class="py-3 px-4 font-medium text-dark-graphite">
+                            {{ task.task_date|date:"M d, Y" }}
+                        </td>
+                        <td class="py-3 px-4 font-medium text-dark-graphite">{{ task.room.room_code }}</td>
+                        <td class="py-3 px-4 text-gray-600">{{ task.room.compound.name }}</td>
+                        <td class="py-3 px-4 text-gray-600">{{ task.room.building.name }}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium
+                                {% if task.state == 'done' %}bg-green-100 text-green-800
+                                {% elif task.state == 'missed' %}bg-red-100 text-red-800
+                                {% elif task.state == 'in_progress' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ task.get_state_display }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-gray-600">{{ task.room.square_meters }}m²</td>
+                        <td class="py-3 px-4 text-gray-600">
+                            {% if task.assigned_to_team %}
+                                {{ task.assigned_to_team.name }}
+                            {% else %}
+                                <span class="text-gray-400">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            <a href="{% url 'accounts:cleaner_task_detail' task.id %}" class="text-steel-blue hover:text-opacity-80 text-xs uppercase tracking-wide">
+                                <i class="fa-solid fa-eye mr-1"></i>VIEW
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-gray-500">
+                            <i class="fa-solid fa-clipboard-list text-3xl mb-2 block"></i>
+                            <p class="text-sm">No historical tasks found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-gray-300">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 transition-colors">
+                            <i class="fa-solid fa-angle-double-left mr-1"></i>First
+                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 transition-colors">
+                            <i class="fa-solid fa-angle-left mr-1"></i>Previous
+                        </a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-steel-blue text-white rounded text-xs hover:bg-opacity-90 transition-colors">
+                            Next<i class="fa-solid fa-angle-right ml-1"></i>
+                        </a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 bg-steel-blue text-white rounded text-xs hover:bg-opacity-90 transition-colors">
+                            Last<i class="fa-solid fa-angle-double-right ml-1"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

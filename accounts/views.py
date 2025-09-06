@@ -14,6 +14,7 @@ from django.utils import timezone
 import time
 
 from .models import UserProfile, Team, Shift, Route, CompoundAssignment
+from .task_generation import DailyCleaningTask
 from .forms import (
     UserCreateForm, UserUpdateForm, TeamCreateForm, TeamUpdateForm,
     ShiftCreateForm, ShiftUpdateForm, RouteCreateForm, RouteUpdateForm, CompoundAssignmentForm
@@ -26,6 +27,9 @@ from audit.models import AuditLog
 def login_view(request):
     """User login view."""
     if request.user.is_authenticated:
+        # Redirect authority users to their dedicated dashboard
+        if hasattr(request.user, 'profile') and request.user.profile.role == 'authority':
+            return redirect('dashboard:authority_dashboard')
         return redirect('dashboard:dashboard')
     
     # Create a simple form for the template
@@ -81,6 +85,8 @@ def login_view(request):
                     return redirect(next_url)
                 elif user_role == 'admin':
                     return redirect('/admin/')
+                elif user_role == 'authority':
+                    return redirect('dashboard:authority_dashboard')
                 else:
                     return redirect('dashboard:dashboard')
             else:
@@ -604,7 +610,7 @@ def team_view(request, team_id):
         return redirect('accounts:login')
     
     try:
-        team = Team.objects.select_related('camp', 'team_leader').prefetch_related('members', 'routes__compounds', 'routes__shift').get(id=team_id)
+        team = Team.objects.select_related('camp', 'team_leader', 'shift').prefetch_related('members', 'routes__compounds').get(id=team_id)
     except Team.DoesNotExist:
         messages.error(request, 'Team not found.')
         return redirect('accounts:team_list')
@@ -624,9 +630,41 @@ def team_view(request, team_id):
     # Calculate active members count
     active_members_count = team.members.filter(is_active=True, profile__is_active=True).count()
     
+    # Group routes by compounds to avoid duplicates
+    routes = team.routes.all()
+    compounds_data = {}
+    for route in routes:
+        for compound in route.compounds.all():
+            if compound.id not in compounds_data:
+                compounds_data[compound.id] = {
+                    'compound': compound,
+                    'routes': [],
+                    'total_priority': 0,
+                    'is_active': False
+                }
+            compounds_data[compound.id]['routes'].append(route)
+            compounds_data[compound.id]['total_priority'] += route.priority
+            if route.is_active:
+                compounds_data[compound.id]['is_active'] = True
+    
+    # Convert to list and sort by compound name
+    assigned_compounds = []
+    for compound_id, data in compounds_data.items():
+        assigned_compounds.append({
+            'compound': data['compound'],
+            'routes': data['routes'],
+            'total_priority': data['total_priority'],
+            'is_active': data['is_active'],
+            'route_count': len(data['routes'])
+        })
+    
+    assigned_compounds.sort(key=lambda x: x['compound'].name)
+    
     context = {
         'team': team,
-        'active_members_count': active_members_count
+        'active_members_count': active_members_count,
+        'assigned_compounds': assigned_compounds,
+        'total_compounds': len(assigned_compounds)
     }
     return render(request, 'accounts/team_view.html', context)
 
@@ -675,7 +713,7 @@ def team_update(request, team_id):
     if request.method == 'POST':
         form = TeamUpdateForm(request.POST, instance=team, request=request)
         if form.is_valid():
-            form.save()
+            team = form.save()
             messages.success(request, f'Team {team.name} updated successfully.')
             
             # Log audit event
@@ -686,12 +724,15 @@ def team_update(request, team_id):
                 details={
                     'team_name': team.name,
                     'camp': team.camp.name if team.camp else None,
+                    'shift': team.shift.name if team.shift else None,
                     'team_leader': team.team_leader.username,
                     'member_count': team.members.count()
                 }
             )
             
             return redirect('accounts:team_list')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = TeamUpdateForm(instance=team, request=request)
     
@@ -813,11 +854,11 @@ def shift_create(request):
 # Route Management Views
 @login_required
 def route_list(request):
-    """List all routes."""
+    """List all routes grouped by team."""
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    routes = Route.objects.select_related('team', 'shift', 'team__camp', 'shift__camp').prefetch_related('compounds__camp').all()
+    routes = Route.objects.select_related('team', 'team__camp').prefetch_related('compounds__camp').all()
     
     # Filter by camp if manager
     user_role = get_user_role(request)
@@ -826,9 +867,43 @@ def route_list(request):
         if camp:
             routes = routes.filter(team__camp=camp)
     
+    # Group routes by team and combine their compounds
+    team_data = {}
+    for route in routes:
+        team = route.team
+        if team.id not in team_data:
+            team_data[team.id] = {
+                'team': team,
+                'compounds': set(),
+                'routes': [],
+                'total_priority': 0,
+                'is_active': False
+            }
+        
+        # Add compounds from this route
+        team_data[team.id]['compounds'].update(route.compounds.all())
+        team_data[team.id]['routes'].append(route)
+        team_data[team.id]['total_priority'] += route.priority
+        if route.is_active:
+            team_data[team.id]['is_active'] = True
+    
+    # Convert to list and sort by team name
+    teams_with_routes = []
+    for team_id, data in team_data.items():
+        teams_with_routes.append({
+            'team': data['team'],
+            'compounds': list(data['compounds']),
+            'routes': data['routes'],
+            'total_priority': data['total_priority'],
+            'is_active': data['is_active'],
+            'route_count': len(data['routes'])
+        })
+    
+    teams_with_routes.sort(key=lambda x: x['team'].name)
+    
     # Calculate statistics
     active_routes_count = routes.filter(is_active=True).count()
-    teams_with_routes_count = routes.filter(is_active=True).values('team').distinct().count()
+    teams_with_routes_count = len(teams_with_routes)
     # Count unique compounds across all active routes
     active_routes = routes.filter(is_active=True)
     compound_ids = set()
@@ -837,11 +912,12 @@ def route_list(request):
     compounds_covered_count = len(compound_ids)
     
     context = {
-        'routes': routes,
+        'teams_with_routes': teams_with_routes,
         'active_routes_count': active_routes_count,
         'teams_with_routes_count': teams_with_routes_count,
-        'compounds_covered_count': compounds_covered_count
+        'compounds_covered_count': compounds_covered_count,
     }
+    
     return render(request, 'accounts/route_list.html', context)
 
 
@@ -852,7 +928,7 @@ def route_view(request, route_id):
         return redirect('accounts:login')
     
     try:
-        route = Route.objects.select_related('team', 'shift', 'team__camp', 'shift__camp').prefetch_related('team__members', 'compounds__camp').get(id=route_id)
+        route = Route.objects.select_related('team', 'team__camp', 'team__shift').prefetch_related('team__members', 'compounds__camp').get(id=route_id)
     except Route.DoesNotExist:
         messages.error(request, 'Route not found.')
         return redirect('accounts:route_list')
@@ -873,7 +949,7 @@ def route_view(request, route_id):
         object_ref=f'Route:{route.id}',
         details={
             'team_name': route.team.name,
-            'shift_name': route.shift.name,
+            'shift_name': route.team.shift.name if route.team.shift else 'No Shift',
             'compound_names': compound_names,
             'priority': route.priority
         }
@@ -902,7 +978,7 @@ def route_create(request):
                 object_ref=f'Route:{route.id}',
                 details={
                     'team_name': route.team.name,
-                    'shift_name': route.shift.name,
+                    'shift_name': route.team.shift.name if route.team.shift else 'No Shift',
                     'compound_names': compound_names,
                     'priority': route.priority
                 }
@@ -950,7 +1026,7 @@ def route_update(request, route_id):
                 object_ref=f'Route:{route.id}',
                 details={
                     'team_name': route.team.name,
-                    'shift_name': route.shift.name,
+                    'shift_name': route.team.shift.name if route.team.shift else 'No Shift',
                     'compound_names': compound_names,
                     'priority': route.priority
                 }
@@ -997,7 +1073,7 @@ def route_deactivate(request, route_id):
             object_ref=f'Route:{route.id}',
             details={
                 'team_name': route.team.name,
-                'shift_name': route.shift.name,
+                'shift_name': route.team.shift.name if route.team.shift else 'No Shift',
                 'compound_names': compound_names
             }
         )
@@ -1041,7 +1117,7 @@ def route_activate(request, route_id):
             object_ref=f'Route:{route.id}',
             details={
                 'team_name': route.team.name,
-                'shift_name': route.shift.name,
+                'shift_name': route.team.shift.name if route.team.shift else 'No Shift',
                 'compound_names': compound_names
             }
         )
@@ -1118,7 +1194,7 @@ def shift_list(request):
     elif active_filter == 'false':
         shifts = shifts.filter(is_active=False)
     
-    # Add duration calculation to each shift
+    # Add duration calculation and teams to each shift
     for shift in shifts:
         if shift.start_time and shift.end_time:
             if shift.end_time > shift.start_time:
@@ -1133,6 +1209,11 @@ def shift_list(request):
                 shift.duration_display = "Overnight Shift"
         else:
             shift.duration_display = None
+        
+        # Get teams that work this shift
+        teams_queryset = Team.objects.filter(shift=shift, is_active=True).select_related('team_leader')
+        shift.teams_list = list(teams_queryset)
+        shift.teams_count = teams_queryset.count()
     
     # Pagination
     paginator = Paginator(shifts, 20)
@@ -1183,8 +1264,8 @@ def shift_view(request, shift_id):
     else:
         shift.duration_display = None
     
-    # Get routes using this shift
-    routes = shift.routes.select_related('team').prefetch_related('compounds__camp').all()
+    # Get teams that work this shift
+    teams = Team.objects.filter(shift=shift, is_active=True).select_related('team_leader', 'camp').prefetch_related('members', 'routes__compounds')
     
     # Log audit event
     log_audit_event(
@@ -1196,8 +1277,8 @@ def shift_view(request, shift_id):
     
     context = {
         'shift': shift,
-        'routes': routes,
-        'routes_count': routes.count(),
+        'teams': teams,
+        'teams_count': teams.count(),
     }
     return render(request, 'accounts/shift_view.html', context)
 
@@ -1333,3 +1414,114 @@ def shift_activate(request, shift_id):
     
     context = {'shift': shift}
     return render(request, 'accounts/shift_confirm_activate.html', context)
+
+
+@login_required
+def cleaner_historical_tasks(request):
+    """
+    View for cleaners to see all their team's historical tasks.
+    """
+    if not check_permission(request, ['cleaner']):
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard:dashboard')
+    
+    # Get all teams the cleaner is associated with
+    user_teams = []
+    leader_team = Team.objects.filter(team_leader=request.user).first()
+    if leader_team:
+        user_teams.append(leader_team)
+    
+    member_teams = Team.objects.filter(members=request.user)
+    user_teams.extend(member_teams)
+    
+    if not user_teams:
+        # If not in any team, show tasks assigned directly to their user account
+        tasks = DailyCleaningTask.objects.filter(
+            assigned_to_user=request.user
+        ).select_related('room', 'room__compound', 'room__building', 'assigned_to_team', 'shift')
+    else:
+        # Get compounds from the cleaner's routes
+        cleaner_routes = Route.objects.filter(
+            team__in=user_teams,
+            is_active=True
+        ).prefetch_related('compounds')
+        
+        # Get all compounds from the cleaner's routes
+        route_compounds = []
+        for route in cleaner_routes:
+            route_compounds.extend(route.compounds.all())
+        
+        # Filter tasks by team AND by compounds in their routes
+        if route_compounds:
+            tasks = DailyCleaningTask.objects.filter(
+                assigned_to_team__in=user_teams,
+                room__compound__in=route_compounds
+            ).select_related('room', 'room__compound', 'room__building', 'assigned_to_team', 'shift')
+        else:
+            # If no routes, show tasks from all teams
+            tasks = DailyCleaningTask.objects.filter(
+                assigned_to_team__in=user_teams
+            ).select_related('room', 'room__compound', 'room__building', 'assigned_to_team', 'shift')
+    
+    # Order by task date (newest first)
+    tasks = tasks.order_by('-task_date', '-created_at')
+    
+    # Pagination
+    paginator = Paginator(tasks, 50)  # Show 50 tasks per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get task statistics
+    task_stats = {
+        'total_tasks': tasks.count(),
+        'completed_tasks': tasks.filter(state='done').count(),
+        'missed_tasks': tasks.filter(state='missed').count(),
+        'planned_tasks': tasks.filter(state='planned').count(),
+        'in_progress_tasks': tasks.filter(state='in_progress').count(),
+    }
+    
+    context = {
+        'page_obj': page_obj,
+        'tasks': page_obj,
+        'task_stats': task_stats,
+        'user_teams': user_teams,
+    }
+    
+    return render(request, 'accounts/cleaner_historical_tasks.html', context)
+
+
+@login_required
+def cleaner_task_detail(request, task_id):
+    """
+    Read-only task detail view for cleaners.
+    """
+    if not check_permission(request, ['cleaner']):
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard:dashboard')
+    
+    # Get the task
+    task = get_object_or_404(DailyCleaningTask, id=task_id)
+    
+    # Check if the task is assigned to the cleaner's team or directly to the cleaner
+    user_teams = []
+    leader_team = Team.objects.filter(team_leader=request.user).first()
+    if leader_team:
+        user_teams.append(leader_team)
+    
+    member_teams = Team.objects.filter(members=request.user)
+    user_teams.extend(member_teams)
+    
+    # Check if task is accessible to this cleaner
+    is_assigned_to_user_team = task.assigned_to_team in user_teams if task.assigned_to_team else False
+    is_assigned_to_user = task.assigned_to_user == request.user
+    
+    if not (is_assigned_to_user_team or is_assigned_to_user):
+        messages.error(request, 'You do not have permission to view this task.')
+        return redirect('accounts:cleaner_historical_tasks')
+    
+    context = {
+        'task': task,
+        'is_readonly': True,  # This is a read-only view for cleaners
+    }
+    
+    return render(request, 'accounts/task_detail.html', context)

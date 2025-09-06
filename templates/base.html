@@ -120,10 +120,17 @@
     </div>
     
     <nav class="flex-1 mt-6 overflow-y-auto">
+        {% if user.profile.role == 'authority' %}
+        <a href="{% url 'dashboard:authority_dashboard' %}" class="px-4 py-3 flex items-center {% if 'authority_dashboard' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-gauge-high mr-3 {% if 'authority_dashboard' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'authority_dashboard' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Authority Dashboard</span>
+        </a>
+        {% else %}
         <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-3 flex items-center {% if request.resolver_match.url_name == 'dashboard' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
             <i class="fa-solid fa-gauge-high mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
             <span class="{% if request.resolver_match.url_name == 'dashboard' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Dashboard</span>
         </a>
+        {% endif %}
         
         {% if user.is_authenticated %}
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
@@ -161,6 +168,7 @@
                         </a>
                 </div>
             </div>
+            {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
             <div class="relative">
                 <div class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleLocationMenu()">
                     <i class="fa-solid fa-map-marker-alt mr-3 {% if 'location' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
@@ -185,15 +193,26 @@
             </div>
             {% endif %}
             
+            {% if user.is_authenticated and user.profile.role == 'admin' %}
+            <a href="{% url 'accounts:barcode_generator' %}" class="px-4 py-3 flex items-center {% if 'barcode' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+                <i class="fa-solid fa-barcode mr-3 {% if 'barcode' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                <span class="{% if 'barcode' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Barcode Generator</span>
+            </a>
+            {% endif %}
             
             {% if user.profile.role == 'cleaner' %}
-            <a href="{% url 'scans:scan' %}" class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
+            <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="px-4 py-3 flex items-center {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+                <i class="fa-solid fa-history mr-3 {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                <span class="{% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Historical Tasks</span>
+            </a>
+            <a href="#" class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors opacity-50">
                 <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
                 <span class="text-sm">QR Scanner</span>
             </a>
             {% endif %}
         {% endif %}
         
+        {% if user.is_authenticated and user.profile.role != 'cleaner' %}
         <div class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
             <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>
             <span class="text-sm">Reports</span>
@@ -206,6 +225,8 @@
             <i class="fa-solid fa-exclamation-triangle mr-3 text-warning-orange"></i>
             <span class="text-sm">Re-clean Requests</span>
         </div>
+        {% endif %}
+        {% endif %}
     </nav>
     
     <div class="mt-auto border-t border-gray-700">

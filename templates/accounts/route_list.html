@@ -14,7 +14,7 @@
             <div class="w-12 h-12 bg-steel-blue rounded-full flex items-center justify-center mx-auto mb-3">
                 <i class="fa-solid fa-route text-white text-xl"></i>
             </div>
-            <div class="text-3xl font-bold text-steel-blue heading-font mb-1">{{ routes.count }}</div>
+            <div class="text-3xl font-bold text-steel-blue heading-font mb-1">{{ active_routes_count }}</div>
             <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Total Routes</div>
             <div class="text-xs text-gray-500 mt-1">All assignments</div>
         </div>
@@ -78,16 +78,17 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    {% for route in routes %}
-                    <tr class="hover:bg-blue-50 cursor-pointer transition-colors duration-200" onclick="window.location.href='{% url 'accounts:route_view' route.id %}'" title="Click to view route details">
+                    {% for team_data in teams_with_routes %}
+                    <tr class="hover:bg-blue-50 cursor-pointer transition-colors duration-200" onclick="window.location.href='{% url 'accounts:team_view' team_data.team.id %}'" title="Click to view team details">
                         <td class="px-6 py-4">
                             <div class="flex items-center">
                                 <div class="w-10 h-10 rounded bg-steel-blue flex items-center justify-center mr-3">
                                     <i class="fa-solid fa-users text-white text-sm"></i>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-dark-graphite">{{ route.team.name }}</div>
-                                    <div class="text-xs text-gray-500">{{ route.team.camp.name }}</div>
+                                    <div class="text-sm font-medium text-dark-graphite">{{ team_data.team.name }}</div>
+                                    <div class="text-xs text-gray-500">{{ team_data.team.camp.name }}</div>
+                                    <div class="text-xs text-gray-400">{{ team_data.route_count }} route{{ team_data.route_count|pluralize }}</div>
                                 </div>
                             </div>
                         </td>
@@ -97,14 +98,19 @@
                                     <i class="fa-solid fa-clock text-white text-xs"></i>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-dark-graphite">{{ route.shift.name }}</div>
-                                    <div class="text-xs text-gray-500">{{ route.shift.start_time }} - {{ route.shift.end_time }}</div>
+                                    {% if team_data.team.shift %}
+                                        <div class="text-sm font-medium text-dark-graphite">{{ team_data.team.shift.name }}</div>
+                                        <div class="text-xs text-gray-500">{{ team_data.team.shift.start_time }} - {{ team_data.team.shift.end_time }}</div>
+                                    {% else %}
+                                        <div class="text-sm font-medium text-gray-400">No Shift Assigned</div>
+                                        <div class="text-xs text-gray-400">-</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="space-y-1">
-                                {% for compound in route.compounds.all %}
+                                {% for compound in team_data.compounds %}
                                 <div class="flex items-center">
                                     <div class="w-8 h-8 rounded bg-purple-500 flex items-center justify-center mr-2">
                                         <i class="fa-solid fa-building text-white text-xs"></i>
@@ -114,41 +120,34 @@
                                         <div class="text-xs text-gray-500">{{ compound.camp.name }}</div>
                                     </div>
                                 </div>
+                                {% empty %}
+                                <div class="text-sm text-gray-400">No compounds assigned</div>
                                 {% endfor %}
                             </div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if route.priority >= 8 %}bg-red-100 text-red-800{% elif route.priority >= 5 %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if team_data.total_priority >= 8 %}bg-red-100 text-red-800{% elif team_data.total_priority >= 5 %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
                                     <i class="fa-solid fa-flag mr-1"></i>
-                                    {{ route.priority }}
+                                    {{ team_data.total_priority }}
                                 </span>
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if route.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                <i class="fa-solid fa-{% if route.is_active %}check-circle{% else %}times-circle{% endif %} mr-1"></i>
-                                {% if route.is_active %}Active{% else %}Inactive{% endif %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if team_data.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                <i class="fa-solid fa-{% if team_data.is_active %}check-circle{% else %}times-circle{% endif %} mr-1"></i>
+                                {% if team_data.is_active %}Active{% else %}Inactive{% endif %}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ route.created_at|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ team_data.team.created_at|date:"M d, Y" }}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center space-x-2">
-                                <a href="{% url 'accounts:route_view' route.id %}" class="text-steel-blue hover:text-blue-800 transition-colors" title="View Details">
+                                <a href="{% url 'accounts:team_view' team_data.team.id %}" class="text-steel-blue hover:text-blue-800 transition-colors" title="View Team">
                                     <i class="fa-solid fa-eye"></i>
                                 </a>
-                                <a href="{% url 'accounts:route_update' route.id %}" class="text-warning-orange hover:text-orange-800 transition-colors" title="Edit Route">
+                                <a href="{% url 'accounts:team_update' team_data.team.id %}" class="text-warning-orange hover:text-orange-800 transition-colors" title="Edit Team">
                                     <i class="fa-solid fa-edit"></i>
                                 </a>
-                                {% if route.is_active %}
-                                <a href="{% url 'accounts:route_deactivate' route.id %}" class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate Route">
-                                    <i class="fa-solid fa-ban"></i>
-                                </a>
-                                {% else %}
-                                <a href="{% url 'accounts:route_activate' route.id %}" class="text-green-600 hover:text-green-800 transition-colors" title="Activate Route">
-                                    <i class="fa-solid fa-check"></i>
-                                </a>
-                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -157,11 +156,11 @@
                         <td colspan="7" class="px-6 py-12 text-center">
                             <div class="flex flex-col items-center">
                                 <i class="fa-solid fa-route text-gray-400 text-4xl mb-4"></i>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Routes Found</h3>
-                                <p class="text-gray-500 mb-4">Get started by creating your first route assignment.</p>
-                                <a href="{% url 'accounts:route_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Teams with Routes Found</h3>
+                                <p class="text-gray-500 mb-4">Get started by creating your first team and route assignment.</p>
+                                <a href="{% url 'accounts:team_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
                                     <i class="fa-solid fa-plus"></i>
-                                    <span>Create First Route</span>
+                                    <span>Create First Team</span>
                                 </a>
                             </div>
                         </td>

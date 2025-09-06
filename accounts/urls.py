@@ -3,7 +3,7 @@ URL configuration for accounts app.
 """
 
 from django.urls import path
-from . import views, task_views, task_assignment_views
+from . import views, task_views, task_assignment_views, barcode_views, barcode_ajax_views, scan_views
 
 app_name = 'accounts'
 
@@ -59,4 +59,25 @@ urlpatterns = [
     path('task-assignment/', task_assignment_views.task_assignment_dashboard, name='task_assignment_dashboard'),
     path('task-assignment/assign-to-route/', task_assignment_views.assign_tasks_to_route, name='assign_tasks_to_route'),
     path('task-assignment/bulk-assign/', task_assignment_views.bulk_task_assignment, name='bulk_task_assignment'),
+    
+    # Barcode Generator URLs
+    path('barcode-generator/', barcode_views.barcode_generator, name='barcode_generator'),
+    path('barcode-generator/room/<uuid:room_id>/', barcode_views.generate_single_barcode, name='generate_single_barcode'),
+    path('barcode-generator/bulk/', barcode_views.generate_bulk_barcodes, name='generate_bulk_barcodes'),
+    path('barcode-generator/camp/<uuid:camp_id>/', barcode_views.generate_camp_barcodes, name='generate_camp_barcodes'),
+    path('barcode-generator/compound/<uuid:compound_id>/', barcode_views.generate_compound_barcodes, name='generate_compound_barcodes'),
+    path('barcode-generator/building/<uuid:building_id>/', barcode_views.generate_building_barcodes, name='generate_building_barcodes'),
+    
+    # Cleaner historical tasks
+    path('cleaner/historical-tasks/', views.cleaner_historical_tasks, name='cleaner_historical_tasks'),
+    path('cleaner/tasks/<uuid:task_id>/', views.cleaner_task_detail, name='cleaner_task_detail'),
+    
+    # Scan functionality
+    path('scan/task/<uuid:task_id>/', scan_views.scan_task, name='scan_task'),
+    path('scan/task/<uuid:task_id>/mark-completed/', scan_views.mark_task_scanned, name='mark_task_scanned'),
+    
+    # AJAX endpoints for dynamic filtering
+    path('barcode-generator/ajax/camp/<uuid:camp_id>/compounds/', barcode_ajax_views.get_compounds_for_camp, name='get_compounds_for_camp'),
+    path('barcode-generator/ajax/compound/<uuid:compound_id>/buildings/', barcode_ajax_views.get_buildings_for_compound, name='get_buildings_for_compound'),
+    path('barcode-generator/ajax/building/<uuid:building_id>/floors/', barcode_ajax_views.get_floors_for_building, name='get_floors_for_building'),
 ]

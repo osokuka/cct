@@ -93,11 +93,19 @@ class CompoundAssignment(models.Model):
 
 class Team(models.Model):
     """
-    Cleaning teams that can be assigned to compounds and shifts.
+    Cleaning teams that work specific shifts and are assigned to compounds via routes.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, help_text="Team name")
     camp = models.ForeignKey('locations.Camp', on_delete=models.CASCADE, related_name='teams')
+    shift = models.ForeignKey(
+        'Shift', 
+        on_delete=models.CASCADE, 
+        related_name='teams',
+        null=True,
+        blank=True,
+        help_text="Shift when this team works"
+    )
     team_leader = models.ForeignKey(
         User, 
         on_delete=models.CASCADE, 
@@ -125,13 +133,22 @@ class Team(models.Model):
 
     def clean(self):
         """
-        Validate that team leader has appropriate role.
+        Validate team assignment rules and prevent conflicts.
         """
         from django.core.exceptions import ValidationError
         
+        # Validate team leader role
         if hasattr(self.team_leader, 'profile'):
-            if self.team_leader.profile.role not in ['admin', 'manager']:
-                raise ValidationError("Team leader must be an Admin or Manager")
+            if self.team_leader.profile.role not in ['admin', 'manager', 'cleaner']:
+                raise ValidationError("Team leader must be an Admin, Manager, or Cleaner")
+        
+        # Validate shift belongs to the same camp
+        if hasattr(self, 'shift') and self.shift and self.camp:
+            if self.shift.camp != self.camp:
+                raise ValidationError(
+                    f"Shift '{self.shift.name}' does not belong to camp '{self.camp.name}'"
+                )
+        
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -179,12 +196,13 @@ class Shift(models.Model):
 
 class Route(models.Model):
     """
-    Routes assign teams to compounds for specific shifts.
-    One team can handle multiple compounds per shift.
+    Routes assign teams to compounds.
+    One team can handle multiple compounds.
+    Business Rule: A team cannot be assigned to the same compound multiple times.
+    Different teams can be assigned to the same compound.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='routes')
-    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='routes')
     compounds = models.ManyToManyField('locations.Compound', related_name='routes', help_text="Compounds assigned to this route")
     priority = models.IntegerField(default=1, help_text="Route priority (higher number = higher priority)")
     is_active = models.BooleanField(default=True)
@@ -192,11 +210,42 @@ class Route(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['team', 'shift']
+        unique_together = ['team']
         verbose_name = "Route"
         verbose_name_plural = "Routes"
         ordering = ['-priority', 'team__name']
 
     def __str__(self):
         compound_names = ", ".join([c.name for c in self.compounds.all()])
-        return f"{self.team.name} → {compound_names} ({self.shift.name})"
+        return f"{self.team.name} → {compound_names} ({self.team.shift.name})"
+
+    def clean(self):
+        """
+        Validate that the same team is not assigned to the same compound multiple times.
+        Allow different teams to be assigned to the same compound.
+        """
+        from django.core.exceptions import ValidationError
+        
+        if not self.pk:  # Only check for new routes
+            return
+            
+        # Get all compounds for this route
+        route_compounds = self.compounds.all()
+        
+        # Check if this team is already assigned to any of these compounds
+        for compound in route_compounds:
+            existing_routes = Route.objects.filter(
+                team=self.team,
+                compounds=compound,
+                is_active=True
+            ).exclude(pk=self.pk)
+            
+            if existing_routes.exists():
+                raise ValidationError(
+                    f"Team '{self.team.name}' is already assigned to {compound.name}. "
+                    f"A team can only be assigned to each compound once."
+                )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)

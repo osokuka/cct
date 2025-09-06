@@ -23,24 +23,22 @@ def calculate_shift_distribution(compound, tasks):
     shifts = Shift.objects.filter(camp=compound.camp, is_active=True).order_by('start_time')
     
     for shift in shifts:
-        # Get routes for this shift and compound
+        # Get routes for teams that work this shift and handle this compound
         routes = Route.objects.filter(
-            shift=shift,
+            team__shift=shift,
             compounds=compound,
             is_active=True
         ).select_related('team')
         
-        # Count tasks assigned to teams that have routes for this shift
-        # Since tasks don't have direct shift reference, we check if the assigned team has a route for this shift
+        # Count tasks assigned to teams that work this shift
         shift_task_count = 0
         shift_sqm_credit = 0
         
         for task in tasks:
-            if task.assigned_to_team:
-                # Check if this task's team has a route for this shift and compound
+            if task.assigned_to_team and task.assigned_to_team.shift == shift:
+                # Check if this task's team has a route for this compound
                 team_routes = Route.objects.filter(
                     team=task.assigned_to_team,
-                    shift=shift,
                     compounds=compound,
                     is_active=True
                 )
@@ -97,6 +95,16 @@ def task_assignment_dashboard(request):
     
     if selected_camp:
         all_tasks = all_tasks.filter(room__camp=selected_camp)
+    
+    # Filter by authority user compound assignments
+    if request.user.profile.role == 'authority':
+        from accounts.views import get_authority_compound_ids
+        authority_compound_ids = get_authority_compound_ids(request.user)
+        if authority_compound_ids:
+            all_tasks = all_tasks.filter(room__compound_id__in=authority_compound_ids)
+        else:
+            # If no compound assignments, show no tasks
+            all_tasks = all_tasks.none()
     
     # Get unassigned tasks for assignment
     unassigned_tasks = all_tasks.filter(
@@ -187,19 +195,63 @@ def task_assignment_dashboard(request):
         # Calculate shift distribution for this compound
         data['shift_distribution'] = calculate_shift_distribution(compound, data['tasks'])
     
-    # Get routes for the selected camp (or all camps if none selected)
-    routes = []
+    # Get routes for the selected camp (or all camps if none selected) and group by team
+    routes_queryset = []
     if selected_camp:
-        routes = Route.objects.filter(
+        routes_queryset = Route.objects.filter(
             team__camp=selected_camp,
             is_active=True
-        ).select_related('team', 'shift').prefetch_related('compounds')
+        ).select_related('team', 'team__shift').prefetch_related('compounds')
     else:
         # If no camp selected, show routes from all available camps
-        routes = Route.objects.filter(
+        routes_queryset = Route.objects.filter(
             team__camp__in=camps,
             is_active=True
-        ).select_related('team', 'shift').prefetch_related('compounds')
+        ).select_related('team', 'team__shift').prefetch_related('compounds')
+    
+    # Filter routes by authority user compound assignments
+    if request.user.profile.role == 'authority':
+        authority_compound_ids = get_authority_compound_ids(request.user)
+        if authority_compound_ids:
+            # Filter routes that have compounds assigned to the authority user
+            routes_queryset = routes_queryset.filter(compounds__id__in=authority_compound_ids).distinct()
+        else:
+            # If no compound assignments, show no routes
+            routes_queryset = routes_queryset.none()
+    
+    # Group routes by team to avoid duplicates
+    team_data = {}
+    for route in routes_queryset:
+        team = route.team
+        if team.id not in team_data:
+            team_data[team.id] = {
+                'team': team,
+                'compounds': set(),
+                'routes': [],
+                'total_priority': 0,
+                'is_active': False
+            }
+        
+        # Add compounds from this route
+        team_data[team.id]['compounds'].update(route.compounds.all())
+        team_data[team.id]['routes'].append(route)
+        team_data[team.id]['total_priority'] += route.priority
+        if route.is_active:
+            team_data[team.id]['is_active'] = True
+    
+    # Convert to list and sort by team name
+    routes = []
+    for team_id, data in team_data.items():
+        routes.append({
+            'team': data['team'],
+            'compounds': list(data['compounds']),
+            'routes': data['routes'],
+            'total_priority': data['total_priority'],
+            'is_active': data['is_active'],
+            'route_count': len(data['routes'])
+        })
+    
+    routes.sort(key=lambda x: x['team'].name)
     
     # Get compounds for route assignment (or all compounds if none selected)
     compounds = []
@@ -256,13 +308,18 @@ def assign_tasks_to_route(request):
     try:
         data = json.loads(request.body)
         task_ids = data.get('task_ids', [])
-        route_id = data.get('route_id')
+        team_id = data.get('team_id')
         
-        if not task_ids or not route_id:
+        if not task_ids or not team_id:
             return JsonResponse({'success': False, 'error': 'Missing required parameters'})
         
-        # Get the route
-        route = Route.objects.get(id=route_id)
+        # Get the team
+        team = Team.objects.get(id=team_id)
+        
+        # Get the first active route for this team (for assignment purposes)
+        route = team.routes.filter(is_active=True).first()
+        if not route:
+            return JsonResponse({'success': False, 'error': 'No active routes found for this team'})
         
         # Get tasks
         tasks = DailyCleaningTask.objects.filter(
@@ -277,7 +334,7 @@ def assign_tasks_to_route(request):
         for task in tasks:
             # Assign task to route team
             task.assigned_to_team = route.team
-            task.shift = route.shift
+            task.shift = route.team.shift
             task.save()
             assigned_count += 1
             
@@ -344,7 +401,7 @@ def bulk_task_assignment(request):
             for route in routes:
                 if task.room.compound in route.compounds.all():
                     task.assigned_to_team = route.team
-                    task.shift = route.shift
+                    task.shift = route.team.shift
                     task.save()
                     assigned_count += 1
                     assigned = True

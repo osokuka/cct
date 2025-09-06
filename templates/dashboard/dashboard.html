@@ -1,201 +1,579 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Dashboard{% endblock %}
-{% block page_title %}DASHBOARD CONTROL{% endblock %}
-{% block page_subtitle %}System Overview & Monitoring{% endblock %}
+{% block title %}Management Dashboard{% endblock %}
+{% block page_title %}MANAGEMENT DASHBOARD{% endblock %}
+{% block page_subtitle %}Real-time Task Monitoring & Team Performance{% endblock %}
 
 {% block content %}
-<!-- KPI Cards Section -->
-<div id="kpi-section" class="p-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Rooms Cleaned Today -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300">
+<!-- Main Dashboard Grid -->
+<div class="p-6">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Left Column - Task Statistics -->
+        <div class="lg:col-span-3 space-y-6">
+            
+            <!-- KPI Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Total Tasks Today -->
+                <a href="{% url 'accounts:task_list' %}?date=today" class="metallic-card rounded-lg p-6 border border-gray-300 hover:shadow-lg hover:border-steel-blue transition-all duration-200 cursor-pointer block">
             <div class="flex items-center justify-between mb-4">
                 <div class="w-12 h-12 bg-steel-blue rounded-lg flex items-center justify-center">
-                    <i class="fa-solid fa-broom text-white text-xl"></i>
+                            <i class="fa-solid fa-tasks text-white text-xl"></i>
                 </div>
                 <div class="text-right">
-                    <div class="text-3xl font-bold text-dark-graphite heading-font">{{ total_rooms|default:"0" }}</div>
-                    <div class="text-sm text-gray-600 uppercase tracking-wide">TOTAL ROOMS</div>
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.today_tasks|default:"0" }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">TODAY'S TASKS</div>
                 </div>
             </div>
             <div class="flex items-center">
-                <div class="text-green-600 text-sm font-medium">+12%</div>
-                <div class="text-xs text-gray-500 ml-2">vs yesterday</div>
+                        <div class="text-green-600 text-sm font-medium">{{ task_stats.completed_tasks|default:"0" }} completed</div>
+                        <div class="text-xs text-gray-500 ml-2">of {{ task_stats.total_tasks|default:"0" }} total</div>
             </div>
-        </div>
+                </a>
 
-        <!-- Pending Re-cleans -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <!-- Completed Tasks -->
+                <a href="{% url 'accounts:task_list' %}?state=done" class="metallic-card rounded-lg p-6 border border-gray-300 hover:shadow-lg hover:border-green-600 transition-all duration-200 cursor-pointer block">
             <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-warning-orange rounded-lg flex items-center justify-center">
+                        <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-check-circle text-white text-xl"></i>
+                </div>
+                <div class="text-right">
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.completed_tasks|default:"0" }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">COMPLETED</div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                        <div class="text-green-600 text-sm font-medium">{{ task_stats.sla_percentage|floatformat:1 }}%</div>
+                        <div class="text-xs text-gray-500 ml-2">SLA compliance</div>
+            </div>
+                </a>
+
+                <!-- Missed Tasks -->
+                <a href="{% url 'accounts:task_list' %}?state=missed" class="metallic-card rounded-lg p-6 border border-gray-300 hover:shadow-lg hover:border-red-600 transition-all duration-200 cursor-pointer block">
+            <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
                     <i class="fa-solid fa-exclamation-triangle text-white text-xl"></i>
                 </div>
                 <div class="text-right">
-                    <div class="text-3xl font-bold text-dark-graphite heading-font">8</div>
-                    <div class="text-sm text-gray-600 uppercase tracking-wide">PENDING RE-CLEANS</div>
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.missed_tasks|default:"0" }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">MISSED</div>
                 </div>
             </div>
             <div class="flex items-center">
-                <div class="text-warning-orange text-sm font-medium">URGENT</div>
-                <div class="text-xs text-gray-500 ml-2">3 high priority</div>
+                        <div class="text-red-600 text-sm font-medium">URGENT</div>
+                        <div class="text-xs text-gray-500 ml-2">{{ task_stats.urgent_tasks|default:"0" }} urgent</div>
             </div>
-        </div>
+                </a>
 
-        <!-- Active Users -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <!-- Unassigned Tasks -->
+                <a href="{% url 'accounts:task_assignment_dashboard' %}" class="metallic-card rounded-lg p-6 border border-gray-300 hover:shadow-lg hover:border-warning-orange transition-all duration-200 cursor-pointer block">
             <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-steel-blue rounded-lg flex items-center justify-center">
-                    <i class="fa-solid fa-users text-white text-xl"></i>
+                        <div class="w-12 h-12 bg-warning-orange rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-question-circle text-white text-xl"></i>
                 </div>
                 <div class="text-right">
-                    <div class="text-3xl font-bold text-dark-graphite heading-font">{{ total_users|default:"0" }}</div>
-                    <div class="text-sm text-gray-600 uppercase tracking-wide">ACTIVE USERS</div>
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.unassigned_tasks|default:"0" }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">UNASSIGNED</div>
                 </div>
             </div>
             <div class="flex items-center">
-                <div class="text-green-600 text-sm font-medium">ONLINE</div>
-                <div class="text-xs text-gray-500 ml-2">18 cleaners active</div>
+                        <div class="text-warning-orange text-sm font-medium">NEEDS ATTENTION</div>
+                        <div class="text-xs text-gray-500 ml-2">Assign to teams</div>
             </div>
+                </a>
         </div>
 
-        <!-- System Status -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                    <i class="fa-solid fa-shield-check text-white text-xl"></i>
-                </div>
-                <div class="text-right">
-                    <div class="text-3xl font-bold text-dark-graphite heading-font">99.8%</div>
-                    <div class="text-sm text-gray-600 uppercase tracking-wide">SYSTEM UPTIME</div>
-                </div>
+            <!-- Task Filter Toggle -->
+            {% if user.profile.role != 'cleaner' %}
+            <div class="metallic-card rounded-lg p-4 border border-gray-300 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TASK FILTER</h3>
+                        <p class="text-sm text-gray-600">
+                            {% if show_all_tasks %}
+                                Showing all tasks across all dates
+                            {% else %}
+                                Showing only today's tasks ({{ today|date:"F j, Y" }})
+                            {% endif %}
+                        </p>
             </div>
-            <div class="flex items-center">
-                <div class="text-green-600 text-sm font-medium">OPERATIONAL</div>
-                <div class="text-xs text-gray-500 ml-2">All systems normal</div>
-            </div>
+                    <div class="flex space-x-2">
+                        <a href="?show_all=false" class="px-4 py-2 {% if not show_all_tasks %}bg-steel-blue text-white{% else %}bg-gray-300 text-gray-600{% endif %} text-sm rounded uppercase tracking-wide hover:bg-opacity-90 transition-colors">
+                            TODAY ONLY
+                        </a>
+                        <a href="?show_all=true" class="px-4 py-2 {% if show_all_tasks %}bg-steel-blue text-white{% else %}bg-gray-300 text-gray-600{% endif %} text-sm rounded uppercase tracking-wide hover:bg-opacity-90 transition-colors">
+                            ALL TASKS
+                        </a>
         </div>
     </div>
 </div>
+            {% endif %}
 
-<!-- Charts and Analytics -->
-<div id="analytics-section" class="px-6 pb-6">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Bar Chart - Rooms Cleaned by Building -->
-        <div class="lg:col-span-2 metallic-card rounded-lg p-6 border border-gray-300">
+            <!-- Compound Performance Chart - Hidden for cleaners -->
+            {% if user.profile.role != 'cleaner' %}
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ROOMS CLEANED BY BUILDING</h3>
-                    <p class="text-sm text-gray-600">Daily performance metrics</p>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">COMPOUND PERFORMANCE</h3>
+                        <p class="text-sm text-gray-600">Task completion by compound</p>
                 </div>
                 <div class="flex space-x-2">
-                    <button class="px-3 py-1 bg-steel-blue text-white text-xs rounded uppercase tracking-wide">TODAY</button>
-                    <button class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer">WEEK</button>
-                    <button class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer">MONTH</button>
+                        <button onclick="filterChart('filtered')" class="px-3 py-1 bg-steel-blue text-white text-xs rounded uppercase tracking-wide hover:bg-opacity-90 transition-colors">CURRENT</button>
+                        <button onclick="filterChart('today')" class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer hover:bg-gray-400 transition-colors">TODAY</button>
+                        <button onclick="filterChart('week')" class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer hover:bg-gray-400 transition-colors">WEEK</button>
+                        <button onclick="filterChart('month')" class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer hover:bg-gray-400 transition-colors">MONTH</button>
                 </div>
             </div>
-            <div id="bar-chart" class="h-80"></div>
+                <div id="compound-chart" class="h-80"></div>
         </div>
+            {% endif %}
 
-        <!-- Alert Panel -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300">
-            <div class="flex items-center mb-6">
-                <i class="fa-solid fa-exclamation-triangle text-warning-orange mr-3"></i>
-                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ALERTS</h3>
+            <!-- Cleaner Team & Route Information -->
+            {% if user.profile.role == 'cleaner' %}
+            <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
+                <div class="flex items-center mb-4">
+                    <i class="fa-solid fa-users text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">YOUR TEAMS & ROUTES</h3>
             </div>
             
-            <div class="space-y-4">
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Teams Section -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-dark-graphite mb-3 uppercase tracking-wide">Your Teams</h4>
+                        {% for team in cleaner_teams %}
+                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-sm font-medium text-red-800">HIGH PRIORITY</div>
-                            <div class="text-xs text-red-600">Room B-204 requires re-clean</div>
+                                    <div class="font-medium text-dark-graphite">{{ team.name }}</div>
+                                    <div class="text-xs text-gray-500">
+                                        {% if team.team_leader == user %}
+                                            Team Leader
+                                        {% else %}
+                                            Member
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-600">
+                                    {{ team.members.count }} members
                         </div>
-                        <div class="text-xs text-red-500">2 min ago</div>
                     </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-sm text-gray-500">No teams assigned</div>
+                        {% endfor %}
                 </div>
                 
-                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                    <!-- Routes Section -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-dark-graphite mb-3 uppercase tracking-wide">Your Routes</h4>
+                        {% for route in cleaner_routes %}
+                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-sm font-medium text-yellow-800">MEDIUM</div>
-                            <div class="text-xs text-yellow-600">Scanner offline - Building A</div>
+                                    <div class="font-medium text-dark-graphite">{{ route.team.name }}</div>
+                                    <div class="text-xs text-gray-500">{{ route.shift.name }}</div>
+                                </div>
+                                <div class="text-xs text-gray-600">
+                                    {{ route.compounds.count }} compounds
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Compounds: {% for compound in route.compounds.all %}{{ compound.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </div>
                         </div>
-                        <div class="text-xs text-yellow-500">15 min ago</div>
+                        {% empty %}
+                        <div class="text-sm text-gray-500">No routes assigned</div>
+                        {% endfor %}
+                        </div>
                     </div>
                 </div>
+            {% endif %}
                 
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <!-- Cleaner Task Filter -->
+            {% if user.profile.role == 'cleaner' %}
+            <div class="metallic-card rounded-lg p-4 border border-gray-300 mb-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-sm font-medium text-blue-800">INFO</div>
-                            <div class="text-xs text-blue-600">Daily report generated</div>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TASK FILTER</h3>
+                        <p class="text-sm text-gray-600">
+                            {% if show_all_cleaner_tasks %}
+                                Showing all tasks from your teams
+                            {% else %}
+                                Showing only tasks from your assigned compounds
+                            {% endif %}
+                        </p>
                         </div>
-                        <div class="text-xs text-blue-500">1 hour ago</div>
+                    <div class="flex space-x-2">
+                        <a href="?show_all_cleaner=false" class="px-4 py-2 {% if not show_all_cleaner_tasks %}bg-steel-blue text-white{% else %}bg-gray-300 text-gray-600{% endif %} text-sm rounded uppercase tracking-wide hover:bg-opacity-90 transition-colors">
+                            MY TASKS
+                        </a>
+                        <a href="?show_all_cleaner=true" class="px-4 py-2 {% if show_all_cleaner_tasks %}bg-steel-blue text-white{% else %}bg-gray-300 text-gray-600{% endif %} text-sm rounded uppercase tracking-wide hover:bg-opacity-90 transition-colors">
+                            ALL TASKS
+                        </a>
                     </div>
                 </div>
             </div>
-            
-            <button class="w-full mt-4 bg-dark-graphite text-white py-2 rounded uppercase text-sm tracking-wide metallic-shine">
-                VIEW ALL ALERTS
-            </button>
+            {% endif %}
+
+            <!-- Daily Tasks Table for Admin/Manager -->
+            {% if user.profile.role != 'cleaner' %}
+            <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TODAY'S TASKS</h3>
+                        <p class="text-sm text-gray-600">All tasks for today ({{ recent_activity|length }} total)</p>
         </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-steel-blue">{{ task_stats.today_tasks }}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">TOTAL TASKS</div>
     </div>
 </div>
 
-<!-- Recent Activity Table -->
-<div id="activity-section" class="px-6 pb-6">
-    <div class="metallic-card rounded-lg border border-gray-300">
-        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
-            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">RECENT ACTIVITY</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-300">
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ROOM</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">COMPOUND</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">BUILDING</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">TEAM</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">STATUS</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">SQM</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in recent_activity %}
+                            <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 font-medium text-dark-graphite">{{ task.room.room_code }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ task.room.compound.name }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ task.room.building.name }}</td>
+                                <td class="py-3 px-4 text-gray-600">
+                                    {% if task.assigned_to_team %}
+                                        {{ task.assigned_to_team.name }}
+                                    {% else %}
+                                        <span class="text-red-500">Unassigned</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        {% if task.state == 'done' %}bg-green-100 text-green-800
+                                        {% elif task.state == 'missed' %}bg-red-100 text-red-800
+                                        {% elif task.state == 'in_progress' %}bg-blue-100 text-blue-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ task.get_state_display }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-gray-600">{{ task.room.square_meters }}m²</td>
+                                <td class="py-3 px-4">
+                                    <a href="{% url 'accounts:task_detail' task.id %}" class="text-steel-blue hover:text-opacity-80 text-xs uppercase tracking-wide">
+                                        <i class="fa-solid fa-eye mr-1"></i>VIEW
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-8 text-center text-gray-500">
+                                    <i class="fa-solid fa-clipboard-list text-3xl mb-2 block"></i>
+                                    <p class="text-sm">No tasks for today</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Cleaner Task Table -->
+            {% if user.profile.role == 'cleaner' %}
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TODAY'S TASKS</h3>
+                        <p class="text-sm text-gray-600">Complete your assigned tasks for today ({{ recent_activity|length }} total)</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-steel-blue">{{ task_stats.total_tasks }}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">TOTAL TASKS</div>
+                    </div>
         </div>
         
         <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-steel-blue text-white">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">TIME</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">USER</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ACTION</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ROOM</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">STATUS</th>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-300">
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">SCAN</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ROOM</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">COMPOUND</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">BUILDING</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">STATUS</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">SQM</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ACTIONS</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm text-gray-600">13:18</td>
-                        <td class="px-6 py-4 text-sm text-dark-graphite font-medium">J. Smith</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">Room Cleaned</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">A-101</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded uppercase">COMPLETED</span></td>
+                        <tbody>
+                            {% for task in recent_activity %}
+                            <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4">
+                                    <button class="bg-steel-blue text-white px-3 py-1 rounded text-xs uppercase tracking-wide hover:bg-opacity-90 transition-colors" onclick="scanTask('{{ task.id }}')">
+                                        <i class="fa-solid fa-qrcode mr-1"></i>SCAN
+                                    </button>
+                                </td>
+                                <td class="py-3 px-4 font-medium text-dark-graphite">{{ task.room.room_code }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ task.room.compound.name }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ task.room.building.name }}</td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        {% if task.state == 'done' %}bg-green-100 text-green-800
+                                        {% elif task.state == 'missed' %}bg-red-100 text-red-800
+                                        {% elif task.state == 'in_progress' %}bg-blue-100 text-blue-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ task.get_state_display }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-gray-600">{{ task.room.square_meters }}m²</td>
+                                <td class="py-3 px-4">
+                                    <a href="{% url 'accounts:task_detail' task.id %}" class="text-steel-blue hover:text-opacity-80 text-xs uppercase tracking-wide">
+                                        <i class="fa-solid fa-eye mr-1"></i>VIEW
+                                    </a>
+                                </td>
                     </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm text-gray-600">13:15</td>
-                        <td class="px-6 py-4 text-sm text-dark-graphite font-medium">M. Johnson</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">QR Code Scanned</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">B-205</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded uppercase">IN PROGRESS</span></td>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-8 text-center text-gray-500">
+                                    <i class="fa-solid fa-clipboard-list text-3xl mb-2 block"></i>
+                                    <p class="text-sm">No tasks assigned for today</p>
+                                </td>
                     </tr>
-                    <tr class="hover:bg-gray-50 bg-red-50">
-                        <td class="px-6 py-4 text-sm text-gray-600">13:12</td>
-                        <td class="px-6 py-4 text-sm text-dark-graphite font-medium">Authority User</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">Re-clean Requested</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">B-204</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded uppercase">RE-CLEAN</span></td>
-                    </tr>
+                            {% endfor %}
                 </tbody>
             </table>
         </div>
+            </div>
+            {% else %}
+            <!-- Urgent Requests & Alerts - Hidden for cleaners -->
+        <div class="metallic-card rounded-lg p-6 border border-gray-300">
+            <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-exclamation-triangle text-red-600 mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">URGENT REQUESTS & ALERTS</h3>
+            </div>
+            
+            <div class="space-y-4">
+                    {% for task in urgent_requests %}
+                    <a href="{% url 'accounts:task_detail' task.id %}" class="bg-red-50 border-l-4 border-red-500 p-4 rounded hover:bg-red-100 hover:border-red-600 transition-all duration-200 cursor-pointer block">
+                    <div class="flex items-center justify-between">
+                        <div>
+                                <div class="text-sm font-medium text-red-800">
+                                    {% if task.task_type == 'requested' %}RE-CLEAN REQUESTED{% else %}MISSED TASK{% endif %}
+                                </div>
+                                <div class="text-xs text-red-600">
+                                    {{ task.room.room_code }} - {{ task.room.room_description|truncatechars:30 }}
+                        </div>
+                                <div class="text-xs text-gray-500">
+                                    Compound: {{ task.room.compound.name }} | 
+                                    {% if task.assigned_to_team %}Team: {{ task.assigned_to_team.name }}{% else %}Unassigned{% endif %}
+                    </div>
+                </div>
+                            <div class="text-xs text-red-500">{{ task.created_at|timesince }} ago</div>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fa-solid fa-check-circle text-green-500 text-3xl mb-2"></i>
+                        <p>No urgent requests at this time</p>
+                        </div>
+                    {% endfor %}
+                    </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Teams & Activity - Hidden for cleaners -->
+        {% if user.profile.role != 'cleaner' %}
+        <div class="space-y-6">
+            
+            <!-- Active Teams -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-users text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ACTIVE TEAMS</h3>
+                </div>
+                
+                <div class="space-y-3">
+                    {% for team in active_teams %}
+                    <a href="{% url 'accounts:team_view' team.id %}" class="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer block">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-medium text-dark-graphite">{{ team.name }}</div>
+                            <div class="text-xs text-gray-500">{{ team.camp.name }}</div>
+                        </div>
+                        <div class="text-xs text-gray-600">
+                            Leader: {{ team.team_leader.get_full_name|default:team.team_leader.username }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {{ team.members.count }} members
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="text-center py-4 text-gray-500">
+                        <p>No active teams</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-clock text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">RECENT ACTIVITY</h3>
+                </div>
+                
+                <div class="space-y-3">
+                    {% for task in recent_activity %}
+                    <a href="{% url 'accounts:task_detail' task.id %}" class="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded transition-colors duration-200 cursor-pointer block">
+                        <div class="w-2 h-2 rounded-full 
+                            {% if task.state == 'done' %}bg-green-500
+                            {% elif task.state == 'missed' %}bg-red-500
+                            {% elif task.state == 'in_progress' %}bg-blue-500
+                            {% else %}bg-gray-400{% endif %}">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm text-dark-graphite">
+                                {{ task.room.room_code }} - {{ task.state|title }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ task.updated_at|timesince }} ago
+        </div>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="text-center py-4 text-gray-500">
+                        <p>No recent activity</p>
+                    </div>
+                    {% endfor %}
+    </div>
+</div>
+
+            <!-- Quick Actions -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-bolt text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">QUICK ACTIONS</h3>
+        </div>
+        
+                <div class="space-y-3">
+                    <a href="{% url 'accounts:task_assignment_dashboard' %}" class="block w-full bg-steel-blue text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-tasks mr-2"></i>Task Assignment
+                    </a>
+                    <a href="{% url 'accounts:task_generation_dashboard' %}" class="block w-full bg-green-600 text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-plus mr-2"></i>Generate Tasks
+                    </a>
+                    <a href="{% url 'accounts:task_list' %}" class="block w-full bg-warning-orange text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-list mr-2"></i>View All Tasks
+                    </a>
+                    <a href="{% url 'accounts:team_list' %}" class="block w-full bg-purple-600 text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-users mr-2"></i>Manage Teams
+                    </a>
+        </div>
+</div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
 <script>
-// Initialize Bar Chart
-Highcharts.chart('bar-chart', {
+// Chart data for different time periods
+const chartData = {
+    filtered: [
+        {% for compound in compounds_data %}
+        {
+            name: '{{ compound.compound.name }}',
+            id: '{{ compound.compound.id|stringformat:"s" }}',
+            completed: {{ compound.filtered.completed_tasks }},
+            missed: {{ compound.filtered.missed_tasks }},
+            planned: {{ compound.filtered.planned_tasks }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    today: [
+        {% for compound in compounds_data %}
+        {
+            name: '{{ compound.compound.name }}',
+            id: '{{ compound.compound.id|stringformat:"s" }}',
+            completed: {{ compound.today.completed_tasks }},
+            missed: {{ compound.today.missed_tasks }},
+            planned: {{ compound.today.planned_tasks }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    week: [
+        {% for compound in compounds_data %}
+        {
+            name: '{{ compound.compound.name }}',
+            id: '{{ compound.compound.id|stringformat:"s" }}',
+            completed: {{ compound.week.completed_tasks }},
+            missed: {{ compound.week.missed_tasks }},
+            planned: {{ compound.week.planned_tasks }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    month: [
+        {% for compound in compounds_data %}
+        {
+            name: '{{ compound.compound.name }}',
+            id: '{{ compound.compound.id|stringformat:"s" }}',
+            completed: {{ compound.month.completed_tasks }},
+            missed: {{ compound.month.missed_tasks }},
+            planned: {{ compound.month.planned_tasks }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+};
+
+// Current active period
+let currentPeriod = 'filtered';
+
+// Function to update chart data
+function updateChart(period) {
+    const data = chartData[period];
+    currentPeriod = period;
+    
+    chart.update({
+        xAxis: {
+            categories: data.map(c => c.name)
+        },
+        series: [{
+            name: 'Completed',
+            data: data.map(c => c.completed),
+            color: '#10B981'
+        }, {
+            name: 'Missed',
+            data: data.map(c => c.missed),
+            color: '#EF4444'
+        }, {
+            name: 'Planned',
+            data: data.map(c => c.planned),
+            color: '#3F5876'
+        }]
+    });
+}
+
+// Initialize Compound Performance Chart
+let chart = Highcharts.chart('compound-chart', {
     chart: {
         type: 'column',
-        backgroundColor: 'transparent'
+        backgroundColor: 'transparent',
+        events: {
+            click: function(e) {
+                // Handle chart click events
+                if (e.point) {
+                    const compoundId = chartData[currentPeriod][e.point.x].id;
+                    window.location.href = `{% url 'accounts:task_list' %}?compound=${compoundId}`;
+                }
+            }
+        }
     },
     title: {
         text: null
@@ -204,7 +582,7 @@ Highcharts.chart('bar-chart', {
         enabled: false
     },
     xAxis: {
-        categories: ['Building A', 'Building B', 'Building C', 'Building D', 'Building E'],
+        categories: chartData.filtered.map(c => c.name),
         labels: {
             style: {
                 color: '#2B2E32',
@@ -214,7 +592,7 @@ Highcharts.chart('bar-chart', {
     },
     yAxis: {
         title: {
-            text: 'Rooms Cleaned',
+            text: 'Tasks',
             style: {
                 color: '#2B2E32',
                 fontWeight: 'bold'
@@ -235,17 +613,30 @@ Highcharts.chart('bar-chart', {
                     color: '#2B2E32',
                     fontWeight: 'bold'
                 }
+            },
+            cursor: 'pointer',
+            point: {
+                events: {
+                    click: function() {
+                        const compoundId = chartData[currentPeriod][this.x].id;
+                        window.location.href = `{% url 'accounts:task_list' %}?compound=${compoundId}`;
+                    }
+                }
             }
         }
     },
     series: [{
-        name: 'Cleaned',
-        data: [68, 45, 52, 38, 44],
-        color: '#3F5876'
+        name: 'Completed',
+        data: chartData.filtered.map(c => c.completed),
+        color: '#10B981'
     }, {
-        name: 'Re-clean Required',
-        data: [3, 2, 1, 2, 0],
-        color: '#F28C28'
+        name: 'Missed',
+        data: chartData.filtered.map(c => c.missed),
+        color: '#EF4444'
+    }, {
+        name: 'Planned',
+        data: chartData.filtered.map(c => c.planned),
+        color: '#3F5876'
     }],
     legend: {
         itemStyle: {
@@ -253,6 +644,61 @@ Highcharts.chart('bar-chart', {
             fontWeight: 'bold'
         }
     }
+});
+
+// Chart filtering function
+function filterChart(period) {
+    // Update button states
+    document.querySelectorAll('[onclick^="filterChart"]').forEach(btn => {
+        btn.classList.remove('bg-steel-blue', 'text-white');
+        btn.classList.add('bg-gray-300', 'text-gray-600');
+    });
+    
+    const activeBtn = document.querySelector(`[onclick="filterChart('${period}')"]`);
+    activeBtn.classList.remove('bg-gray-300', 'text-gray-600');
+    activeBtn.classList.add('bg-steel-blue', 'text-white');
+    
+    // Update chart with new data
+    updateChart(period);
+    
+    // Update chart title to reflect the period
+    const chartTitle = document.querySelector('#compound-chart').closest('.metallic-card').querySelector('h3');
+    let periodText = period.charAt(0).toUpperCase() + period.slice(1);
+    if (period === 'filtered') {
+        periodText = '{% if show_all_tasks %}ALL TASKS{% else %}TODAY ONLY{% endif %}';
+    }
+    chartTitle.textContent = `COMPOUND PERFORMANCE - ${periodText}`;
+}
+
+// Scan task function for cleaners
+function scanTask(taskId) {
+    // Redirect to scan page for the task
+    window.location.href = '{% url "accounts:scan_task" "00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', taskId);
+}
+
+// Add hover effects to all clickable elements
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects to KPI cards
+    const kpiCards = document.querySelectorAll('.metallic-card[href]');
+    kpiCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Add hover effects to team cards
+    const teamCards = document.querySelectorAll('.bg-gray-50[href]');
+    teamCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(4px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateX(0)';
+        });
+    });
 });
 </script>
 {% endblock %}

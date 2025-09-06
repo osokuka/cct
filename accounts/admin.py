@@ -62,15 +62,15 @@ class CompoundAssignmentAdmin(admin.ModelAdmin):
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ['name', 'camp', 'team_leader', 'member_count', 'is_active', 'created_at']
-    list_filter = ['is_active', 'camp', 'created_at']
-    search_fields = ['name', 'camp__name', 'team_leader__username']
+    list_display = ['name', 'camp', 'shift', 'team_leader', 'member_count', 'is_active', 'created_at']
+    list_filter = ['is_active', 'camp', 'shift', 'created_at']
+    search_fields = ['name', 'camp__name', 'team_leader__username', 'shift__name']
     readonly_fields = ['id', 'created_at', 'updated_at']
     filter_horizontal = ['members']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('id', 'name', 'camp', 'team_leader', 'is_active')
+            'fields': ('id', 'name', 'camp', 'shift', 'team_leader', 'is_active')
         }),
         ('Team Members', {
             'fields': ('members',)
@@ -106,15 +106,15 @@ class ShiftAdmin(admin.ModelAdmin):
 
 @admin.register(Route)
 class RouteAdmin(admin.ModelAdmin):
-    list_display = ['team', 'get_compounds', 'shift', 'priority', 'is_active', 'created_at']
-    list_filter = ['is_active', 'team__camp', 'compounds', 'shift', 'created_at']
-    search_fields = ['team__name', 'compounds__name', 'shift__name']
+    list_display = ['team', 'get_compounds', 'get_shift', 'priority', 'is_active', 'created_at']
+    list_filter = ['is_active', 'team__camp', 'compounds', 'created_at']
+    search_fields = ['team__name', 'compounds__name']
     readonly_fields = ['id', 'created_at', 'updated_at']
     filter_horizontal = ['compounds']
     
     fieldsets = (
         ('Route Information', {
-            'fields': ('id', 'team', 'shift', 'compounds', 'priority', 'is_active')
+            'fields': ('id', 'team', 'compounds', 'priority', 'is_active')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -125,6 +125,10 @@ class RouteAdmin(admin.ModelAdmin):
     def get_compounds(self, obj):
         return ", ".join([c.name for c in obj.compounds.all()])
     get_compounds.short_description = 'Compounds'
+    
+    def get_shift(self, obj):
+        return obj.team.shift.name if obj.team.shift else 'No Shift'
+    get_shift.short_description = 'Shift'
 
 
 # Unregister the default User admin and register our custom one

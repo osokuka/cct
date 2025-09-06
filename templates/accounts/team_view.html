@@ -123,45 +123,46 @@
                     </div>
                     
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-warning-orange heading-font mb-2">{{ team.routes.count }}</div>
-                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Assigned Routes</div>
+                        <div class="text-3xl font-bold text-warning-orange heading-font mb-2">{{ total_compounds }}</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Assigned Compounds</div>
                         <div class="text-xs text-gray-500 mt-1">Current assignments</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Routes Section -->
-            {% if team.routes.exists %}
+            <!-- Compounds Section -->
+            {% if assigned_compounds %}
             <div class="metallic-card rounded-lg p-6 border border-gray-300">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center">
-                        <i class="fa-solid fa-route text-steel-blue mr-3"></i>
-                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ASSIGNED ROUTES</h3>
+                        <i class="fa-solid fa-building text-steel-blue mr-3"></i>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ASSIGNED COMPOUNDS</h3>
                     </div>
                     <div class="text-sm text-gray-500">
-                        {{ team.routes.count }} route{{ team.routes.count|pluralize }}
+                        {{ total_compounds }} compound{{ total_compounds|pluralize }}
                     </div>
                 </div>
                 
                 <div class="space-y-4">
-                    {% for route in team.routes.all %}
+                    {% for compound_data in assigned_compounds %}
                     <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
                         <div class="flex items-center">
-                            <div class="w-8 h-8 rounded bg-steel-blue flex items-center justify-center mr-3">
-                                <i class="fa-solid fa-map-marker-alt text-white text-sm"></i>
+                            <div class="w-8 h-8 rounded bg-purple-500 flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-building text-white text-sm"></i>
                             </div>
                             <div>
-                                <div class="text-sm font-medium text-dark-graphite">{{ route.compound.name }}</div>
-                                <div class="text-xs text-gray-500">{{ route.shift.name }} ({{ route.shift.start_time }} - {{ route.shift.end_time }})</div>
+                                <div class="text-sm font-medium text-dark-graphite">{{ compound_data.compound.name }}</div>
+                                <div class="text-xs text-gray-500">{{ compound_data.compound.camp.name }}</div>
+                                <div class="text-xs text-gray-400">{{ compound_data.route_count }} route{{ compound_data.route_count|pluralize }}</div>
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                Priority {{ route.priority }}
+                                Priority {{ compound_data.total_priority }}
                             </span>
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                {% if route.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                {% if route.is_active %}Active{% else %}Inactive{% endif %}
+                                {% if compound_data.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if compound_data.is_active %}Active{% else %}Inactive{% endif %}
                             </span>
                         </div>
                     </div>

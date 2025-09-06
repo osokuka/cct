@@ -38,7 +38,7 @@
                     </div>
                     <h4 class="text-xl font-semibold text-charcoal-black mb-2">Activate "{{ shift.name }}"</h4>
                     <p class="text-dark-graphite">
-                        This will make the shift available for new route assignments.
+                        This will make the shift available for new team assignments.
                     </p>
                 </div>
 
@@ -59,13 +59,13 @@
                             <span class="text-charcoal-black">{{ shift.start_time|time:"H:i" }} - {{ shift.end_time|time:"H:i" }}</span>
                         </div>
                         <div class="flex justify-between items-center py-2">
-                            <span class="font-medium text-dark-graphite">Routes:</span>
+                            <span class="font-medium text-dark-graphite">Teams:</span>
                             <div class="flex items-center space-x-2">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-steel-blue bg-opacity-10 text-steel-blue">
-                                    {{ shift.routes.count }}
+                                    {{ shift.teams.count }}
                                 </span>
-                                {% if shift.routes.count > 0 %}
-                                    <span class="text-xs text-gray-500">(existing routes will remain active)</span>
+                                {% if shift.teams.count > 0 %}
+                                    <span class="text-xs text-gray-500">(existing teams will remain active)</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -85,11 +85,11 @@
                                 <ul class="mt-2 space-y-1">
                                     <li class="flex items-start">
                                         <i class="fa-solid fa-check text-steel-blue mr-2 mt-0.5 text-xs"></i>
-                                        Make it available for new route assignments
+                                        Make it available for new team assignments
                                     </li>
                                     <li class="flex items-start">
                                         <i class="fa-solid fa-check text-steel-blue mr-2 mt-0.5 text-xs"></i>
-                                        Not affect existing routes that use this shift
+                                        Not affect existing teams that use this shift
                                     </li>
                                     <li class="flex items-start">
                                         <i class="fa-solid fa-check text-steel-blue mr-2 mt-0.5 text-xs"></i>

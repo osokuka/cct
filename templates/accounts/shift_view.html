@@ -121,50 +121,58 @@
             </div>
         </div>
 
-        <!-- Routes Using This Shift -->
+        <!-- Teams Working This Shift -->
         <div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Routes Using This Shift</h3>
+                    <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Teams Working This Shift</h3>
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-steel-blue bg-opacity-10 text-steel-blue">
-                        {{ routes_count }}
+                        {{ teams_count }}
                     </span>
                 </div>
                 <div class="p-6">
-                    {% if routes %}
+                    {% if teams %}
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Team</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Team Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Team Leader</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Members</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Compounds</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Priority</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Status</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-dark-graphite uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    {% for route in routes %}
+                                    {% for team in teams %}
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <a href="{% url 'accounts:team_view' route.team.id %}" class="text-steel-blue hover:text-steel-blue-dark font-medium">
-                                                {{ route.team.name }}
+                                            <a href="{% url 'accounts:team_view' team.id %}" class="text-steel-blue hover:text-steel-blue-dark font-medium">
+                                                {{ team.name }}
                                             </a>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            {% for compound in route.compounds.all %}
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mr-1">{{ compound.name }}</span>
-                                            {% empty %}
-                                                <span class="text-gray-500">No compounds</span>
-                                            {% endfor %}
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-dark-graphite">
+                                            {{ team.team_leader.get_full_name|default:team.team_leader.username }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                                {{ route.priority }}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                {{ team.members.count }} members
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            {% if route.is_active %}
+                                            {% for route in team.routes.all %}
+                                                {% for compound in route.compounds.all %}
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mr-1">{{ compound.name }}</span>
+                                                {% empty %}
+                                                    <span class="text-gray-500">No compounds</span>
+                                                {% endfor %}
+                                            {% empty %}
+                                                <span class="text-gray-500">No routes assigned</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {% if team.is_active %}
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-safety-green bg-opacity-10 text-safety-green">
                                                     <i class="fa-solid fa-check-circle mr-1"></i>
                                                     Active
@@ -177,8 +185,8 @@
                                             {% endif %}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="{% url 'accounts:route_view' route.id %}" 
-                                               class="text-steel-blue hover:text-steel-blue-dark" title="View Route">
+                                            <a href="{% url 'accounts:team_view' team.id %}" 
+                                               class="text-steel-blue hover:text-steel-blue-dark" title="View Team">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
                                         </td>
@@ -190,14 +198,14 @@
                     {% else %}
                         <div class="text-center py-8">
                             <div class="w-16 h-16 bg-industrial-gray bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="fa-solid fa-route text-industrial-gray text-2xl"></i>
+                                <i class="fa-solid fa-users text-industrial-gray text-2xl"></i>
                             </div>
-                            <h3 class="text-lg font-medium text-dark-graphite mb-2">No routes using this shift</h3>
-                            <p class="text-sm text-gray-500 mb-4">Create a route to assign this shift to a team.</p>
-                            <a href="{% url 'accounts:route_create' %}" 
+                            <h3 class="text-lg font-medium text-dark-graphite mb-2">No teams assigned to this shift</h3>
+                            <p class="text-sm text-gray-500 mb-4">Create a team and assign it to this shift.</p>
+                            <a href="{% url 'accounts:team_create' %}" 
                                class="inline-flex items-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark">
                                 <i class="fa-solid fa-plus mr-2"></i>
-                                Create Route
+                                Create Team
                             </a>
                         </div>
                     {% endif %}

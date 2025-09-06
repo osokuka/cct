@@ -291,3 +291,26 @@ class Room(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+    
+    def generate_barcode_data(self) -> str:
+        """
+        Generate barcode data string for this room
+        Format: C1-D-B87-R101 (max 14 characters)
+        """
+        from accounts.barcode_service import BarcodeService
+        return BarcodeService.generate_barcode_data(self)
+    
+    def generate_barcode_image(self, width: int = 600, height: int = 240) -> bytes:
+        """
+        Generate barcode image as bytes
+        """
+        from accounts.barcode_service import BarcodeService
+        barcode_data = self.generate_barcode_data()
+        return BarcodeService.generate_barcode_with_text(barcode_data, width, height)
+    
+    @property
+    def barcode_display(self) -> str:
+        """
+        Get barcode data for display
+        """
+        return self.generate_barcode_data()

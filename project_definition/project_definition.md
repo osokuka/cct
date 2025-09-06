@@ -100,14 +100,22 @@
 * **Developer Prompt:**
   * "Create `ScanEvent(room, user, scan_type in {CLEANED, RECLEANED}, timestamp, device_id, is_urgent, daily_task)` + validators. Implement lifecycle transitions above; auto-mark `PLANNED → MISSED` at cut-off with notifications."
 
-### Story 2.3 — **Shifts, Teams & Roster** (UPDATED)
+### Story 2.3 — **Shifts, Teams & Routes** (IMPLEMENTED)
 
-* **Description:** Teams can cover **multiple 8-hour shifts**; tasks assign to **teams** (not individuals).
+* **Description:** Teams can cover **multiple 8-hour shifts**; tasks assign to **teams** (not individuals). Routes link teams to compounds for specific shifts.
 * **Acceptance Criteria:**
-  * `Shift(camp, name, start_time, end_time)` (8h)
-  * `Team(camp, name, is_active)`; members have accounts; **everyone on the team can mark tasks done**
-  * `Route(team, shift, compound, order_index)` — **one team → multiple compounds per shift** (order is display only)
+  * `Shift(camp, name, start_time, end_time, is_active)` (8h shifts)
+  * `Team(camp, name, team_leader, members, is_active)`; team leaders have app access
+  * `Route(team, shift, compounds)` — **one team → multiple compounds per shift** (ManyToMany relationship)
+  * Task assignment dashboard for comprehensive task management
   * Roster generator produces tasks unique per `(room, date, index_in_day)`; idempotent; rolling horizon
+* **Implementation Status:**
+  * ✅ **Shifts CRUD**: Full create, read, update, delete operations
+  * ✅ **Teams CRUD**: Full team management with team leader assignment
+  * ✅ **Routes CRUD**: Route management with multiple compound support
+  * ✅ **Task Assignment Dashboard**: Comprehensive task management interface
+  * ✅ **Task Generation**: Automated task creation based on room frequencies
+  * ✅ **Assignment Logic**: Tasks assigned to teams via routes
 * **Developer Prompt:**
   * "Model Teams and Routes as above. Build roster generator that assigns tasks to **teams** via Route. Support manual on-demand and scheduled generation."
 
@@ -216,7 +224,29 @@
 * **Developer Prompt:**
   * "Create `/admin/roster-management` page with camp policy configuration, shift management, and roster generation. Include preview mode showing how many tasks will be created. Build roster generator service that creates `DailyCleaningTask` objects from room frequencies, honors camp cut-offs, and handles holidays. Make generation idempotent and include manual regeneration option."
 
-### Story 3.7 — Barcode Generator (Admin) (UPDATED)
+### Story 3.7 — **Task Assignment Dashboard** (IMPLEMENTED)
+
+* **Description:** Comprehensive task management interface for assigning tasks to teams and tracking progress.
+* **Acceptance Criteria:**
+  * Show all compounds with task statistics (assigned, completed, missed, urgent, re-clean)
+  * Camp-based filtering for task assignment
+  * Bulk assignment of unassigned tasks to teams via routes
+  * Individual task assignment with team selection
+  * Real-time task status updates
+  * SLA compliance tracking per compound
+  * Task categorization by status and type
+* **Implementation Status:**
+  * ✅ **Compound Overview**: Shows all compounds with comprehensive task statistics
+  * ✅ **Task Status Tracking**: Unassigned, assigned, completed, missed tasks
+  * ✅ **Special Task Types**: Urgent and re-clean request identification
+  * ✅ **Assignment Controls**: Bulk and individual task assignment
+  * ✅ **Route Integration**: Tasks assigned via team-shift-compound routes
+  * ✅ **SLA Metrics**: Per-compound compliance tracking
+  * ✅ **Camp Filtering**: Filter tasks by selected camp
+* **Developer Prompt:**
+  * "Create `/accounts/task-assignment/` dashboard with compound-based task management, assignment controls, and comprehensive statistics. Include bulk assignment, individual task assignment, and real-time status updates."
+
+### Story 3.8 — Barcode Generator (Admin) (UPDATED)
 
 * **Description:** Generate and manage barcodes for room identification.
 * **Acceptance Criteria (additions):**
@@ -691,50 +721,72 @@
 - Morning/Afternoon/Evening slots based on room configuration
 - Tasks remain open until closed by team leader or admin
 
-### 3. Team and Route Assignment Workflow
+### 3. Team and Route Assignment Workflow (IMPLEMENTED)
 
 **Team Structure:**
 - **Team Leader**: User with app access who represents the team
 - **Team Members**: Cleaners without app access (managed by Team Leader)
 - **Team Leader**: Last in chain of command, gets delegated tasks
 
-**Team Creation:**
+**Team Creation (CRUD Implemented):**
 1. Admin creates Team with name and camp
 2. Admin assigns Team Leader (User with 'Cleaner' role + team_leader flag)
 3. Team Leader gets app access to manage team tasks
+4. Team members can be added/removed from team
+5. Teams can be activated/deactivated
 
-**Route Assignment:**
-1. Admin creates Route: (Team + Shift + Compound)
-2. One team handles one compound per shift
+**Shift Management (CRUD Implemented):**
+1. Admin creates Shifts with name, start_time, end_time for each camp
+2. Shifts are 8-hour periods (e.g., Morning, Afternoon, Evening)
+3. Shifts can be activated/deactivated
+4. Unique shift names per camp
+
+**Route Assignment (CRUD Implemented):**
+1. Admin creates Route: (Team + Shift + Multiple Compounds)
+2. One team can handle multiple compounds per shift
 3. Multiple teams can work different shifts on same compound
-4. Routes define which team handles which compound during which shift
+4. Routes define which team handles which compounds during which shift
+5. Routes can be activated/deactivated
 
-**Route Assignment Rules:**
-- Morning Shift: Team A → Albanian Compound
-- Afternoon Shift: Team B → Albanian Compound
-- Morning Shift: Team C → Austrian Compound
-- etc.
+**Route Assignment Rules (Implemented):**
+- Morning Shift: Team A → [Albanian Compound, Austrian Compound]
+- Afternoon Shift: Team B → [Albanian Compound]
+- Evening Shift: Team C → [Austrian Compound]
+- Routes support multiple compounds per team-shift combination
 
-### 4. Task Assignment Workflow
+### 4. Task Assignment Workflow (IMPLEMENTED)
 
-**Task Generation (Admin Level):**
+**Task Generation (Admin Level - Implemented):**
 1. Admin generates tasks based on room frequencies
 2. Tasks are NOT assigned to individual cleaners
 3. Tasks are assigned to TEAMS via routes
 4. Tasks start as 'planned' and remain open until closed
+5. Tasks include SLA credit (square meters) for compliance tracking
 
-**Task Assignment Logic:**
+**Task Assignment Logic (Implemented):**
 1. System finds route for room's compound and shift
 2. Room in Albanian Compound + Morning Shift → Team A
 3. Room in Albanian Compound + Afternoon Shift → Team B
 4. Room in Austrian Compound + Morning Shift → Team C
 5. If no route found, task remains unassigned
+6. Tasks can be manually assigned via Task Assignment Dashboard
 
-**Task Lifecycle:**
+**Task Assignment Dashboard (Implemented):**
+1. **Compound Overview**: Shows all compounds with task statistics
+2. **Task Status Tracking**: Unassigned, assigned, completed, missed tasks
+3. **Special Task Types**: Urgent and re-clean request identification
+4. **Bulk Assignment**: Assign all unassigned tasks in compound to team
+5. **Individual Assignment**: Assign specific tasks to teams
+6. **Camp Filtering**: Filter tasks by selected camp
+7. **SLA Metrics**: Track compliance per compound
+
+**Task Lifecycle (Implemented):**
 1. **Admin generates tasks** → Tasks remain **OPEN/PLANNED**
 2. **Tasks stay open** until **Team Leader or Admin closes them**
 3. **Team Leader** sees all tasks for their team's assigned compounds
 4. **Team Leader** marks tasks as completed (representing team completion)
+5. **Task States**: planned, in_progress, done, missed, requested
+6. **Task Types**: regular, requested (re-clean)
 
 ### 5. Team Leader Dashboard Workflow
 
@@ -779,6 +831,54 @@
 5. **Audit Trail**: All task completion tracked at team level
 6. **Task Persistence**: Tasks remain open until explicitly closed
 
+## Task Assignment Dashboard Implementation
+
+### **Dashboard Features (IMPLEMENTED)**
+
+#### **1. Compound Overview**
+- **All Compounds Visible**: Shows compounds even after tasks are assigned
+- **Task Statistics**: Unassigned, assigned, completed, missed counts per compound
+- **Special Task Types**: Urgent and re-clean request identification
+- **SLA Compliance**: Per-compound compliance tracking
+
+#### **2. Assignment Controls**
+- **Camp Filtering**: Filter tasks by selected camp
+- **Bulk Assignment**: Assign all unassigned tasks in compound to team
+- **Individual Assignment**: Assign specific tasks to teams
+- **Route Integration**: Tasks assigned via team-shift-compound routes
+
+#### **3. Task Management**
+- **Task Status Tracking**: Real-time updates of task states
+- **Task Categorization**: By status (planned, in_progress, done, missed)
+- **Task Types**: Regular and requested (re-clean) tasks
+- **SLA Credit Tracking**: Square meter credits for compliance
+
+#### **4. User Interface**
+- **Industrial Design**: Clean, professional interface following project branding
+- **Color-Coded Status**: Visual indicators for different task states
+- **Responsive Layout**: Works on all screen sizes
+- **Real-time Updates**: Live task count and status updates
+
+### **Technical Implementation**
+
+#### **Backend (Django)**
+- **Comprehensive Data Collection**: All tasks, not just unassigned
+- **Task Categorization**: Automatic sorting by status and type
+- **SLA Calculations**: Based on completed tasks vs required
+- **Route Integration**: ManyToMany relationship with compounds
+
+#### **Frontend (HTML/Tailwind CSS)**
+- **Compound Cards**: Individual task statistics and controls
+- **Assignment Interface**: Bulk and individual task assignment
+- **Status Indicators**: Color-coded task states and types
+- **JavaScript Integration**: Real-time assignment functionality
+
+#### **Database Schema**
+- **DailyCleaningTask**: Enhanced with shift, sla_credit_sqm fields
+- **Route**: ManyToMany relationship with compounds
+- **Task States**: planned, in_progress, done, missed, requested
+- **Task Types**: regular, requested (re-clean)
+
 ---
 
 # Models (Concise Spec)
@@ -788,10 +888,10 @@
 * **Building(id, compound, code, name)**
 * **Floor(id, building, code, name)**
 * **Room(id, floor, code, name, sqm, is_active, barcode_data, frequency_per_day, frequency_per_week, time_window_start, time_window_end, shift_binding, actual_sqm, qty_of_rooms, max_freq_per_month, weekly_required_sqm, monthly_cap_sqm, service_start, service_end, weeks_of_service)**
-* **Shift(id, camp, name, start_time, end_time)**
-* **Team(id, name, camp, team_leader, is_active, created_at, updated_at)**
-* **Route(id, team, shift, compound, priority, is_active, created_at, updated_at)**
-* **DailyCleaningTask(id, room, date, index_in_day, shift, state[planned|in_progress|done|missed|re_clean_required], assigned_to, assigned_to_team, created_at, completed_at)**
+* **Shift(id, camp, name, start_time, end_time, is_active, created_at, updated_at)**
+* **Team(id, name, camp, team_leader, members, is_active, created_at, updated_at)**
+* **Route(id, team, shift, compounds, is_active, created_at, updated_at)** — ManyToMany with Compound
+* **DailyCleaningTask(id, room, task_date, index_in_day, task_type[regular|requested], state[planned|in_progress|done|missed], assigned_to_team, assigned_to_user, shift, sla_credit_sqm, created_at, updated_at, completed_at)**
 * **CompoundAssignment(id, user, compound, created_at)**
 * **ScanEvent(id, room, user, scan_type[CLEANED|RECLEANED|URGENT_CLEAN], device_id, barcode_scanned, is_urgent, daily_task, timestamp)**
 * **RecleanRequest(id, room, requested_by, reason, status[OPEN|RESOLVED], resolved_by, created_at, resolved_at)**
@@ -907,6 +1007,29 @@ Start Date, End Date
 * **(NEW)** `/tasks` (industrial table)
 * **(NEW)** `/tasks/completed` (history table)
 
+**Team Management**
+* `/accounts/teams/` (team list)
+* `/accounts/teams/create/` (create team)
+* `/accounts/teams/<uuid>/` (team detail)
+* `/accounts/teams/<uuid>/update/` (update team)
+* `/accounts/teams/<uuid>/deactivate/` (deactivate team)
+* `/accounts/teams/<uuid>/activate/` (activate team)
+* `/accounts/routes/` (route list)
+* `/accounts/routes/create/` (create route)
+* `/accounts/routes/<uuid>/` (route detail)
+* `/accounts/routes/<uuid>/update/` (update route)
+* `/accounts/routes/<uuid>/deactivate/` (deactivate route)
+* `/accounts/routes/<uuid>/activate/` (activate route)
+* `/accounts/shifts/` (shift list)
+* `/accounts/shifts/create/` (create shift)
+* `/accounts/shifts/<uuid>/` (shift detail)
+* `/accounts/shifts/<uuid>/update/` (update shift)
+* `/accounts/shifts/<uuid>/deactivate/` (deactivate shift)
+* `/accounts/shifts/<uuid>/activate/` (activate shift)
+* `/accounts/task-assignment/` (task assignment dashboard)
+* `/accounts/tasks/` (task list)
+* `/accounts/tasks/<uuid>/` (task detail)
+
 **Contracting Authority**
 * `/authority/dashboard`
 * `/authority/reclean-requests`
@@ -957,6 +1080,14 @@ Start Date, End Date
   * Team leaders see all tasks for their team's assigned compounds
   * Task assignment logic correctly maps rooms to teams via compound/shift routes
   * Unassigned tasks properly identified when no route exists
+* **Task Assignment Dashboard:**
+  * All compounds visible even after task assignment
+  * Comprehensive task statistics (assigned, completed, missed, urgent, re-clean)
+  * Bulk assignment of unassigned tasks to teams
+  * Individual task assignment with team selection
+  * Camp-based filtering for task management
+  * Real-time task status updates and SLA compliance tracking
+  * Color-coded status indicators and special task type identification
 * **Industrial tables:**
   * `/rooms` supports filters, inline edits, bulk actions per RBAC
   * `/tasks` shows unassigned flags, allows claim/reassign per RBAC

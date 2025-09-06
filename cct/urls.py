@@ -22,5 +22,6 @@ urlpatterns = [
     path("admin/", admin_site.urls),
     path("accounts/", include("accounts.urls")),
     path("locations/", include("locations.urls")),
+    path("scans/", include("scans.urls")),
     path("", include("dashboard.urls")),
 ]
