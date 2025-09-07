@@ -7,41 +7,105 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
-      - static_volume:/app/static
+      - static_volume:/app/staticfiles
       - media_volume:/app/media
     environment:
-      - DEBUG=1
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DEBUG=0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - db
-    command: python manage.py runserver 0.0.0.0:8000
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Database
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=arcom
       - POSTGRES_USER=arcom
-      - POSTGRES_PASSWORD=arcom
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-arcom123}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arcom"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 
   # Cron job for daily maintenance
   cron:
     build: ./docker/cron
     volumes:
-      - .:/app
-      - cron_logs:/var/log
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     environment:
-      - DEBUG=1
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DEBUG=0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - web
+      - db
+      - redis
+    restart: unless-stopped
+
+  # Celery worker for background tasks
+  celery:
+    build: .
+    command: celery -A cct worker -l info
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  # Celery beat for scheduled tasks
+  celery-beat:
+    build: .
+    command: celery -A cct beat -l info
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
     restart: unless-stopped
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
-  cron_logs:
+  redis_data:
