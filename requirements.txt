@@ -5,7 +5,7 @@ django-cors-headers>=4.0.0
 
 # Database
 psycopg2-binary>=2.9.0
-redis>=4.5.0
+dj-database-url>=2.1.0
 
 # Authentication & Security
 django-axes>=6.0.0
@@ -22,14 +22,6 @@ reportlab>=4.0.0
 # Export & Reporting
 xlsxwriter>=3.1.0
 WeasyPrint>=59.0
-
-# Task Scheduling & Background Jobs
-celery>=5.3.0
-django-celery-beat>=2.5.0
-
-# Real-time Notifications
-channels>=4.0.0
-channels-redis>=4.1.0
 
 # Date/Time Handling
 python-dateutil>=2.8.0
@@ -61,9 +53,6 @@ requests>=2.31.0
 # File Processing
 openpyxl>=3.1.0
 pandas>=2.0.0
-
-# Caching
-django-redis>=5.4.0
 
 # API Documentation
 drf-spectacular>=0.26.0

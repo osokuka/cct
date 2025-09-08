@@ -1,24 +1,24 @@
-version: '3.8'
-
 services:
   # Main Django application
   web:
     build: .
     ports:
-      - "8000:8000"
+      - "8232:8000"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - .:/app  # Mount current directory for development
     environment:
-      - DEBUG=0
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=${DEBUG:-0}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-*&v#&okfzv%-wgvm#q=&qgif1l)vr5gg11i_^fh%bw#+3pu7&!}
+      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-Ferizaj2024!}@db:5432/arcom
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,prosolutions-ks.com,arcom-international.com,192.168.0.10,arcom.prosolutions-ks.com}
+      - DB_PASSWORD=${DB_PASSWORD:-Ferizaj2024!}
+      - USE_TLS=True
     depends_on:
       - db
-      - redis
     restart: unless-stopped
+    command: python manage.py runserver 0.0.0.0:8000  # Development server
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
@@ -33,7 +33,7 @@ services:
     environment:
       - POSTGRES_DB=arcom
       - POSTGRES_USER=arcom
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-arcom123}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-Ferizaj2024!}
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U arcom"]
@@ -41,71 +41,24 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis for caching and sessions
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-
   # Cron job for daily maintenance
   cron:
-    build: ./docker/cron
+    build:
+      context: .
+      dockerfile: ./docker/cron/Dockerfile
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     environment:
-      - DEBUG=0
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
-      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=${DEBUG:-0}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-*&v#&okfzv%-wgvm#q=&qgif1l)vr5gg11i_^fh%bw#+3pu7&!}
+      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-Ferizaj2024!}@db:5432/arcom
+      - DB_PASSWORD=${DB_PASSWORD:-Ferizaj2024!}
     depends_on:
       - db
-      - redis
-    restart: unless-stopped
-
-  # Celery worker for background tasks
-  celery:
-    build: .
-    command: celery -A cct worker -l info
-    volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
-    environment:
-      - DEBUG=0
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - db
-      - redis
-    restart: unless-stopped
-
-  # Celery beat for scheduled tasks
-  celery-beat:
-    build: .
-    command: celery -A cct beat -l info
-    volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
-    environment:
-      - DEBUG=0
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-      - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-arcom123}@db:5432/arcom
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - db
-      - redis
     restart: unless-stopped
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
-  redis_data:

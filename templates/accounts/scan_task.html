@@ -1,4 +1,4 @@
-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Scan Task - NATO Camp Cleaning Tracker{% endblock %}
 
@@ -12,7 +12,7 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee{% extends 'base.html' %}
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TASK INFORMATION</h3>
-                <p class="text-sm text-gray-600">Scan the room barcode to complete this task</p>
+                <p class="text-sm text-gray-600">Complete this cleaning task</p>
             </div>
             <div class="text-right">
                 <div class="text-2xl font-bold text-steel-blue">{{ task.room.room_code }}</div>
@@ -20,7 +20,7 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee{% extends 'base.html' %}
             </div>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div class="bg-gray-50 rounded-lg p-4">
                 <div class="text-sm font-medium text-gray-500 uppercase tracking-wide">Compound</div>
                 <div class="text-lg font-semibold text-dark-graphite mt-1">{{ task.room.compound.name }}</div>
@@ -49,77 +49,100 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee{% extends 'base.html' %}
                 </div>
             </div>
         </div>
+        
+        <!-- Barcode Information -->
+        <div class="bg-steel-blue bg-opacity-10 rounded-lg p-4">
+            <div class="text-sm font-medium text-steel-blue uppercase tracking-wide mb-2">Expected Barcode</div>
+            <div class="text-lg font-mono font-bold text-dark-graphite">{{ task.room.barcode_display }}</div>
+        </div>
     </div>
 
-    <!-- Scan Interface -->
+    <!-- Quick Actions -->
     <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
         <div class="text-center">
             <div class="mb-6">
-                <i class="fa-solid fa-qrcode text-6xl text-steel-blue mb-4"></i>
-                <h3 class="heading-font font-bold text-xl text-dark-graphite uppercase mb-2">SCAN ROOM BARCODE</h3>
-                <p class="text-gray-600">Position the room barcode within the camera view to complete the task</p>
+                <i class="fa-solid fa-check-circle text-6xl text-green-500 mb-4"></i>
+                <h3 class="heading-font font-bold text-xl text-dark-graphite uppercase mb-2">TASK COMPLETION</h3>
+                <p class="text-gray-600">Confirm that you have completed the cleaning task for this room</p>
             </div>
             
-            <!-- Camera Interface Placeholder -->
-            <div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 mb-6">
-                <div class="text-center">
-                    <i class="fa-solid fa-camera text-4xl text-gray-400 mb-4"></i>
-                    <p class="text-gray-500 mb-4">Camera interface will be implemented here</p>
-                    <p class="text-sm text-gray-400">For now, use the manual completion button below</p>
-                </div>
-            </div>
-            
-            <!-- Manual Completion Button -->
+            <!-- Completion Button -->
             <div class="space-y-4">
                 {% if task.state != 'done' %}
-                    <button onclick="markTaskCompleted()" class="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors">
-                        <i class="fa-solid fa-check mr-2"></i>MARK AS COMPLETED
+                    <button onclick="markTaskCompleted()" class="bg-green-600 text-white px-12 py-4 rounded-lg text-xl font-semibold hover:bg-green-700 transition-colors shadow-lg">
+                        <i class="fa-solid fa-check mr-3"></i>MARK AS COMPLETED
                     </button>
+                    <p class="text-sm text-gray-500">Click to confirm task completion</p>
                 {% else %}
-                    <div class="bg-green-100 text-green-800 px-8 py-3 rounded-lg text-lg font-semibold">
-                        <i class="fa-solid fa-check-circle mr-2"></i>TASK ALREADY COMPLETED
+                    <div class="bg-green-100 text-green-800 px-12 py-4 rounded-lg text-xl font-semibold border-2 border-green-300">
+                        <i class="fa-solid fa-check-circle mr-3"></i>TASK ALREADY COMPLETED
                     </div>
+                    <p class="text-sm text-green-600">This task was completed on {{ task.completed_at|date:"M d, Y H:i" }}</p>
                 {% endif %}
-                
-                <div class="flex justify-center space-x-4">
-                    <a href="{% url 'dashboard:dashboard' %}" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                        <i class="fa-solid fa-arrow-left mr-2"></i>Back to Dashboard
-                    </a>
-                    <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="bg-steel-blue text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
-                        <i class="fa-solid fa-history mr-2"></i>Historical Tasks
-                    </a>
-                </div>
             </div>
         </div>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="{% url 'accounts:barcode_scanner' %}" class="bg-steel-blue text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors text-center">
+            <i class="fa-solid fa-qrcode mr-2"></i>Back to Scanner
+        </a>
+        <a href="{% url 'dashboard:dashboard' %}" class="bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors text-center">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Dashboard
+        </a>
+        <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-center">
+            <i class="fa-solid fa-history mr-2"></i>All Tasks
+        </a>
     </div>
 </div>
 
 <script>
 function markTaskCompleted() {
-    if (confirm('Are you sure you want to mark this task as completed?')) {
-        // Make AJAX request to mark task as completed
-        fetch('{% url "accounts:mark_task_scanned" task.id %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Task completed successfully!');
-                // Redirect back to dashboard
-                window.location.href = '{% url "dashboard:dashboard" %}';
-            } else {
-                alert('Error: ' + (data.error || 'Unknown error occurred'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error completing task. Please try again.');
-        });
-    }
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-3"></i>PROCESSING...';
+    button.disabled = true;
+    
+    // Make AJAX request to mark task as completed
+    fetch('{% url "accounts:mark_task_scanned" task.id %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            button.innerHTML = '<i class="fa-solid fa-check-circle mr-3"></i>COMPLETED!';
+            button.className = 'bg-green-500 text-white px-12 py-4 rounded-lg text-xl font-semibold shadow-lg';
+            
+            // Show success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            successDiv.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i>Task completed successfully!';
+            document.body.appendChild(successDiv);
+            
+            // Auto-redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '{% url "accounts:barcode_scanner" %}';
+            }, 2000);
+        } else {
+            // Show error message
+            button.innerHTML = originalText;
+            button.disabled = false;
+            alert('Error: ' + (data.error || 'Unknown error occurred'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        button.innerHTML = originalText;
+        button.disabled = false;
+        alert('Error completing task. Please try again.');
+    });
 }
 </script>
 {% endblock %}

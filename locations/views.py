@@ -161,16 +161,24 @@ def camp_create(request):
         # Create camp manually since we don't have a form for it
         code = request.POST.get('code')
         name = request.POST.get('name')
-        description = request.POST.get('description', '')
-        location = request.POST.get('location', '')
+        timezone = request.POST.get('timezone', 'Europe/Berlin')
+        week_cutoff_day = int(request.POST.get('week_cutoff_day', 6))
+        week_cutoff_hour = int(request.POST.get('week_cutoff_hour', 23))
+        month_cutoff_day = int(request.POST.get('month_cutoff_day', 31))
+        month_cutoff_hour = int(request.POST.get('month_cutoff_hour', 23))
+        skip_holidays = request.POST.get('skip_holidays') == 'on'
         is_active = request.POST.get('is_active') == 'on'
         
         if code and name:
             camp = Camp.objects.create(
                 code=code,
                 name=name,
-                description=description,
-                location=location,
+                timezone=timezone,
+                week_cutoff_day=week_cutoff_day,
+                week_cutoff_hour=week_cutoff_hour,
+                month_cutoff_day=month_cutoff_day,
+                month_cutoff_hour=month_cutoff_hour,
+                skip_holidays=skip_holidays,
                 is_active=is_active
             )
             messages.success(request, f'Camp "{camp.name}" created successfully.')

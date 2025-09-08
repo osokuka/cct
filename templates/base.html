@@ -109,8 +109,13 @@
                 <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
             </div>
             <div>
+                {% if user.is_authenticated and user.profile.role == 'cleaner' %}
+                <div class="heading-font font-bold text-lg">CLEANER</div>
+                <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
+                {% else %}
                 <div class="heading-font font-bold text-lg">CONTROL</div>
                 <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
+                {% endif %}
             </div>
         </div>
         <!-- Mobile Close Button -->
@@ -125,7 +130,7 @@
             <i class="fa-solid fa-gauge-high mr-3 {% if 'authority_dashboard' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
             <span class="{% if 'authority_dashboard' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Authority Dashboard</span>
         </a>
-        {% else %}
+        {% elif user.profile.role != 'cleaner' %}
         <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-3 flex items-center {% if request.resolver_match.url_name == 'dashboard' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
             <i class="fa-solid fa-gauge-high mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
             <span class="{% if request.resolver_match.url_name == 'dashboard' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Dashboard</span>
@@ -199,17 +204,32 @@
                 <span class="{% if 'barcode' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Barcode Generator</span>
             </a>
             {% endif %}
-            
-            {% if user.profile.role == 'cleaner' %}
-            <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="px-4 py-3 flex items-center {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
-                <i class="fa-solid fa-history mr-3 {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                <span class="{% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Historical Tasks</span>
-            </a>
-            <a href="#" class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors opacity-50">
-                <i class="fa-solid fa-qrcode mr-3 text-gray-400"></i>
-                <span class="text-sm">QR Scanner</span>
-            </a>
-            {% endif %}
+        {% endif %}
+        
+        {% if user.is_authenticated and user.profile.role == 'cleaner' %}
+        <!-- Cleaner Dashboard -->
+        <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-3 flex items-center {% if request.resolver_match.url_name == 'dashboard' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-gauge-high mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if request.resolver_match.url_name == 'dashboard' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Dashboard</span>
+        </a>
+        
+        <!-- Historical Tasks -->
+        <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="px-4 py-3 flex items-center {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-history mr-3 {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Historical Tasks</span>
+        </a>
+        
+        <!-- Barcode Scanner -->
+        <a href="{% url 'accounts:barcode_scanner' %}" class="px-4 py-3 flex items-center {% if 'barcode_scanner' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-qrcode mr-3 {% if 'barcode_scanner' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'barcode_scanner' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Barcode Scanner</span>
+        </a>
+        
+        <!-- All Tasks (Read-only for cleaners) -->
+        <a href="{% url 'accounts:task_list' %}" class="px-4 py-3 flex items-center {% if 'task_list' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-list-check mr-3 {% if 'task_list' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'task_list' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">All Tasks</span>
+        </a>
         {% endif %}
         
         {% if user.is_authenticated and user.profile.role != 'cleaner' %}
@@ -292,8 +312,24 @@
     <div id="header" class="metallic-gradient px-4 lg:px-6 py-4 border-b border-gray-300">
         <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">
-                <h1 class="heading-font font-bold text-lg lg:text-2xl text-dark-graphite uppercase tracking-wider truncate">{% block page_title %}DASHBOARD CONTROL{% endblock %}</h1>
-                <p class="text-xs lg:text-sm text-gray-600 mt-1 truncate">{% block page_subtitle %}System Overview & Monitoring{% endblock %}</p>
+                <h1 class="heading-font font-bold text-lg lg:text-2xl text-dark-graphite uppercase tracking-wider truncate">
+                    {% block page_title %}
+                    {% if user.is_authenticated and user.profile.role == 'cleaner' %}
+                    CLEANER DASHBOARD
+                    {% else %}
+                    DASHBOARD CONTROL
+                    {% endif %}
+                    {% endblock %}
+                </h1>
+                <p class="text-xs lg:text-sm text-gray-600 mt-1 truncate">
+                    {% block page_subtitle %}
+                    {% if user.is_authenticated and user.profile.role == 'cleaner' %}
+                    Task Management & Scanning
+                    {% else %}
+                    System Overview & Monitoring
+                    {% endif %}
+                    {% endblock %}
+                </p>
             </div>
             <div class="flex items-center space-x-2 lg:space-x-4">
                 <div class="relative hidden sm:block">

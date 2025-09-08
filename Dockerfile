@@ -34,8 +34,9 @@ RUN adduser --disabled-password --gecos '' appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
+# Collect static files and set up cache
+RUN python manage.py collectstatic --noinput && \
+    python manage.py setup_cache
 
 # Expose port
 EXPOSE 8000

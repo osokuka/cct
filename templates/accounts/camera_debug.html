@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Debug Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 10px; padding: 10px; background: #f5f5f5; }
+        .debug-section { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { background: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 16px; margin: 5px; cursor: pointer; }
+        #log { background: #f8f9fa; padding: 10px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; max-height: 300px; overflow-y: auto; }
+        video { max-width: 100%; height: auto; border-radius: 8px; border: 2px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h2>🔍 Camera Debug Tool</h2>
+    
+    <div class="debug-section">
+        <h3>📱 Device & Browser Info</h3>
+        <div id="device-info">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🔧 Camera Test</h3>
+        <button onclick="testBasicCamera()">Test Basic Camera</button>
+        <button onclick="testQuaggaCamera()">Test QuaggaJS Camera</button>
+        <div id="camera-status" class="info">Click a button to test</div>
+        <video id="camera-video" autoplay playsinline style="display: none;"></video>
+    </div>
+    
+    <div class="debug-section">
+        <h3>📊 Debug Log</h3>
+        <div id="log"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script>
+        let stream = null;
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('camera-status');
+            statusEl.textContent = message;
+            statusEl.className = `debug-section ${type}`;
+        }
+        
+        // Device info
+        function showDeviceInfo() {
+            const info = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                protocol: window.location.protocol,
+                host: window.location.host,
+                mediaDevices: !!navigator.mediaDevices,
+                getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+                quaggaLoaded: typeof Quagga !== 'undefined'
+            };
+            
+            const deviceEl = document.getElementById('device-info');
+            deviceEl.innerHTML = `
+                <p><strong>Protocol:</strong> ${info.protocol} ${info.protocol === 'https:' ? '✅' : '❌'}</p>
+                <p><strong>Platform:</strong> ${info.platform}</p>
+                <p><strong>Media Devices:</strong> ${info.mediaDevices ? '✅' : '❌'}</p>
+                <p><strong>GetUserMedia:</strong> ${info.getUserMedia ? '✅' : '❌'}</p>
+                <p><strong>QuaggaJS:</strong> ${info.quaggaLoaded ? '✅' : '❌'}</p>
+            `;
+            
+            log(`Device: ${info.platform}`);
+            log(`Protocol: ${info.protocol}`);
+            log(`Media Devices: ${info.mediaDevices}`);
+            log(`QuaggaJS: ${info.quaggaLoaded}`);
+        }
+        
+        // Test basic camera access
+        async function testBasicCamera() {
+            updateStatus('Testing basic camera access...', 'info');
+            log('Testing basic camera access...');
+            
+            try {
+                // Test basic getUserMedia
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 480 },
+                        height: { ideal: 320 },
+                        facingMode: 'environment'
+                    },
+                    audio: false
+                });
+                
+                // Show video
+                const video = document.getElementById('camera-video');
+                video.srcObject = stream;
+                video.style.display = 'block';
+                
+                video.onloadedmetadata = () => {
+                    updateStatus('✅ Basic camera access working!', 'success');
+                    log('Basic camera: SUCCESS');
+                };
+                
+                video.onerror = (error) => {
+                    updateStatus('❌ Video stream error', 'error');
+                    log(`Video error: ${error.message}`);
+                };
+                
+            } catch (error) {
+                updateStatus(`❌ Basic camera failed: ${error.message}`, 'error');
+                log(`Basic camera error: ${error.name} - ${error.message}`);
+                
+                // Provide specific solutions
+                if (error.name === 'NotAllowedError') {
+                    log('SOLUTION: Allow camera permission in browser settings');
+                } else if (error.name === 'NotFoundError') {
+                    log('SOLUTION: No camera found on device');
+                } else if (error.name === 'NotSupportedError') {
+                    log('SOLUTION: Camera not supported on this device/browser');
+                } else if (error.name === 'OverconstrainedError') {
+                    log('SOLUTION: Camera constraints not supported, trying different settings');
+                }
+            }
+        }
+        
+        // Test QuaggaJS camera
+        async function testQuaggaCamera() {
+            updateStatus('Testing QuaggaJS camera...', 'info');
+            log('Testing QuaggaJS camera...');
+            
+            if (typeof Quagga === 'undefined') {
+                updateStatus('❌ QuaggaJS not loaded', 'error');
+                log('QuaggaJS: NOT LOADED');
+                return;
+            }
+            
+            try {
+                // Test QuaggaJS initialization
+                const config = {
+                    inputStream: {
+                        name: "Live",
+                        type: "LiveStream",
+                        target: document.querySelector('#camera-video'),
+                        constraints: {
+                            width: { min: 320, ideal: 480, max: 640 },
+                            height: { min: 240, ideal: 320, max: 480 },
+                            facingMode: "environment",
+                            aspectRatio: { ideal: 1.5 }
+                        },
+                    },
+                    decoder: {
+                        readers: ["code_128_reader"],
+                        debug: {
+                            drawBoundingBox: false,
+                            showFrequency: false,
+                            drawScanline: false,
+                            showPattern: false
+                        }
+                    },
+                    locate: true,
+                    locator: {
+                        patchSize: "medium",
+                        halfSample: true
+                    },
+                    numOfWorkers: 0,
+                    frequency: 10,
+                    debug: false
+                };
+                
+                Quagga.init(config, (err) => {
+                    if (err) {
+                        updateStatus(`❌ QuaggaJS failed: ${err.message}`, 'error');
+                        log(`QuaggaJS error: ${err.message}`);
+                    } else {
+                        updateStatus('✅ QuaggaJS initialized successfully!', 'success');
+                        log('QuaggaJS: SUCCESS');
+                        
+                        // Start QuaggaJS
+                        Quagga.start();
+                        log('QuaggaJS started');
+                        
+                        // Stop after 5 seconds for testing
+                        setTimeout(() => {
+                            Quagga.stop();
+                            log('QuaggaJS stopped (test complete)');
+                        }, 5000);
+                    }
+                });
+                
+            } catch (error) {
+                updateStatus(`❌ QuaggaJS error: ${error.message}`, 'error');
+                log(`QuaggaJS error: ${error.message}`);
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Camera debug tool initialized');
+            showDeviceInfo();
+        });
+    </script>
+</body>
+</html>

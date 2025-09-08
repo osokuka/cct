@@ -1,0 +1,221 @@
+{% extends 'base_cleaner.html' %}
+{% load static %}
+
+{% block title %}Cleaner Dashboard{% endblock %}
+{% block page_title %}CLEANER DASHBOARD{% endblock %}
+{% block page_subtitle %}Your Tasks & Progress{% endblock %}
+
+{% block content %}
+<!-- Main Dashboard Grid -->
+<div class="p-6">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Left Column - Task Statistics -->
+        <div class="lg:col-span-3 space-y-6">
+            
+            <!-- KPI Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Total Tasks Today -->
+                <a href="{% url 'accounts:task_list' %}?date=today" class="metallic-card rounded-lg p-6 border border-gray-300 hover:shadow-lg hover:border-steel-blue transition-all duration-200 cursor-pointer block">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-steel-blue rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-tasks text-white text-xl"></i>
+                </div>
+                <div class="text-right">
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.today_tasks|default:"0" }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">TODAY'S TASKS</div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                        <div class="text-green-600 text-sm font-medium">{{ task_stats.completed_tasks|default:"0" }} completed</div>
+                        <div class="text-xs text-gray-500 ml-2">of {{ task_stats.total_tasks|default:"0" }} total</div>
+            </div>
+                </a>
+
+                <!-- Completed Tasks -->
+                <a href="{% url 'accounts:task_list' %}?state=done" class="metallic-card rounded-lg p-6 border border-gray-300 hover:shadow-lg hover:border-green-600 transition-all duration-200 cursor-pointer block">
+            <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-check-circle text-white text-xl"></i>
+                </div>
+                <div class="text-right">
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.completed_tasks|default:"0" }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">COMPLETED</div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                        <div class="text-green-600 text-sm font-medium">{{ task_stats.sla_percentage|floatformat:1 }}%</div>
+                        <div class="text-xs text-gray-500 ml-2">SLA compliance</div>
+            </div>
+                </a>
+
+                <!-- Pending Tasks -->
+                <a href="{% url 'accounts:task_list' %}?state=pending" class="metallic-card rounded-lg p-6 border border-gray-300 hover:shadow-lg hover:border-warning-orange transition-all duration-200 cursor-pointer block">
+            <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-warning-orange rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-clock text-white text-xl"></i>
+                </div>
+                <div class="text-right">
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.pending_tasks|default:"0" }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">PENDING</div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                        <div class="text-warning-orange text-sm font-medium">{{ task_stats.overdue_tasks|default:"0" }} overdue</div>
+                        <div class="text-xs text-gray-500 ml-2">need attention</div>
+            </div>
+                </a>
+
+                <!-- Team Performance -->
+                <div class="metallic-card rounded-lg p-6 border border-gray-300">
+            <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-users text-white text-xl"></i>
+                </div>
+                <div class="text-right">
+                            <div class="text-3xl font-bold text-dark-graphite heading-font">{{ cleaner_teams|length }}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">TEAMS</div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                        <div class="text-purple-600 text-sm font-medium">Active</div>
+                        <div class="text-xs text-gray-500 ml-2">assigned to you</div>
+            </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <h3 class="heading-font font-bold text-lg text-dark-graphite mb-4 uppercase tracking-wide">QUICK ACTIONS</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <a href="{% url 'accounts:barcode_scanner' %}" class="bg-steel-blue text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                        <i class="fa-solid fa-qrcode mr-2"></i>
+                        SCAN BARCODE
+                    </a>
+                    <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="bg-gray-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                        <i class="fa-solid fa-history mr-2"></i>
+                        VIEW HISTORY
+                    </a>
+                    <a href="{% url 'accounts:task_list' %}" class="bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                        <i class="fa-solid fa-list-check mr-2"></i>
+                        ALL TASKS
+                    </a>
+                    <a href="{% url 'dashboard:dashboard' %}?show_all_cleaner=true" class="bg-purple-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                        <i class="fa-solid fa-chart-line mr-2"></i>
+                        PROGRESS
+                    </a>
+                </div>
+            </div>
+
+            <!-- Today's Tasks -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase tracking-wide">TODAY'S TASKS</h3>
+                    <a href="{% url 'accounts:task_list' %}?date=today" class="text-steel-blue text-sm font-medium hover:underline">View All</a>
+                </div>
+                
+                {% if task_stats.today_tasks > 0 %}
+                <div class="space-y-3">
+                    {% for task in today_tasks|slice:":5" %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-{% if task.state == 'done' %}green-600{% elif task.state == 'pending' %}warning-orange{% else %}gray-400{% endif %} rounded-full flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-{% if task.state == 'done' %}check{% elif task.state == 'pending' %}clock{% else %}question{% endif %} text-white text-xs"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-dark-graphite">{{ task.room.room_code }}</div>
+                                <div class="text-sm text-gray-600">{{ task.room.compound.name }}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-medium text-{% if task.state == 'done' %}green-600{% elif task.state == 'pending' %}warning-orange{% else %}gray-500{% endif %}">
+                                {{ task.get_state_display|upper }}
+                            </div>
+                            <div class="text-xs text-gray-500">{{ task.room.building.name }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fa-solid fa-check-circle text-4xl mb-4 text-green-600"></i>
+                    <p class="text-lg font-medium">All tasks completed!</p>
+                    <p class="text-sm">Great work today.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column - Team Info & Routes -->
+        <div class="space-y-6">
+            
+            <!-- Team Information -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <h3 class="heading-font font-bold text-lg text-dark-graphite mb-4 uppercase tracking-wide">YOUR TEAMS</h3>
+                {% if cleaner_teams %}
+                <div class="space-y-3">
+                    {% for team in cleaner_teams %}
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="font-medium text-dark-graphite">{{ team.name }}</div>
+                        <div class="text-sm text-gray-600">{{ team.shift.name|default:"No shift assigned" }}</div>
+                        <div class="text-xs text-gray-500 mt-1">{{ team.members.count }} members</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-gray-500">
+                    <i class="fa-solid fa-users text-2xl mb-2"></i>
+                    <p class="text-sm">No teams assigned</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Routes -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <h3 class="heading-font font-bold text-lg text-dark-graphite mb-4 uppercase tracking-wide">YOUR ROUTES</h3>
+                {% if cleaner_routes %}
+                <div class="space-y-3">
+                    {% for route in cleaner_routes %}
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="font-medium text-dark-graphite">{{ route.team.name }}</div>
+                        <div class="text-sm text-gray-600">{{ route.compounds.count }} compounds</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {% for compound in route.compounds.all|slice:":2" %}
+                                {{ compound.name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                            {% if route.compounds.count > 2 %}...{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-gray-500">
+                    <i class="fa-solid fa-route text-2xl mb-2"></i>
+                    <p class="text-sm">No routes assigned</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Progress Summary -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <h3 class="heading-font font-bold text-lg text-dark-graphite mb-4 uppercase tracking-wide">PROGRESS</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Today's Completion</span>
+                            <span>{{ task_stats.completed_tasks|default:"0" }}/{{ task_stats.today_tasks|default:"0" }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full" style="width: {% if task_stats.today_tasks > 0 %}{{ task_stats.completed_tasks|default:0|mul:100|div:task_stats.today_tasks|floatformat:0 }}{% else %}0{% endif %}%"></div>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-dark-graphite">{{ task_stats.sla_percentage|floatformat:1 }}%</div>
+                        <div class="text-sm text-gray-600">SLA Compliance</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

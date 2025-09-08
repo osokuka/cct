@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Barcode Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 10px; padding: 10px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 16px; margin: 5px; cursor: pointer; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; margin: 5px 0; }
+        video { max-width: 100%; height: auto; border-radius: 8px; border: 2px solid #ddd; }
+        .status { padding: 10px; border-radius: 6px; margin: 10px 0; font-weight: bold; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        #log { background: #f8f9fa; padding: 10px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📱 Simple Barcode Scanner</h2>
+        
+        <div class="card">
+            <h3>🔍 Camera Scanner</h3>
+            <button id="start-btn" onclick="startCamera()">Start Camera</button>
+            <button id="stop-btn" onclick="stopCamera()" disabled>Stop Camera</button>
+            <div id="status" class="status info">Click "Start Camera" to begin</div>
+            <video id="video" autoplay playsinline style="display: none;"></video>
+        </div>
+        
+        <div class="card">
+            <h3>⌨️ Manual Entry</h3>
+            <input type="text" id="barcode-input" placeholder="Enter barcode manually (e.g., BLD115-BLD.115-GR)">
+            <button onclick="manualScan()">Process Barcode</button>
+        </div>
+        
+        <div class="card">
+            <h3>📊 Debug Log</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let stream = null;
+        let isScanning = false;
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        async function startCamera() {
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const video = document.getElementById('video');
+            
+            startBtn.disabled = true;
+            updateStatus('Requesting camera access...', 'info');
+            log('Starting camera...');
+            
+            try {
+                // Check if getUserMedia is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('getUserMedia not supported');
+                }
+                
+                // Request camera access with Samsung-friendly constraints
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { min: 320, ideal: 480, max: 640 },
+                        height: { min: 240, ideal: 320, max: 480 },
+                        facingMode: 'environment'
+                    },
+                    audio: false
+                });
+                
+                // Set video source
+                video.srcObject = stream;
+                video.style.display = 'block';
+                
+                // Wait for video to load
+                video.onloadedmetadata = () => {
+                    updateStatus('✅ Camera working! Position barcode in view.', 'success');
+                    log('Camera stream: SUCCESS');
+                    stopBtn.disabled = false;
+                    isScanning = true;
+                };
+                
+                video.onerror = (error) => {
+                    updateStatus('❌ Video stream error', 'error');
+                    log(`Video error: ${error.message}`);
+                    startBtn.disabled = false;
+                };
+                
+            } catch (error) {
+                updateStatus(`❌ Camera error: ${error.message}`, 'error');
+                log(`Camera error: ${error.name} - ${error.message}`);
+                startBtn.disabled = false;
+                
+                // Provide specific error messages
+                if (error.name === 'NotAllowedError') {
+                    log('SOLUTION: Allow camera permission in browser settings');
+                    updateStatus('❌ Camera permission denied. Please allow camera access in browser settings.', 'error');
+                } else if (error.name === 'NotFoundError') {
+                    log('SOLUTION: No camera found on device');
+                    updateStatus('❌ No camera found on device.', 'error');
+                } else if (error.name === 'NotSupportedError') {
+                    log('SOLUTION: Camera not supported on this device/browser');
+                    updateStatus('❌ Camera not supported. Try using manual entry.', 'error');
+                } else if (error.name === 'OverconstrainedError') {
+                    log('SOLUTION: Camera constraints not supported');
+                    updateStatus('❌ Camera constraints not supported. Try manual entry.', 'error');
+                }
+            }
+        }
+        
+        function stopCamera() {
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const video = document.getElementById('video');
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            video.style.display = 'none';
+            video.srcObject = null;
+            
+            updateStatus('Camera stopped', 'info');
+            log('Camera stopped');
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            isScanning = false;
+        }
+        
+        function manualScan() {
+            const barcode = document.getElementById('barcode-input').value.trim();
+            if (!barcode) {
+                updateStatus('Please enter a barcode.', 'error');
+                return;
+            }
+            
+            updateStatus('Processing barcode...', 'info');
+            log(`Manual scan: ${barcode}`);
+            
+            // Simulate barcode processing
+            setTimeout(() => {
+                updateStatus(`✅ Barcode processed: ${barcode}`, 'success');
+                log(`Barcode processed: ${barcode}`);
+                document.getElementById('barcode-input').value = '';
+            }, 1000);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Simple scanner initialized');
+            log(`Protocol: ${window.location.protocol}`);
+            log(`User Agent: ${navigator.userAgent}`);
+        });
+    </script>
+</body>
+</html>

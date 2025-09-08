@@ -2,12 +2,51 @@
 {% load static %}
 
 {% block title %}Management Dashboard{% endblock %}
-{% block page_title %}MANAGEMENT DASHBOARD{% endblock %}
-{% block page_subtitle %}Real-time Task Monitoring & Team Performance{% endblock %}
+
+{% block page_title %}
+{% if user.is_authenticated and user.profile.role == 'cleaner' %}
+CLEANER DASHBOARD
+{% else %}
+MANAGEMENT DASHBOARD
+{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+{% if user.is_authenticated and user.profile.role == 'cleaner' %}
+Your Tasks & Progress
+{% else %}
+Real-time Task Monitoring & Team Performance
+{% endif %}
+{% endblock %}
 
 {% block content %}
 <!-- Main Dashboard Grid -->
 <div class="p-6">
+    {% if user.is_authenticated and user.profile.role == 'cleaner' %}
+    <!-- Cleaner-specific Quick Actions -->
+    <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
+        <h3 class="heading-font font-bold text-lg text-dark-graphite mb-4 uppercase tracking-wide">QUICK ACTIONS</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="{% url 'accounts:barcode_scanner' %}" class="bg-steel-blue text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                <i class="fa-solid fa-qrcode mr-2"></i>
+                SCAN BARCODE
+            </a>
+            <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="bg-gray-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                <i class="fa-solid fa-history mr-2"></i>
+                VIEW HISTORY
+            </a>
+            <a href="{% url 'accounts:task_list' %}" class="bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                <i class="fa-solid fa-list-check mr-2"></i>
+                ALL TASKS
+            </a>
+            <a href="{% url 'dashboard:dashboard' %}?show_all_cleaner=true" class="bg-purple-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                <i class="fa-solid fa-chart-line mr-2"></i>
+                PROGRESS
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         <!-- Left Column - Task Statistics -->

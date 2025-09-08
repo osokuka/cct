@@ -4,10 +4,274 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Cleaner Dashboard{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Montserrat', sans-serif; }
+        .metallic-gradient { background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 50%, #B0B3B8 100%); }
+        .metallic-card { background: linear-gradient(145deg, #F5F6F7 0%, #E8E9EA 50%, #F5F6F7 100%); box-shadow: 2px 2px 8px rgba(43, 46, 50, 0.15), -1px -1px 4px rgba(255, 255, 255, 0.8); }
+        .metallic-shine:hover { background: linear-gradient(135deg, #C0C3C8 0%, #B0B3B8 50%, #C0C3C8 100%); transition: all 0.3s ease; }
+        ::-webkit-scrollbar { display: none; }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 1023px) {
+            .mobile-menu-button {
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 60;
+            }
+            
+            .sidebar-mobile {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            
+            .sidebar-mobile.open {
+                transform: translateX(0);
+            }
+            
+            .main-content-mobile {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+        
+        /* Prevent body scroll when mobile menu is open */
+        body.mobile-menu-open {
+            overflow: hidden;
+        }
+    </style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "industrial-gray": "#B0B3B8",
+        "dark-graphite": "#2B2E32",
+        "steel-blue": "#3F5876",
+        "warning-orange": "#F28C28",
+        "off-white": "#F5F6F7"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap">
+    
+    {% block extra_css %}{% endblock %}
 </head>
-<body>
-    {% block content %}
-    <!-- Content will be defined here -->
-    {% endblock %}
+<body class="bg-off-white">
+
+<!-- Mobile Menu Button -->
+<div class="lg:hidden">
+    <button id="mobile-menu-button" class="mobile-menu-button bg-dark-graphite text-white p-3 rounded-lg shadow-lg hover:bg-gray-800 transition-colors">
+        <i class="fa-solid fa-bars text-lg"></i>
+    </button>
+</div>
+
+<!-- Mobile Overlay -->
+<div id="mobile-overlay" class="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+<!-- Sidebar Navigation -->
+<div id="sidebar" class="bg-dark-graphite w-64 min-h-screen fixed left-0 top-0 flex flex-col text-white z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+    <div class="p-6 flex items-center justify-between border-b border-gray-700">
+        <div class="flex items-center">
+            <div class="w-8 h-8 mr-3 bg-industrial-gray rounded flex items-center justify-center">
+                <i class="fa-solid fa-shield-halved text-dark-graphite text-lg"></i>
+            </div>
+            <div>
+                <div class="heading-font font-bold text-lg">CLEANER</div>
+                <div class="text-xs text-gray-400 uppercase tracking-wider">PANEL</div>
+            </div>
+        </div>
+        <!-- Mobile Close Button -->
+        <button id="sidebar-close" class="lg:hidden text-gray-400 hover:text-white transition-colors">
+            <i class="fa-solid fa-times text-xl"></i>
+        </button>
+    </div>
+    
+    <nav class="flex-1 mt-6 overflow-y-auto">
+        <!-- Dashboard -->
+        <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-3 flex items-center {% if request.resolver_match.url_name == 'dashboard' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-gauge-high mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if request.resolver_match.url_name == 'dashboard' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Dashboard</span>
+        </a>
+        
+        <!-- Historical Tasks -->
+        <a href="{% url 'accounts:cleaner_historical_tasks' %}" class="px-4 py-3 flex items-center {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-history mr-3 {% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'cleaner_historical_tasks' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Historical Tasks</span>
+        </a>
+        
+        <!-- Barcode Scanner -->
+        <a href="{% url 'accounts:barcode_scanner' %}" class="px-4 py-3 flex items-center {% if 'barcode_scanner' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-qrcode mr-3 {% if 'barcode_scanner' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'barcode_scanner' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Barcode Scanner</span>
+        </a>
+        
+        <!-- All Tasks -->
+        <a href="{% url 'accounts:task_list' %}" class="px-4 py-3 flex items-center {% if 'task_list' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-list-check mr-3 {% if 'task_list' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'task_list' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">All Tasks</span>
+        </a>
+    </nav>
+    
+    <div class="mt-auto border-t border-gray-700">
+        <div class="p-4 flex items-center">
+            <div class="w-10 h-10 rounded bg-industrial-gray flex items-center justify-center mr-3 flex-shrink-0">
+                <span class="text-dark-graphite font-semibold text-sm">
+                    {% if user.is_authenticated %}
+                        {{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|default:""|upper }}
+                    {% else %}
+                        GU
+                    {% endif %}
+                </span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">
+                    {% if user.is_authenticated %}
+                        {{ user.get_full_name|default:user.username }}
+                    {% else %}
+                        Guest User
+                    {% endif %}
+                </div>
+                <div class="text-xs text-gray-400 truncate">
+                    {% if user.is_authenticated and user.profile %}
+                        {{ user.profile.get_role_display }}
+                    {% else %}
+                        Guest
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Logout Button -->
+        <div class="p-4 border-t border-gray-700">
+            {% if user.is_authenticated %}
+                <a href="{% url 'accounts:logout' %}" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center">
+                    <i class="fa-solid fa-sign-out-alt mr-2"></i>
+                    Logout
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="lg:ml-64 main-content-mobile">
+    <!-- Top Header Bar -->
+    <div id="header" class="metallic-gradient px-4 lg:px-6 py-4 border-b border-gray-300">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+                <h1 class="heading-font font-bold text-lg lg:text-2xl text-dark-graphite uppercase tracking-wider truncate">{% block page_title %}CLEANER DASHBOARD{% endblock %}</h1>
+                <p class="text-xs lg:text-sm text-gray-600 mt-1 truncate">{% block page_subtitle %}Task Management & Scanning{% endblock %}</p>
+            </div>
+            <div class="flex items-center space-x-2 lg:space-x-4">
+                <div class="text-xs lg:text-sm text-dark-graphite hidden lg:block">
+                    <div class="font-medium">Last Update:</div>
+                    <div class="text-xs">{% now "Y-m-d H:i" %}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="px-4 lg:px-6 py-4">
+            {% for message in messages %}
+                <div class="metallic-card rounded-lg p-3 lg:p-4 border border-gray-300 mb-4 {% if message.tags == 'error' %}border-red-500 bg-red-50{% elif message.tags == 'success' %}border-green-500 bg-green-50{% elif message.tags == 'warning' %}border-yellow-500 bg-yellow-50{% else %}border-blue-500 bg-blue-50{% endif %}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center flex-1 min-w-0">
+                            <i class="fa-solid fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} mr-2 lg:mr-3 text-{% if message.tags == 'error' %}red-600{% elif message.tags == 'success' %}green-600{% elif message.tags == 'warning' %}yellow-600{% else %}blue-600{% endif %} flex-shrink-0"></i>
+                            <span class="text-xs lg:text-sm font-medium text-dark-graphite truncate">{{ message }}</span>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-2">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Page Content -->
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+// Mobile menu functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const sidebar = document.getElementById('sidebar');
+    const mobileOverlay = document.getElementById('mobile-overlay');
+    const sidebarClose = document.getElementById('sidebar-close');
+    
+    // Open sidebar
+    function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        mobileOverlay.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+    
+    // Close sidebar
+    function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        mobileOverlay.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+    
+    // Event listeners
+    if (mobileMenuButton) {
+        mobileMenuButton.addEventListener('click', openSidebar);
+    }
+    
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeSidebar);
+    }
+    
+    if (mobileOverlay) {
+        mobileOverlay.addEventListener('click', closeSidebar);
+    }
+    
+    // Close sidebar when clicking on navigation links (mobile only)
+    const navLinks = sidebar.querySelectorAll('a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth < 1024) { // lg breakpoint
+                closeSidebar();
+            }
+        });
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) { // lg breakpoint
+            closeSidebar();
+        }
+    });
+    
+    // Close sidebar on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !sidebar.classList.contains('-translate-x-full')) {
+            closeSidebar();
+        }
+    });
+});
+</script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>
