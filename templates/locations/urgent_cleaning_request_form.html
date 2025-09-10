@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-graphite">{{ title }}</h1>
+            <p class="text-steel-blue mt-2">Submit a new urgent cleaning request for immediate processing</p>
+        </div>
+        <a href="{% url 'locations:urgent_cleaning_request_list' %}" 
+           class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center">
+            <i class="fa-solid fa-arrow-left mr-2"></i>
+            Back to List
+        </a>
+    </div>
+
+    <!-- Quota Information -->
+    <div class="max-w-4xl mx-auto mb-6">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-blue-900 mb-3">
+                <i class="fa-solid fa-info-circle mr-2"></i>
+                Urgent Cleaning Quota Information
+            </h3>
+            <div id="quota-info" class="text-sm text-blue-800">
+                <p>Select a compound to view available urgent cleaning quota.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <form method="POST" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Compound Selection -->
+                <div>
+                    <label for="{{ form.compound.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Compound <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.compound }}
+                    {% if form.compound.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.compound.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Room Selection -->
+                <div>
+                    <label for="{{ form.room.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Room (Optional - for SQM calculation)
+                    </label>
+                    {{ form.room }}
+                    {% if form.room.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.room.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <p class="mt-1 text-sm text-gray-500">Select a room to automatically calculate SQM, or leave empty to enter manually</p>
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Title <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.title.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.description.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Priority and SQM Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.priority.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Priority <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.priority }}
+                        {% if form.priority.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.priority.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.requested_sqm.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Requested SQM <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.requested_sqm }}
+                        {% if form.requested_sqm.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.requested_sqm.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">SQM will be calculated automatically when you select a room</p>
+                    </div>
+                </div>
+
+                <!-- Duration and Preferred Time Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.estimated_duration.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Estimated Duration (hours) <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.estimated_duration }}
+                        {% if form.estimated_duration.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.estimated_duration.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.preferred_start_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Preferred Start Time
+                        </label>
+                        {{ form.preferred_start_time }}
+                        {% if form.preferred_start_time.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.preferred_start_time.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Additional Notes
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.notes.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'locations:urgent_cleaning_request_list' %}" 
+                       class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="bg-steel-blue hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center">
+                        <i class="fa-solid fa-paper-plane mr-2"></i>
+                        Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Information -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-blue-900 mb-3">
+                <i class="fa-solid fa-info-circle mr-2"></i>
+                Urgent Cleaning Request Guidelines
+            </h3>
+            <ul class="text-sm text-blue-800 space-y-2">
+                <li>• <strong>Priority Levels:</strong> Critical (immediate), High (within 2 hours), Medium (within 4 hours), Low (within 8 hours)</li>
+                <li>• <strong>Description:</strong> Provide detailed information about the cleaning requirements and any specific areas that need attention</li>
+                <li>• <strong>SQM:</strong> Estimate the total square meters that need urgent cleaning</li>
+                <li>• <strong>Duration:</strong> Estimate how long the cleaning will take (1-24 hours)</li>
+                <li>• <strong>Preferred Time:</strong> Specify when you'd like the cleaning to start (optional)</li>
+                <li>• <strong>Notes:</strong> Include any additional information that might be helpful for the cleaning team</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default preferred start time to current time + 1 hour
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    const datetimeLocal = now.toISOString().slice(0, 16);
+    document.getElementById('{{ form.preferred_start_time.id_for_label }}').value = datetimeLocal;
+    
+    // Auto-load rooms if compound is pre-selected
+    const compoundSelect = document.getElementById('id_compound');
+    console.log('Compound select element:', compoundSelect);
+    console.log('Compound select value:', compoundSelect ? compoundSelect.value : 'not found');
+    
+    if (compoundSelect && compoundSelect.value) {
+        console.log('Compound pre-selected, loading rooms for:', compoundSelect.value);
+        filterRooms();
+    } else {
+        console.log('No compound pre-selected or compound select not found');
+    }
+});
+
+// Room filtering function
+function filterRooms() {
+    const compoundSelect = document.getElementById('id_compound');
+    const roomSelect = document.getElementById('id_room');
+    const compoundId = compoundSelect.value;
+    
+    if (compoundId) {
+        // Fetch rooms for the selected compound
+        fetch(`/locations/ajax/load-rooms/?compound_id=${compoundId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.rooms) {
+                    // Clear existing options except the first one
+                    roomSelect.innerHTML = '<option value="">Select a room...</option>';
+                    
+                    data.rooms.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.id;
+                        option.textContent = `${room.name} (${room.square_meters} m²)`;
+                        option.setAttribute('data-sqm', room.square_meters);
+                        roomSelect.appendChild(option);
+                    });
+                } else {
+                    roomSelect.innerHTML = '<option value="">No rooms available</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading rooms:', error);
+                roomSelect.innerHTML = '<option value="">Error loading rooms</option>';
+            });
+        
+        // Load quota information
+        loadQuotaInfo(compoundId);
+    } else {
+        // Clear room options and quota info
+        roomSelect.innerHTML = '<option value="">Select a room...</option>';
+        document.getElementById('quota-info').innerHTML = '<p>Select a compound to view available urgent cleaning quota.</p>';
+    }
+}
+
+// SQM calculation function
+function calculateSQM() {
+    const roomSelect = document.getElementById('id_room');
+    const sqmInput = document.getElementById('id_requested_sqm');
+    
+    if (roomSelect.value) {
+        const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+        const sqm = selectedOption.getAttribute('data-sqm');
+        if (sqm) {
+            sqmInput.value = sqm;
+        }
+    } else {
+        sqmInput.value = '';
+    }
+}
+
+// Load quota information
+function loadQuotaInfo(compoundId) {
+    fetch(`/locations/ajax/urgent-quota-info/?compound_id=${compoundId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const quotaInfo = document.getElementById('quota-info');
+                quotaInfo.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="font-medium">Monthly Quota:</p>
+                            <p class="text-lg">${data.monthly_quota} m²</p>
+                        </div>
+                        <div>
+                            <p class="font-medium">Used This Month:</p>
+                            <p class="text-lg">${data.monthly_used} m²</p>
+                        </div>
+                        <div>
+                            <p class="font-medium">Available:</p>
+                            <p class="text-lg font-bold ${data.monthly_available > 0 ? 'text-green-600' : 'text-red-600'}">${data.monthly_available} m²</p>
+                        </div>
+                        <div>
+                            <p class="font-medium">Usage Rate:</p>
+                            <p class="text-lg">${data.usage_percentage}%</p>
+                        </div>
+                    </div>
+                    ${data.monthly_available <= 0 ? '<p class="mt-2 text-red-600 font-medium">⚠️ No urgent cleaning quota available for this month!</p>' : ''}
+                `;
+            } else {
+                document.getElementById('quota-info').innerHTML = '<p class="text-red-600">Error loading quota information.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading quota info:', error);
+            document.getElementById('quota-info').innerHTML = '<p class="text-red-600">Error loading quota information.</p>';
+        });
+}
+</script>
+{% endblock %}

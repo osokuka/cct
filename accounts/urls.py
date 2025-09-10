@@ -3,7 +3,7 @@ URL configuration for accounts app.
 """
 
 from django.urls import path
-from . import views, task_views, task_assignment_views, barcode_views, barcode_ajax_views, scan_views, debug_views
+from . import views, task_views, task_assignment_views, barcode_views, barcode_ajax_views, scan_views, debug_views, authority_compound_views
 
 app_name = 'accounts'
 
@@ -77,6 +77,13 @@ urlpatterns = [
     path('scan/lookup/<str:barcode>/', scan_views.barcode_lookup, name='barcode_lookup'),
     path('scan/task/<uuid:task_id>/', scan_views.scan_task, name='scan_task'),
     path('scan/task/<uuid:task_id>/mark-completed/', scan_views.mark_task_scanned, name='mark_task_scanned'),
+    path('scan/urgent/<uuid:urgent_request_id>/mark-completed/', scan_views.mark_urgent_request_completed, name='mark_urgent_request_completed'),
+    path('urgent/list/', scan_views.urgent_requests_list, name='urgent_requests_list'),
+    
+    # Authority Compound Progress URLs
+    path('authority/compound-progress/', authority_compound_views.authority_compound_progress, name='authority_compound_progress'),
+    path('authority/compound/<uuid:compound_id>/', authority_compound_views.authority_compound_detail, name='authority_compound_detail'),
+    path('authority/compound/<uuid:compound_id>/ajax/', authority_compound_views.authority_compound_ajax, name='authority_compound_ajax'),
     
     # Debug URLs
     path('debug/camera/', debug_views.camera_debug, name='camera_debug'),

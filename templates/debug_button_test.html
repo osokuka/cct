@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Debug Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-6">
+        <h1 class="text-2xl font-bold mb-4">Button Debug Test</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <h3 class="font-semibold mb-2">Test 1: Direct onclick</h3>
+                <button onclick="testFunction('test1', 'Test Compound 1')" 
+                        class="bg-warning-orange hover:bg-orange-600 text-white px-4 py-2 rounded">
+                    Test Button 1
+                </button>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold mb-2">Test 2: Event Listener</h3>
+                <button id="test-button-2" 
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    Test Button 2
+                </button>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold mb-2">Test 3: Urgent Cleaning Function</h3>
+                <button onclick="requestUrgentCleaning('test-id', 'Test Compound')" 
+                        class="bg-warning-orange hover:bg-orange-600 text-white px-4 py-2 rounded">
+                    REQUEST URGENT
+                </button>
+            </div>
+        </div>
+        
+        <div id="output" class="mt-4 p-4 bg-gray-50 rounded">
+            <h4 class="font-semibold">Debug Output:</h4>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+            console.log(message);
+        }
+
+        function testFunction(id, name) {
+            log('testFunction called with: ' + id + ', ' + name);
+        }
+
+        // Request urgent cleaning function (copied from dashboard)
+        function requestUrgentCleaning(compoundId, compoundName) {
+            log('requestUrgentCleaning called with: ' + compoundId + ', ' + compoundName);
+            
+            if (confirm(`Request urgent cleaning for ${compoundName}?\n\nThis will create an urgent cleaning request that will be processed immediately.`)) {
+                log('User confirmed, would redirect to: /locations/urgent-cleaning/create/?compound=' + compoundId);
+                // Don't actually redirect in test
+                alert('Would redirect to: /locations/urgent-cleaning/create/?compound=' + compoundId);
+            } else {
+                log('User cancelled the request');
+            }
+        }
+
+        // Event listener test
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded');
+            
+            const button2 = document.getElementById('test-button-2');
+            if (button2) {
+                button2.addEventListener('click', function() {
+                    log('Button 2 clicked via event listener');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

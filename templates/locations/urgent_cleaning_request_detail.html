@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Urgent Cleaning Request - {{ request_obj.title }}{% endblock %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-graphite">{{ request_obj.title }}</h1>
+            <p class="text-steel-blue mt-2">Request ID: {{ request_obj.id }}</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{% url 'locations:urgent_cleaning_request_list' %}" 
+               class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center">
+                <i class="fa-solid fa-arrow-left mr-2"></i>
+                Back to List
+            </a>
+            {% if request_obj.status in 'pending,approved,in_progress' %}
+                <a href="{% url 'locations:urgent_cleaning_request_cancel' request_obj.id %}" 
+                   class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center">
+                    <i class="fa-solid fa-times mr-2"></i>
+                    Cancel Request
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Information -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Status and Priority -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Request Status</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                            {% if request_obj.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif request_obj.status == 'approved' %}bg-blue-100 text-blue-800
+                            {% elif request_obj.status == 'in_progress' %}bg-purple-100 text-purple-800
+                            {% elif request_obj.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif request_obj.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ request_obj.get_status_display }}
+                        </span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                            {% if request_obj.priority == 'critical' %}bg-red-100 text-red-800
+                            {% elif request_obj.priority == 'high' %}bg-orange-100 text-orange-800
+                            {% elif request_obj.priority == 'medium' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-green-100 text-green-800{% endif %}">
+                            {{ request_obj.get_priority_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Description</h2>
+                <p class="text-gray-700 whitespace-pre-wrap">{{ request_obj.description }}</p>
+            </div>
+
+            <!-- Technical Details -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Technical Details</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Requested SQM</label>
+                        <p class="text-lg font-semibold text-dark-graphite">{{ request_obj.requested_sqm }} m²</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Estimated Duration</label>
+                        <p class="text-lg font-semibold text-dark-graphite">{{ request_obj.estimated_duration }} hours</p>
+                    </div>
+                    {% if request_obj.preferred_start_time %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Start Time</label>
+                        <p class="text-lg font-semibold text-dark-graphite">{{ request_obj.preferred_start_time|date:"M d, Y H:i" }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Notes -->
+            {% if request_obj.notes %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Additional Notes</h2>
+                <p class="text-gray-700 whitespace-pre-wrap">{{ request_obj.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Compound Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Compound Information</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Compound</label>
+                        <p class="text-dark-graphite">{{ request_obj.compound.name }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Camp</label>
+                        <p class="text-dark-graphite">{{ request_obj.compound.camp.name }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Total Rooms</label>
+                        <p class="text-dark-graphite">{{ request_obj.compound.rooms.count }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quota Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Urgent SQM Quota</h2>
+                <div class="space-y-4">
+                    <!-- Monthly Quota -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-sm font-medium text-gray-700">Monthly Quota</label>
+                            <span class="text-sm text-gray-600">{{ monthly_used }} / {{ monthly_quota }} m² ({{ monthly_percentage|floatformat:1 }}%)</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ monthly_percentage }}%"></div>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-xs text-gray-500">Used: {{ monthly_used }} m²</span>
+                            <span class="text-xs text-gray-500">Remaining: {{ monthly_remaining }} m²</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Request Impact -->
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-sm font-medium text-gray-700">This Request</label>
+                            <span class="text-sm font-semibold text-dark-graphite">{{ request_obj.requested_sqm }} m²</span>
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {% if request_obj.status == 'pending' %}
+                                <span class="text-orange-600">Will use {{ request_obj.requested_sqm }} m² if approved</span>
+                            {% elif request_obj.status == 'completed' %}
+                                <span class="text-green-600">Already counted in quota usage</span>
+                            {% elif request_obj.status in 'approved,in_progress' %}
+                                <span class="text-blue-600">Not counted in quota usage yet</span>
+                            {% else %}
+                                <span class="text-gray-500">Not counted in quota usage</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Request Information</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Requested By</label>
+                        <p class="text-dark-graphite">{{ request_obj.requested_by.first_name }} {{ request_obj.requested_by.last_name|default:request_obj.requested_by.username }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Request Date</label>
+                        <p class="text-dark-graphite">{{ request_obj.created_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                    {% if request_obj.approved_by %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Approved By</label>
+                        <p class="text-dark-graphite">{{ request_obj.approved_by.first_name }} {{ request_obj.approved_by.last_name|default:request_obj.approved_by.username }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Approved Date</label>
+                        <p class="text-dark-graphite">{{ request_obj.approved_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                    {% endif %}
+                    {% if request_obj.completed_at %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Completed Date</label>
+                        <p class="text-dark-graphite">{{ request_obj.completed_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            {% if user.profile.role in 'admin,manager' %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Management Actions</h2>
+                <div class="space-y-3">
+                    {% if request_obj.status == 'pending' %}
+                        <button onclick="approveRequest('{{ request_obj.id }}', '{{ request_obj.title }}')" 
+                                class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center">
+                            <i class="fa-solid fa-check mr-2"></i>
+                            Approve Request
+                        </button>
+                        <button onclick="rejectRequest('{{ request_obj.id }}', '{{ request_obj.title }}')" 
+                                class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center">
+                            <i class="fa-solid fa-times mr-2"></i>
+                            Reject Request
+                        </button>
+                    {% elif request_obj.status in 'approved,in_progress' %}
+                        <button onclick="completeRequest('{{ request_obj.id }}', '{{ request_obj.title }}')" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center">
+                            <i class="fa-solid fa-check-circle mr-2"></i>
+                            Mark as Completed
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to approve a request
+function approveRequest(requestId, requestTitle) {
+    if (confirm(`Are you sure you want to approve "${requestTitle}"?\n\nThis will use ${requestTitle} m² from the urgent cleaning quota.`)) {
+        fetch(`/locations/urgent-cleaning/${requestId}/approve/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to approve request'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error approving request');
+        });
+    }
+}
+
+// Function to reject a request
+function rejectRequest(requestId, requestTitle) {
+    const reason = prompt(`Please provide a reason for rejecting "${requestTitle}":`);
+    if (reason !== null) {
+        fetch(`/locations/urgent-cleaning/${requestId}/reject/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reason: reason
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to reject request'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error rejecting request');
+        });
+    }
+}
+
+// Function to complete a request
+function completeRequest(requestId, requestTitle) {
+    if (confirm(`Are you sure you want to mark "${requestTitle}" as completed?`)) {
+        fetch(`/locations/urgent-cleaning/${requestId}/complete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to complete request'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error completing request');
+        });
+    }
+}
+
+// Function to get CSRF token from meta tag
+function getCSRFToken() {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    return metaTag ? metaTag.getAttribute('content') : getCookie('csrftoken');
+}
+
+// Function to get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

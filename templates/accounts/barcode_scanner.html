@@ -109,6 +109,27 @@
         </div>
     </div>
     
+    <!-- Urgent Requests Section -->
+        <div id="urgent-requests-section" class="metallic-card rounded-lg p-6 border border-orange-300 mb-6" style="display: none;">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <i class="fa-solid fa-exclamation-triangle text-orange-500 text-xl mr-3"></i>
+                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">Urgent Cleaning Requests</h3>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span id="urgent-count" class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    0 requests
+                </span>
+                <a href="{% url 'accounts:urgent_requests_list' %}" class="bg-orange-600 text-white px-3 py-1 rounded text-sm font-semibold hover:bg-orange-700 transition-colors">
+                    <i class="fa-solid fa-list mr-1"></i>View All
+                </a>
+            </div>
+        </div>
+        <div id="urgent-requests-list" class="space-y-3">
+            <!-- Urgent requests will be loaded here -->
+        </div>
+    </div>
+    
     <!-- Today's Tasks Preview -->
     <div class="metallic-card rounded-lg p-6 border border-gray-300">
         <div class="flex items-center justify-between mb-4">
@@ -676,6 +697,8 @@ class BarcodeScanner {
         console.log('Barcode type:', typeof barcode);
         console.log('Barcode length:', barcode.length);
         this.showStatus(`Processing barcode: ${barcode}...`, 'info');
+        // Store last successful barcode to allow urgent completion confirmation
+        this.lastDetectedBarcode = barcode;
         
         try {
             // Stop scanning temporarily
@@ -703,13 +726,18 @@ class BarcodeScanner {
             
             if (data.success) {
                 if (data.task) {
-                    // Task found, redirect to scan page
+                    // Regular task found, redirect to scan page
                     console.log('Task found, redirecting to:', `/accounts/scan/task/${data.task.id}/`);
                     window.location.href = `/accounts/scan/task/${data.task.id}/`;
                     return; // Don't resume scanning
+                } else if (data.urgent_request) {
+                    // Urgent request found, show urgent request completion dialog
+                    console.log('Urgent request found:', data.urgent_request);
+                    this.showUrgentRequestDialog(data.urgent_request, data.room);
+                    return; // Don't resume scanning
                 } else {
-                    console.log('No task found for barcode:', barcode);
-                    this.showStatus('No task found for this barcode.', 'error');
+                    console.log('No task or urgent request found for barcode:', barcode);
+                    this.showStatus('No task or urgent request found for this barcode.', 'error');
                 }
             } else {
                 console.error('Barcode lookup error:', data.error);
@@ -760,11 +788,246 @@ class BarcodeScanner {
             default: return 'bg-gray-100 text-gray-800 border border-gray-200';
         }
     }
+    
+    showUrgentRequestDialog(urgentRequest, room) {
+        // Create urgent request dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4';
+        dialog.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-exclamation-triangle text-orange-500 text-2xl mr-3"></i>
+                            <h3 class="text-lg font-bold text-gray-900">URGENT CLEANING REQUEST</h3>
+                        </div>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Room Info -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <div class="text-sm font-medium text-gray-700 mb-2">Room Information</div>
+                        <div class="text-lg font-bold text-gray-900">${room.code}</div>
+                        <div class="text-sm text-gray-600">${room.building} - ${room.floor}</div>
+                        <div class="text-sm text-gray-600">${room.compound}</div>
+                    </div>
+                    
+                    <!-- Urgent Request Details -->
+                    <div class="space-y-3 mb-6">
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">Title</div>
+                            <div class="text-gray-900">${urgentRequest.title}</div>
+                        </div>
+                        
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">Description</div>
+                            <div class="text-gray-900 text-sm">${urgentRequest.description}</div>
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">Priority</div>
+                                <div class="text-sm font-bold text-orange-600">${urgentRequest.priority_display}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">Status</div>
+                                <div class="text-sm font-bold text-blue-600">${urgentRequest.status_display}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">Requested SQM</div>
+                                <div class="text-sm font-bold text-gray-900">${urgentRequest.requested_sqm} m²</div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">Duration</div>
+                                <div class="text-sm font-bold text-gray-900">${urgentRequest.estimated_duration} hours</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-3">
+                        <button onclick="this.closest('.fixed').remove()" 
+                                class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-colors">
+                            Cancel
+                        </button>
+                        <button onclick="window.barcodeScanner.completeUrgentRequest('${urgentRequest.id}')" 
+                                class="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-orange-700 transition-colors">
+                            <i class="fa-solid fa-check mr-2"></i>Mark as Completed
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(dialog);
+    }
+    
+    async completeUrgentRequest(urgentRequestId) {
+        try {
+            // Require a scanned barcode: use the most recent successful scan or the manual input
+            const manualInput = document.getElementById('manual-barcode');
+            const lastBarcode = (this.lastDetectedBarcode || '').trim();
+            const barcodeToSend = (manualInput && manualInput.value.trim()) || lastBarcode;
+            if (!barcodeToSend) {
+                alert('Please scan a room barcode from the same compound to complete this urgent request.');
+                return;
+            }
+            const response = await fetch(`/accounts/scan/urgent/${urgentRequestId}/mark-completed/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ barcode: barcodeToSend })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Show success message
+                this.showStatus(data.message, 'success');
+                
+                // Close dialog
+                const dialog = document.querySelector('.fixed.inset-0.z-50');
+                if (dialog) {
+                    dialog.remove();
+                }
+                
+                // Resume scanning after a delay
+                setTimeout(() => {
+                    if (document.getElementById('stop-camera-btn').style.display !== 'none') {
+                        this.isScanning = true;
+                        if (this.quaggaInitialized) {
+                            Quagga.start();
+                        }
+                    }
+                }, 2000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        } catch (error) {
+            console.error('Error completing urgent request:', error);
+            alert('Error completing urgent request. Please try again.');
+        }
+    }
+    
+    async loadUrgentRequests() {
+        try {
+            const response = await fetch('/locations/ajax/urgent-requests-for-cleaners/', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.urgent_requests && data.urgent_requests.length > 0) {
+                this.displayUrgentRequests(data.urgent_requests);
+            } else {
+                // Hide urgent requests section if no requests
+                document.getElementById('urgent-requests-section').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error loading urgent requests:', error);
+            // Hide urgent requests section on error
+            document.getElementById('urgent-requests-section').style.display = 'none';
+        }
+    }
+    
+    displayUrgentRequests(urgentRequests) {
+        const section = document.getElementById('urgent-requests-section');
+        const countElement = document.getElementById('urgent-count');
+        const listElement = document.getElementById('urgent-requests-list');
+        
+        // Show section
+        section.style.display = 'block';
+        
+        // Update count
+        countElement.textContent = `${urgentRequests.length} request${urgentRequests.length !== 1 ? 's' : ''}`;
+        
+        // Clear existing content
+        listElement.innerHTML = '';
+        
+        // Add each urgent request
+        urgentRequests.forEach(request => {
+            const requestElement = document.createElement('div');
+            requestElement.className = 'bg-orange-50 border border-orange-200 rounded-lg p-4 cursor-pointer hover:bg-orange-100 transition-colors';
+            requestElement.onclick = () => this.showUrgentRequestDialog(request, { code: 'N/A', building: 'N/A', floor: 'N/A', compound: request.compound });
+            requestElement.innerHTML = `
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <span class="bg-orange-500 text-white px-2 py-1 rounded text-xs font-bold mr-2">
+                                ${request.priority_display}
+                            </span>
+                            <span class="text-sm font-medium text-gray-900">${request.title}</span>
+                        </div>
+                        <div class="text-sm text-gray-600 mb-2">${request.description}</div>
+                        <div class="flex items-center space-x-4 text-xs text-gray-500">
+                            <span><i class="fa-solid fa-building mr-1"></i>${request.compound}</span>
+                            <span><i class="fa-solid fa-ruler mr-1"></i>${request.requested_sqm} m²</span>
+                            <span><i class="fa-solid fa-clock mr-1"></i>${request.estimated_duration}h</span>
+                        </div>
+                    </div>
+                    <div class="ml-4 flex items-center space-x-2">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
+                            ${request.status_display}
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                </div>
+            `;
+            listElement.appendChild(requestElement);
+        });
+    }
+    
+    // Load and show a specific urgent request by ID
+    async loadAndShowUrgentRequest(urgentRequestId) {
+        try {
+            const response = await fetch('/locations/ajax/urgent-requests-for-cleaners/');
+            const data = await response.json();
+            
+            if (data.success && data.urgent_requests) {
+                const urgentRequest = data.urgent_requests.find(req => req.id === urgentRequestId);
+                if (urgentRequest) {
+                    // Show the urgent request dialog
+                    this.showUrgentRequestDialog(urgentRequest, {
+                        code: 'N/A',
+                        building: 'N/A',
+                        floor: 'N/A',
+                        compound: urgentRequest.compound
+                    });
+                } else {
+                    console.error('Urgent request not found:', urgentRequestId);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading urgent request:', error);
+        }
+    }
 }
 
 // Initialize scanner when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    new BarcodeScanner();
+    window.barcodeScanner = new BarcodeScanner();
+    window.barcodeScanner.loadUrgentRequests();
+    
+    // Check if there's an urgent request parameter in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urgentRequestId = urlParams.get('urgent_request');
+    
+    if (urgentRequestId) {
+        // Load the specific urgent request and show the dialog
+        window.barcodeScanner.loadAndShowUrgentRequest(urgentRequestId);
+    }
 });
 </script>
 {% endblock %}

@@ -2,9 +2,9 @@
 {% load static %}
 {% load form_filters %}
 
-{% block title %}Edit User - {{ user.username }}{% endblock %}
+{% block title %}Edit User - {{ user_being_edited.username }}{% endblock %}
 {% block page_title %}EDIT USER{% endblock %}
-{% block page_subtitle %}Update user information and permissions for {{ user.get_full_name|default:user.username }}{% endblock %}
+{% block page_subtitle %}Update user information and permissions for {{ user_being_edited.get_full_name|default:user_being_edited.username }}{% endblock %}
 
 {% block content %}
 <div class="p-6">
@@ -138,7 +138,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {% for choice in form.compounds %}
                             <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                                {{ choice.tag|add_class:"w-4 h-4 text-steel-blue border-gray-300 rounded focus:ring-steel-blue" }}
+                                <input type="checkbox" 
+                                       name="compounds" 
+                                       value="{{ choice.data.value }}" 
+                                       id="{{ choice.id_for_label }}"
+                                       data-camp-id="{{ choice.data.instance.camp.id }}"
+                                       class="w-4 h-4 text-steel-blue border-gray-300 rounded focus:ring-steel-blue"
+                                       {% if choice.data.selected %}checked{% endif %}>
                                 <label for="{{ choice.id_for_label }}" class="ml-3 text-sm font-medium text-dark-graphite">
                                     {{ choice.choice_label }}
                                 </label>
@@ -182,7 +188,7 @@
                 </a>
                 
                 <div class="flex space-x-4">
-                    <a href="{% url 'accounts:password_reset' user.profile.uuid %}" 
+when i                     <a href="{% url 'accounts:password_reset' user_being_edited.profile.uuid %}" 
                        class="px-6 py-3 bg-yellow-600 text-white rounded-lg uppercase text-sm tracking-wide metallic-shine hover:bg-yellow-700 transition-colors">
                         <i class="fa-solid fa-key mr-2"></i>
                         Reset Password
@@ -225,6 +231,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Listen for changes
     roleSelect.addEventListener('change', toggleCompoundSection);
+    
+    // Filter compounds by camp selection
+    const campSelect = document.getElementById('id_camp');
+    if (campSelect) {
+        campSelect.addEventListener('change', function() {
+            const selectedCampId = this.value;
+            const compoundCheckboxes = document.querySelectorAll('input[name="compounds"]');
+            
+            compoundCheckboxes.forEach(function(checkbox) {
+                const compoundDiv = checkbox.closest('.flex.items-center');
+                if (compoundDiv) {
+                    // Check if this compound belongs to the selected camp
+                    // We'll need to add data-camp-id to each compound checkbox
+                    const campId = checkbox.getAttribute('data-camp-id');
+                    if (selectedCampId && campId !== selectedCampId) {
+                        compoundDiv.style.display = 'none';
+                    } else {
+                        compoundDiv.style.display = 'flex';
+                    }
+                }
+            });
+        });
+    }
     
     // Form submission debugging
     if (form) {

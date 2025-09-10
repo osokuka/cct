@@ -16,12 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
+from django.shortcuts import render
 from .admin_config import admin_site
+
+def debug_button_test(request):
+    return render(request, 'debug_button_test.html')
 
 urlpatterns = [
     path("admin/", admin_site.urls),
     path("accounts/", include("accounts.urls")),
     path("locations/", include("locations.urls")),
     path("scans/", include("scans.urls")),
+    path("reports/", include("reports.urls")),
+    path("debug-button/", debug_button_test, name="debug_button_test"),
     path("", include("dashboard.urls")),
 ]

@@ -187,7 +187,7 @@ class CompoundEditForm(forms.ModelForm):
     
     class Meta:
         model = Compound
-        fields = ['code', 'name', 'camp', 'is_active']
+        fields = ['code', 'name', 'camp', 'is_active', 'monthly_urgent_sqm_quota', 'weekly_urgent_sqm_quota']
         widgets = {
             'code': forms.TextInput(attrs={
                 'class': 'form-control w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200',
@@ -202,6 +202,18 @@ class CompoundEditForm(forms.ModelForm):
             }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-steel-blue bg-gray-100 border-gray-300 rounded focus:ring-steel-blue focus:ring-2'
+            }),
+            'monthly_urgent_sqm_quota': forms.NumberInput(attrs={
+                'class': 'form-control w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200',
+                'placeholder': 'Enter monthly urgent SQM quota',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'weekly_urgent_sqm_quota': forms.NumberInput(attrs={
+                'class': 'form-control w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200',
+                'placeholder': 'Enter weekly urgent SQM quota',
+                'step': '0.01',
+                'min': '0'
             })
         }
     
@@ -213,12 +225,16 @@ class CompoundEditForm(forms.ModelForm):
         self.fields['name'].label = 'Compound Name'
         self.fields['camp'].label = 'Camp'
         self.fields['is_active'].label = 'Active Status'
+        self.fields['monthly_urgent_sqm_quota'].label = 'Monthly Urgent SQM Quota'
+        self.fields['weekly_urgent_sqm_quota'].label = 'Weekly Urgent SQM Quota'
         
         # Add help text
         self.fields['code'].help_text = 'Unique identifier for the compound'
         self.fields['name'].help_text = 'Full name of the compound'
         self.fields['camp'].help_text = 'Select the camp this compound belongs to'
         self.fields['is_active'].help_text = 'Whether this compound is currently active'
+        self.fields['monthly_urgent_sqm_quota'].help_text = 'Monthly SQM quota for urgent cleaning requests (optional)'
+        self.fields['weekly_urgent_sqm_quota'].help_text = 'Weekly SQM quota for urgent cleaning requests (optional)'
 
 
 class BuildingEditForm(forms.ModelForm):
@@ -304,7 +320,7 @@ class CompoundCreateForm(forms.ModelForm):
     
     class Meta:
         model = Compound
-        fields = ['camp', 'code', 'name', 'is_active']
+        fields = ['camp', 'code', 'name', 'is_active', 'monthly_urgent_sqm_quota', 'weekly_urgent_sqm_quota']
     
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)

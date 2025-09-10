@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from accounts.models import User, UserProfile, Team, Shift, Route
 from accounts.task_generation import DailyCleaningTask
 from accounts.views import check_permission
-from locations.models import Camp, Compound, Room
+from locations.models import Camp, Compound, Room, UrgentCleaningRequest
 
 
 @login_required
@@ -88,13 +88,16 @@ def dashboard(request):
             if route_compounds and not show_all_cleaner_tasks:
                 # Show only tasks from compounds in their routes (default) - today only
                 all_tasks = all_tasks.filter(
-                    assigned_to_team__in=user_teams, 
+                    Q(assigned_to_team__in=user_teams) | Q(assigned_to_user=request.user),
                     task_date=today,
                     room__compound__in=route_compounds
                 )
             else:
                 # Show all tasks from their teams (when "Show All Tasks" is clicked) - today only
-                all_tasks = all_tasks.filter(assigned_to_team__in=user_teams, task_date=today)
+                all_tasks = all_tasks.filter(
+                    Q(assigned_to_team__in=user_teams) | Q(assigned_to_user=request.user),
+                    task_date=today
+                )
         else:
             # If not in any team, show tasks assigned directly to their user account
             all_tasks = all_tasks.filter(assigned_to_user=request.user, task_date=today)
@@ -259,6 +262,7 @@ def dashboard(request):
     # Get cleaner's team and route information
     cleaner_teams = []
     cleaner_routes = []
+    urgent_cleaning_requests_count = 0
     if user_role == 'cleaner':
         # Get teams the cleaner is associated with
         user_teams = []
@@ -276,6 +280,16 @@ def dashboard(request):
             team__in=user_teams,
             is_active=True
         ).select_related('team', 'team__shift').prefetch_related('compounds')
+        
+        # Get urgent cleaning requests count for cleaner's compounds
+        compounds = Compound.objects.filter(
+            Q(routes__team__in=user_teams) | Q(routes__isnull=True)
+        ).distinct()
+        
+        urgent_cleaning_requests_count = UrgentCleaningRequest.objects.filter(
+            compound__in=compounds,
+            status__in=['approved', 'in_progress']
+        ).count()
     
     # Basic statistics
     context.update({
@@ -295,6 +309,7 @@ def dashboard(request):
         'cleaner_teams': cleaner_teams, # Added for cleaner dashboard
         'cleaner_routes': cleaner_routes, # Added for cleaner dashboard
         'show_all_cleaner_tasks': show_all_cleaner_tasks, # Added for cleaner task filtering
+        'urgent_cleaning_requests_count': urgent_cleaning_requests_count, # Added for cleaner urgent requests count
     })
     
     return render(request, 'dashboard/dashboard.html', context)

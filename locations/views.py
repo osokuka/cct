@@ -328,7 +328,7 @@ def camp_breakdown(request, camp_id):
 @login_required
 def compound_list(request):
     """Compound management page - tabular view."""
-    if not check_permission(request, ['admin', 'manager']):
+    if not check_permission(request, ['admin', 'manager', 'authority']):
         return redirect('accounts:login')
     
     # Get all compounds with related data
@@ -387,7 +387,7 @@ def compound_list(request):
 @login_required
 def compound_breakdown(request, compound_id):
     """Get compound breakdown data for AJAX requests."""
-    if not check_permission(request, ['admin', 'manager']):
+    if not check_permission(request, ['admin', 'manager', 'authority']):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
     try:
@@ -406,8 +406,8 @@ def compound_breakdown(request, compound_id):
         # Calculate total SQM safely
         total_sqm = 0
         for room in rooms:
-            if room.square_meters:
-                total_sqm += room.square_meters
+            if room.actual_sqm:
+                total_sqm += room.actual_sqm
         
         active_rooms = rooms.filter(is_active=True).count()
         
@@ -419,8 +419,8 @@ def compound_breakdown(request, compound_id):
             # Calculate building SQM safely
             building_sqm = 0
             for room in building_rooms:
-                if room.square_meters:
-                    building_sqm += room.square_meters
+                if room.actual_sqm:
+                    building_sqm += room.actual_sqm
             
             building_breakdown.append({
                 'id': building.id,
@@ -453,7 +453,10 @@ def compound_breakdown(request, compound_id):
         print(f"Error in compound_breakdown: {e}")
         import traceback
         traceback.print_exc()
-        return JsonResponse({'error': 'Failed to load compound breakdown data'}, status=500)
+        return JsonResponse({
+            'error': 'Failed to load compound breakdown data',
+            'details': str(e)
+        }, status=500)
 
 
 @login_required

@@ -5,285 +5,644 @@
 
 {% block extra_css %}
 <style>
-    .stat-card {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        border: 1px solid #475569;
-        transition: all 0.3s ease;
+    .industrial-gradient { 
+        background: linear-gradient(135deg, #B0B3B8 0%, #9CA0A5 100%); 
     }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    .metallic-shadow { 
+        box-shadow: 0 4px 6px rgba(43, 46, 50, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1); 
     }
     .compound-card {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        border: 1px solid #334155;
+        background: linear-gradient(135deg, #F5F6F7 0%, #E8EAED 100%);
+        border: 1px solid #B0B3B8;
         transition: all 0.3s ease;
     }
     .compound-card:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(43, 46, 50, 0.15);
+    }
+    .metric-card {
+        background: #FFFFFF;
+        border: 1px solid #D1D3D4;
+        transition: all 0.2s ease;
+    }
+    .metric-card:hover {
+        box-shadow: 0 4px 12px rgba(43, 46, 50, 0.1);
     }
     .chart-container {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        border: 1px solid #334155;
+        background: #FFFFFF;
+        border: 1px solid #D1D3D4;
+    }
+    .progress-bar {
+        background: linear-gradient(90deg, #4C6E50 0%, #5A7A5E 100%);
+    }
+    .urgent-bar {
+        background: linear-gradient(90deg, #F28C28 0%, #FFB84D 100%);
+    }
+    .selected-date {
+        background-color: #3F5876 !important;
+        color: white !important;
+    }
+    .fc-day:hover {
+        background-color: #F3F4F6;
+        cursor: pointer;
+    }
+    .fc-day.selected-date:hover {
+        background-color: #2D4A6B !important;
+    }
+    .task-event {
+        font-size: 10px;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    .compound-card {
+        transition: all 0.3s ease;
+    }
+    .compound-card.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-900 text-white">
-    <!-- Header -->
-    <div class="bg-slate-800 border-b border-slate-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-6">
-                <div>
-                    <h1 class="text-3xl font-bold text-white">Authority Dashboard</h1>
-                    <p class="text-slate-400 mt-1">Contracting Authority Overview</p>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-right">
-                        <p class="text-sm text-slate-400">Welcome back,</p>
-                        <p class="font-semibold text-white">{{ user.get_full_name|default:user.username }}</p>
-                    </div>
-                    <div class="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center">
-                        <i class="fa-solid fa-user-shield text-slate-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="min-h-screen bg-off-white">
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="container mx-auto px-6 py-8">
         {% if no_assignments %}
         <!-- No Assignments State -->
         <div class="text-center py-12">
-            <div class="w-24 h-24 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fa-solid fa-building text-4xl text-slate-400"></i>
+            <div class="w-24 h-24 bg-industrial-silver rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fa-solid fa-building text-4xl text-dark-graphite"></i>
             </div>
-            <h2 class="text-2xl font-bold text-white mb-4">No Compound Assignments</h2>
-            <p class="text-slate-400 mb-6">You haven't been assigned to any compounds yet.</p>
-            <p class="text-sm text-slate-500">Contact your administrator to get compound assignments.</p>
+            <h2 class="text-2xl font-bold text-dark-graphite mb-4">NO COMPOUND ASSIGNMENTS</h2>
+            <p class="text-steel-blue mb-6">You haven't been assigned to any compounds yet.</p>
+            <p class="text-sm text-steel-blue">Contact your administrator to get compound assignments.</p>
         </div>
         {% else %}
         
-        <!-- Filter Toggle -->
+        <!-- Filter Controls -->
         <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold text-white">Task Overview</h2>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-dark-graphite">COMPOUND OVERVIEW</h2>
                 <div class="flex items-center space-x-4">
-                    <span class="text-sm text-slate-400">
-                        {% if show_all_tasks %}Showing all tasks{% else %}Showing today's tasks{% endif %}
+                    <span class="text-sm text-steel-blue">
+                        Compound Overview & Analytics
                     </span>
-                    <a href="?show_all={% if show_all_tasks %}false{% else %}true{% endif %}" 
-                       class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors">
-                        {% if show_all_tasks %}Show Today Only{% else %}Show All Tasks{% endif %}
+                    <a href="{% url 'dashboard:authority_all_tasks' %}" 
+                       class="px-4 py-2 bg-industrial-silver hover:bg-gray-400 text-dark-graphite rounded-lg text-sm font-medium transition-colors">
+                        <i class="fa-solid fa-list-check mr-2"></i>
+                        View All Tasks
                     </a>
-                </div>
             </div>
         </div>
 
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="stat-card rounded-xl p-6">
-                <div class="flex items-center justify-between">
+            <!-- Compound Filter -->
+            <div class="bg-white border border-industrial-silver rounded-xl p-4 mb-6">
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm font-medium text-dark-graphite">FILTER BY COMPOUND:</label>
+                    <select id="compoundFilter" class="px-4 py-2 border border-industrial-silver rounded-lg text-dark-graphite bg-white focus:ring-2 focus:ring-steel-blue focus:border-transparent">
+                        <option value="all">All Compounds</option>
+                        {% for compound, stats in tasks_by_compound.items %}
+                        <option value="{{ compound.id }}">{{ compound.name }} ({{ compound.camp.name }})</option>
+                        {% endfor %}
+                    </select>
+                    <button id="clearFilter" class="px-4 py-2 bg-steel-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
+                        Clear Filter
+                    </button>
+                    </div>
+                </div>
+            </div>
+
+
+        <!-- Compound Information Cards - Stacked Vertically -->
+        <div class="space-y-8">
+            {% for compound, stats in tasks_by_compound.items %}
+            <div class="compound-card rounded-2xl p-6 hover:shadow-lg transition-all duration-200" 
+                 data-compound-id="{{ compound.id }}">
+                <!-- Compound Header -->
+                <div class="flex items-center justify-between mb-6">
                     <div>
-                        <p class="text-slate-400 text-sm font-medium">Total Tasks</p>
-                        <p class="text-3xl font-bold text-white mt-2">{{ total_tasks }}</p>
+                        <h3 class="text-2xl font-bold text-dark-graphite">{{ compound.name }}</h3>
+                        <p class="text-steel-blue">{{ compound.camp.name }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-tasks text-white text-xl"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-slate-400 text-sm font-medium">Completed</p>
-                        <p class="text-3xl font-bold text-green-400 mt-2">{{ completed_tasks }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-check-circle text-white text-xl"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-slate-400 text-sm font-medium">In Progress</p>
-                        <p class="text-3xl font-bold text-yellow-400 mt-2">{{ in_progress_tasks }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-clock text-white text-xl"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-slate-400 text-sm font-medium">Completion Rate</p>
-                        <p class="text-3xl font-bold text-blue-400 mt-2">{{ completion_rate }}%</p>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-chart-line text-white text-xl"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Additional Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="stat-card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-slate-400 text-sm font-medium">Missed Tasks</p>
-                        <p class="text-2xl font-bold text-red-400 mt-2">{{ missed_tasks }}</p>
-                    </div>
-                    <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-exclamation-triangle text-white"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-slate-400 text-sm font-medium">Urgent Tasks</p>
-                        <p class="text-2xl font-bold text-orange-400 mt-2">{{ urgent_tasks }}</p>
-                    </div>
-                    <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-fire text-white"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-slate-400 text-sm font-medium">Re-clean Tasks</p>
-                        <p class="text-2xl font-bold text-purple-400 mt-2">{{ reclean_tasks }}</p>
-                    </div>
-                    <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-redo text-white"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Daily Tasks Chart -->
-            <div class="chart-container rounded-xl p-6">
-                <h3 class="text-lg font-semibold text-white mb-4">Task Status Distribution</h3>
-                <div class="h-64">
-                    <canvas id="dailyChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Weekly Progress Chart -->
-            <div class="chart-container rounded-xl p-6">
-                <h3 class="text-lg font-semibold text-white mb-4">Weekly Progress</h3>
-                <div class="h-64">
-                    <canvas id="weeklyChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Compounds Overview -->
-        <div class="mb-8">
-            <h3 class="text-xl font-semibold text-white mb-6">Assigned Compounds</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {% for compound, stats in tasks_by_compound.items %}
-                <div class="compound-card rounded-xl p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="text-lg font-semibold text-white">{{ compound.name }}</h4>
-                        <span class="text-sm text-slate-400">{{ compound.camp.name }}</span>
-                    </div>
-                    
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400 text-sm">Total Tasks</span>
-                            <span class="text-white font-medium">{{ stats.total }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400 text-sm">Completed</span>
-                            <span class="text-green-400 font-medium">{{ stats.completed }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400 text-sm">In Progress</span>
-                            <span class="text-yellow-400 font-medium">{{ stats.in_progress }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400 text-sm">Missed</span>
-                            <span class="text-red-400 font-medium">{{ stats.missed }}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4 pt-4 border-t border-slate-600">
-                        <a href="{% url 'dashboard:authority_compound_detail' compound.id %}" 
-                           class="w-full bg-slate-700 hover:bg-slate-600 text-white text-center py-2 px-4 rounded-lg text-sm font-medium transition-colors">
-                            View Details
-                        </a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="chart-container rounded-xl p-6">
-            <h3 class="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-            <div class="space-y-4">
-                {% for task in recent_tasks %}
-                <div class="flex items-center justify-between py-3 px-4 bg-slate-800 rounded-lg">
                     <div class="flex items-center space-x-4">
-                        <div class="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
-                            <i class="fa-solid fa-tasks text-slate-300 text-sm"></i>
-                        </div>
-                        <div>
-                            <p class="text-white font-medium">{{ task.room.building.name }} - {{ task.room.name }}</p>
-                            <p class="text-slate-400 text-sm">{{ task.room.compound.name }}</p>
-                        </div>
-                    </div>
                     <div class="text-right">
-                        <span class="px-2 py-1 text-xs font-medium rounded-full
-                            {% if task.state == 'completed' %}bg-green-900 text-green-300
-                            {% elif task.state == 'in_progress' %}bg-yellow-900 text-yellow-300
-                            {% else %}bg-blue-900 text-blue-300{% endif %}">
-                            {{ task.get_state_display }}
-                        </span>
-                        <p class="text-slate-400 text-xs mt-1">{{ task.task_date }}</p>
+                        <div class="text-3xl font-bold text-steel-blue">{{ stats.total_rooms }}</div>
+                        <div class="text-sm text-steel-blue">ROOMS</div>
+                        </div>
+                        <!-- Report Buttons -->
+                        {% if user.profile.role in 'authority,admin,manager' %}
+                        <div class="flex flex-col space-y-2">
+                            <a href="{% url 'reports:compound_sla_report' compound.id %}" 
+                               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium text-center"
+                               onclick="event.stopPropagation();">
+                                📊 SLA Weekly Report
+                            </a>
+                            <a href="{% url 'reports:compound_sla_report' compound.id %}?start_date={{ today|date:'Y-m-01' }}&end_date={{ today|date:'Y-m-d' }}" 
+                               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium text-center"
+                               onclick="event.stopPropagation();">
+                                📈 SLA Monthly Report
+                            </a>
+                        </div>
+                        {% endif %}
+                </div>
+            </div>
+
+                <!-- SQM Information -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <!-- Total SQM -->
+                    <div class="metric-card rounded-lg p-3">
+                        <div class="text-center">
+                            <p class="text-steel-blue text-xs font-medium uppercase tracking-wide">TOTAL SQM</p>
+                            <p class="text-lg font-bold text-dark-graphite mt-1">{{ stats.total_sqm }} m²</p>
+                            <p class="text-xs text-gray-500 mt-1">Aggregate SQM needed</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Daily Tasks -->
+                    <div class="metric-card rounded-lg p-3">
+                        <div class="text-center">
+                            <p class="text-steel-blue text-xs font-medium uppercase tracking-wide">DAILY TASKS</p>
+                            <p class="text-lg font-bold text-dark-graphite mt-1">{{ stats.daily_tasks.total|default:0 }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Total tasks today</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Daily Tasks Completed -->
+                    <div class="metric-card rounded-lg p-3">
+                        <div class="text-center">
+                            <p class="text-steel-blue text-xs font-medium uppercase tracking-wide">DAILY TASKS COMPLETED</p>
+                            <p class="text-lg font-bold text-dark-graphite mt-1">{{ stats.daily_tasks.completed|default:0 }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Tasks completed today</p>
+                        </div>
                     </div>
                 </div>
-                {% empty %}
-                <div class="text-center py-8">
-                    <p class="text-slate-400">No recent activity</p>
+                
+                <!-- Weekly and Monthly Progress -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Weekly Progress Card -->
+                    <div class="metric-card rounded-lg p-3">
+                        <div class="text-center">
+                            <p class="text-steel-blue text-xs font-medium uppercase tracking-wide">WEEKLY PROGRESS</p>
+                            <div class="mt-1">
+                                <div class="text-xs text-gray-600 mb-1">{{ stats.weekly_sqm_completed|default:0 }}/{{ stats.weekly_sqm_cap|default:0 }} m²</div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-steel-blue h-1.5 rounded-full transition-all duration-300" 
+                                         style="width: {{ stats.weekly_sqm_completion_rate|default:0 }}%"></div>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">{{ stats.weekly_sqm_completion_rate|default:0 }}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Progress Card -->
+                    <div class="metric-card rounded-lg p-3">
+                        <div class="text-center">
+                            <p class="text-steel-blue text-xs font-medium uppercase tracking-wide">MONTHLY PROGRESS</p>
+                            <div class="mt-1">
+                                <div class="text-xs text-gray-600 mb-1">{{ stats.monthly_sqm_completed|default:0 }}/{{ stats.monthly_sqm_cap|default:0 }} m²</div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-dark-graphite h-1.5 rounded-full transition-all duration-300" 
+                                         style="width: {{ stats.monthly_sqm_completion_rate|default:0 }}%"></div>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">{{ stats.monthly_sqm_completion_rate|default:0 }}%</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {% endfor %}
+
+                <!-- Consolidated Completion & Urgent Card -->
+                <div class="metric-card rounded-xl p-4 mb-6">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <!-- Today's Tasks -->
+                        <div class="text-center cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors daily-tasks-card" 
+                             data-compound-id="{{ compound.id }}" 
+                             data-compound-name="{{ compound.name }}">
+                            <p class="text-steel-blue text-xs font-medium uppercase tracking-wide">TODAY'S TASKS</p>
+                            <p class="text-lg font-bold text-dark-graphite">{{ stats.daily_tasks.completed }}/{{ stats.daily_tasks.total }}</p>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                <div class="bg-steel-blue h-1.5 rounded-full" style="width: {{ stats.daily_tasks.completion_rate|floatformat:0 }}%"></div>
+                            </div>
+                            <p class="text-xs text-steel-blue mt-1">{{ stats.daily_tasks.completion_rate }}% Complete</p>
+                        </div>
+
+                        <!-- Today's SQM -->
+                        <div class="text-center">
+                            <p class="text-steel-blue text-xs font-medium uppercase tracking-wide">TODAY'S SQM</p>
+                            <p class="text-lg font-bold text-dark-graphite">{{ stats.daily_sqm_completed|default:0 }}/{{ stats.total_sqm }}</p>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                <div class="bg-dark-graphite h-1.5 rounded-full" style="width: {{ stats.daily_sqm_completion_rate|default:0|floatformat:0 }}%"></div>
+                            </div>
+                            <p class="text-xs text-steel-blue mt-1">{{ stats.daily_sqm_completion_rate|default:0|floatformat:1 }}% Complete</p>
+                        </div>
+                    </div>
+
+                    <!-- Urgent SQM Usage -->
+                    {% if stats.has_urgent_sqm_quota %}
+                    <div class="border-t border-gray-200 pt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-steel-blue text-sm font-medium">URGENT SQM USAGE</p>
+                            <span class="text-xs text-gray-600">{{ stats.urgent_sqm_used|default:0 }}/{{ stats.monthly_urgent_sqm_quota|default:0 }} m²</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                            <div class="bg-warning-orange h-2 rounded-full" style="width: {{ stats.urgent_sqm_usage_percentage|default:0|floatformat:0 }}%"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <p class="text-xs text-gray-600">USED</p>
+                                <p class="text-sm font-bold text-warning-orange">{{ stats.urgent_sqm_used|default:0 }} m²</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-600">AVAILABLE</p>
+                                <p class="text-sm font-bold text-dark-graphite">{{ stats.urgent_sqm_available|default:0 }} m²</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Action Buttons -->
+                    <div class="border-t border-gray-200 pt-4 mt-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <a href="{% url 'dashboard:authority_compound_detail' compound.id %}" 
+                               class="bg-steel-blue hover:bg-blue-600 text-white text-center py-2 px-4 rounded-lg text-xs font-medium transition-colors flex items-center justify-center">
+                                <i class="fa-solid fa-chart-line mr-1"></i>
+                                VIEW ANALYTICS
+                            </a>
+                            <a href="{% url 'locations:urgent_cleaning_request_create' %}?compound={{ compound.id }}" 
+                                    class="bg-warning-orange hover:bg-orange-600 text-white text-center py-2 px-4 rounded-lg text-xs font-medium transition-colors flex items-center justify-center">
+                                <i class="fa-solid fa-exclamation-triangle mr-1"></i>
+                                REQUEST URGENT
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
+            {% endfor %}
         </div>
 
         {% endif %}
+
+
+<!-- Daily Tasks Modal -->
+<div id="dailyTasksModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div class="industrial-gradient text-white p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold" id="modalTitle">Daily Tasks</h3>
+                    <button id="closeModal" class="text-white hover:text-gray-300 text-2xl">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <div id="dailyTasksContent">
+                    <!-- Daily tasks will be loaded here -->
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js is loaded in base template -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const chartData = {{ chart_data|safe }};
+// Authority Dashboard Script Loading
+
+
+// Manual test function for debugging
+window.testCompoundFilter = function() {
+    console.log('=== MANUAL FILTER TEST ===');
+    const compoundFilter = document.getElementById('compoundFilter');
+    const compoundCards = document.querySelectorAll('.compound-card');
     
-    // Daily Chart
-    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
-    new Chart(dailyCtx, {
+    console.log('Filter element:', compoundFilter);
+    console.log('Cards found:', compoundCards.length);
+    
+    // Test data structure
+    console.log('=== DATA STRUCTURE TEST ===');
+    compoundCards.forEach((card, index) => {
+        console.log(`Card ${index}:`, {
+            element: card,
+            dataset: card.dataset,
+            compoundId: card.dataset.compoundId,
+            hasDataAttribute: card.hasAttribute('data-compound-id')
+        });
+    });
+    
+    if (compoundFilter) {
+        console.log('=== FILTER OPTIONS TEST ===');
+        for (let i = 0; i < compoundFilter.options.length; i++) {
+            const option = compoundFilter.options[i];
+            console.log(`Option ${i}:`, {
+                value: option.value,
+                text: option.text,
+                selected: option.selected
+            });
+        }
+    }
+    
+    if (compoundFilter && compoundCards.length > 0) {
+        console.log('Testing filter with first compound...');
+        const firstOption = compoundFilter.options[1];
+        if (firstOption) {
+            console.log('First compound option:', firstOption.value, firstOption.text);
+            compoundFilter.value = firstOption.value;
+            compoundFilter.dispatchEvent(new Event('change'));
+        }
+    }
+};
+
+// Initialize compound filter functionality
+function initializeCompoundFilter() {
+    // Wait a bit more to ensure everything is loaded
+    setTimeout(function() {
+    // Compound filtering functionality
+    const compoundFilter = document.getElementById('compoundFilter');
+    const clearFilter = document.getElementById('clearFilter');
+    const compoundCards = document.querySelectorAll('.compound-card');
+        
+        if (!compoundFilter) {
+            console.error('Compound filter select not found!');
+            return;
+        }
+        
+        if (compoundCards.length === 0) {
+            console.error('No compound cards found!');
+            return;
+        }
+    
+    function filterCompounds(compoundId) {
+        let visibleCount = 0;
+        
+        compoundCards.forEach((card, index) => {
+            const cardId = card.dataset.compoundId;
+            const isMatch = compoundId === 'all' || cardId === compoundId;
+            
+            if (isMatch) {
+                // Show the card
+                card.classList.remove('hidden');
+                card.style.display = 'block';
+                card.style.visibility = 'visible';
+                card.style.opacity = '1';
+                visibleCount++;
+            } else {
+                // Hide the card
+                card.classList.add('hidden');
+                card.style.display = 'none';
+                card.style.visibility = 'hidden';
+                card.style.opacity = '0';
+            }
+        });
+        
+        // Force a reflow to ensure changes are applied
+        document.body.offsetHeight;
+    }
+    
+    if (compoundFilter) {
+    compoundFilter.addEventListener('change', function() {
+            console.log('Filter changed to:', this.value);
+        filterCompounds(this.value);
+    });
+    } else {
+        console.error('Compound filter element not found!');
+    }
+    
+    if (clearFilter) {
+    clearFilter.addEventListener('click', function() {
+            console.log('Clear filter clicked');
+            if (compoundFilter) {
+        compoundFilter.value = 'all';
+        filterCompounds('all');
+            }
+        });
+                } else {
+        console.error('Clear filter button not found!');
+    }
+    
+    
+    // Daily tasks modal functionality
+    const dailyTasksModal = document.getElementById('dailyTasksModal');
+    const closeModal = document.getElementById('closeModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const dailyTasksContent = document.getElementById('dailyTasksContent');
+    const dailyTasksCards = document.querySelectorAll('.daily-tasks-card');
+    
+    dailyTasksCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const compoundId = this.dataset.compoundId;
+            const compoundName = this.dataset.compoundName;
+            
+            modalTitle.textContent = `Daily Tasks - ${compoundName}`;
+            loadDailyTasks(compoundId);
+            dailyTasksModal.classList.remove('hidden');
+        });
+    });
+    
+    closeModal.addEventListener('click', function() {
+        dailyTasksModal.classList.add('hidden');
+    });
+    
+    // Close modal when clicking outside
+    dailyTasksModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.add('hidden');
+        }
+    });
+    
+    function loadDailyTasks(compoundId) {
+        // Show loading state
+        dailyTasksContent.innerHTML = `
+            <div class="text-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-steel-blue mx-auto mb-4"></div>
+                <p class="text-steel-blue">Loading daily tasks...</p>
+            </div>
+        `;
+        
+        // Fetch daily tasks for the compound
+        fetch(`/accounts/authority/daily-tasks/${compoundId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayDailyTasks(data.tasks);
+                } else {
+                    dailyTasksContent.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-red-600">Error loading daily tasks: ${data.error}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                dailyTasksContent.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-red-600">Error loading daily tasks: ${error.message}</p>
+                    </div>
+                `;
+            });
+    }
+    
+    function displayDailyTasks(tasks) {
+        if (tasks.length === 0) {
+            dailyTasksContent.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fa-solid fa-calendar-day text-4xl text-steel-blue mb-4"></i>
+                    <p class="text-steel-blue">No daily tasks found for this compound.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div class="space-y-4">';
+        
+        tasks.forEach(task => {
+            const statusClass = task.state === 'completed' ? 'bg-green-100 text-green-800' : 
+                              task.state === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-gray-100 text-gray-800';
+            
+            html += `
+                <div class="bg-white border border-industrial-silver rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-dark-graphite">${task.room.building.name} - ${task.room.name}</h4>
+                            <p class="text-sm text-steel-blue">${task.room.compound.name}</p>
+                            <p class="text-xs text-steel-blue mt-1">SQM: ${task.room.actual_sqm || 'N/A'} m²</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">
+                                ${task.state_display}
+                            </span>
+                            <p class="text-xs text-steel-blue mt-1">${task.task_date}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        dailyTasksContent.innerHTML = html;
+    }
+
+    // Chart configuration
+    const chartConfig = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: '#3F5876',
+                    font: {
+                        size: 10
+                    }
+                },
+                grid: {
+                    color: '#D1D3D4'
+                }
+            },
+            x: {
+                ticks: {
+                    color: '#3F5876',
+                    font: {
+                        size: 10
+                    }
+                },
+                grid: {
+                    color: '#D1D3D4'
+                }
+            }
+        }
+    };
+
+    // Create weekly charts for each compound
+    {% if tasks_by_compound %}
+    {% for compound, stats in tasks_by_compound.items %}
+    {% if compound.id %}
+    (function() {
+        var weeklyCtx_{{ forloop.counter0 }} = document.getElementById('weeklyChart{{ compound.id }}');
+        if (weeklyCtx_{{ forloop.counter0 }}) {
+        const weeklyData = {
+            completed: {{ stats.weekly_tasks.completed|default:0 }},
+            pending: {{ stats.weekly_tasks.pending|default:0 }}
+        };
+        
+        try {
+                new Chart(weeklyCtx_{{ forloop.counter0 }}, {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Completed',
+                    data: [
+                        Math.max(weeklyData.completed, 0), 
+                        Math.max(weeklyData.completed, 0), 
+                        Math.max(weeklyData.completed, 0), 
+                        Math.max(weeklyData.completed, 0), 
+                        Math.max(weeklyData.completed, 0), 
+                        Math.max(weeklyData.completed, 0), 
+                        Math.max(weeklyData.completed, 0)
+                    ],
+                    backgroundColor: '#4C6E50',
+                    borderColor: '#4C6E50',
+                    borderWidth: 1
+                }, {
+                    label: 'Pending',
+                    data: [
+                        Math.max(weeklyData.pending, 0), 
+                        Math.max(weeklyData.pending, 0), 
+                        Math.max(weeklyData.pending, 0), 
+                        Math.max(weeklyData.pending, 0), 
+                        Math.max(weeklyData.pending, 0), 
+                        Math.max(weeklyData.pending, 0), 
+                        Math.max(weeklyData.pending, 0)
+                    ],
+                    backgroundColor: '#B0B3B8',
+                    borderColor: '#B0B3B8',
+                    borderWidth: 1
+                }]
+                },
+                options: chartConfig
+            });
+            console.log('Weekly chart created successfully for compound {{ compound.id }}');
+        } catch (error) {
+            console.error('Error creating weekly chart for compound {{ compound.id }}:', error);
+        }
+    }
+
+    // Create monthly charts for each compound
+        var monthlyCtx_{{ forloop.counter0 }} = document.getElementById('monthlyChart{{ compound.id }}');
+        if (monthlyCtx_{{ forloop.counter0 }}) {
+        console.log('Creating monthly chart for compound {{ compound.id }}:', {
+            completed: {{ stats.monthly_tasks.completed|default:0 }},
+            pending: {{ stats.monthly_tasks.pending|default:0 }},
+            total: {{ stats.monthly_tasks.total|default:0 }}
+        });
+        
+        const monthlyData = {
+            completed: {{ stats.monthly_tasks.completed|default:0 }},
+            pending: {{ stats.monthly_tasks.pending|default:0 }}
+        };
+        
+        try {
+                new Chart(monthlyCtx_{{ forloop.counter0 }}, {
         type: 'doughnut',
         data: {
-            labels: chartData.daily.labels,
+                    labels: ['Completed', 'Pending'],
             datasets: [{
-                data: chartData.daily.data,
-                backgroundColor: chartData.daily.colors,
+                        data: [
+                            Math.max(monthlyData.completed, 0), 
+                            Math.max(monthlyData.pending, 0)
+                        ],
+                        backgroundColor: ['#4C6E50', '#B0B3B8'],
                 borderWidth: 0
             }]
         },
@@ -294,59 +653,70 @@ document.addEventListener('DOMContentLoaded', function() {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: '#94a3b8',
-                        padding: 20
+                                color: '#3F5876',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
                     }
+                }
+            });
+            console.log('Monthly chart created successfully for compound {{ compound.id }}');
+        } catch (error) {
+            console.error('Error creating monthly chart for compound {{ compound.id }}:', error);
+        }
+    }
+    })();
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+
+        // DOM loaded successfully
+        console.log('✅ Compound filter initialized successfully');
+
+    // Helper function to get CSRF token (if needed for AJAX requests)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
             }
         }
+        return cookieValue;
+    }
+    }, 500); // 500ms delay to ensure everything is loaded
+}
+
+// Test if basic JavaScript is working
+console.log('=== BASIC JAVASCRIPT TEST ===');
+console.log('Document ready state:', document.readyState);
+console.log('Window loaded:', window.loaded);
+
+// Simple test function
+window.testBasicJS = function() {
+    console.log('Basic JS test function called!');
+    alert('JavaScript is working!');
+};
+
+// Initialize when DOM is ready
+console.log('Setting up DOM ready listener...');
+if (document.readyState === 'loading') {
+    console.log('Document still loading, adding event listener...');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded fired!');
+        initializeCompoundFilter();
     });
-    
-    // Weekly Chart
-    const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
-    new Chart(weeklyCtx, {
-        type: 'bar',
-        data: {
-            labels: chartData.weekly.labels,
-            datasets: [{
-                label: 'Completed Tasks',
-                data: chartData.weekly.data,
-                backgroundColor: '#10B981',
-                borderColor: '#059669',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: '#94a3b8'
-                    },
-                    grid: {
-                        color: '#334155'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#94a3b8'
-                    },
-                    grid: {
-                        color: '#334155'
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#94a3b8'
-                    }
-                }
-            }
-        }
-    });
-});
+} else {
+    console.log('Document already loaded, calling initializeCompoundFilter directly...');
+    // DOM is already loaded
+    initializeCompoundFilter();
+}
 </script>
 {% endblock %}
+

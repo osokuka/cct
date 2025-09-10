@@ -66,6 +66,23 @@ class Compound(models.Model):
     code = models.CharField(max_length=50, help_text="Compound code")
     name = models.CharField(max_length=200, help_text="Compound name")
     is_active = models.BooleanField(default=True)
+    
+    # Additional SQM quota for urgent cleaning requests
+    monthly_urgent_sqm_quota = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="Monthly SQM quota for urgent cleaning requests (optional)"
+    )
+    weekly_urgent_sqm_quota = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="Weekly SQM quota for urgent cleaning requests (optional)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -82,6 +99,50 @@ class Compound(models.Model):
     def total_sqm(self):
         """Calculate total SQM for all rooms in this compound."""
         return sum(room.actual_sqm for room in self.rooms.filter(is_active=True) if room.actual_sqm)
+    
+    @property
+    def has_urgent_sqm_quota(self):
+        """Check if compound has any urgent SQM quota allocated."""
+        return self.monthly_urgent_sqm_quota is not None or self.weekly_urgent_sqm_quota is not None
+    
+    @property
+    def urgent_sqm_quota_display(self):
+        """Get formatted urgent SQM quota display string."""
+        if not self.has_urgent_sqm_quota:
+            return "No urgent SQM quota allocated"
+        
+        parts = []
+        if self.monthly_urgent_sqm_quota:
+            parts.append(f"Monthly: {self.monthly_urgent_sqm_quota:,.2f} m²")
+        if self.weekly_urgent_sqm_quota:
+            parts.append(f"Weekly: {self.weekly_urgent_sqm_quota:,.2f} m²")
+        
+        return " | ".join(parts)
+    
+    def get_urgent_sqm_quota_for_period(self, period_type='monthly'):
+        """Get urgent SQM quota amount for specific period type."""
+        if period_type == 'monthly':
+            return self.monthly_urgent_sqm_quota
+        elif period_type == 'weekly':
+            return self.weekly_urgent_sqm_quota
+        return None
+    
+    def get_remaining_urgent_sqm_quota(self, period_type='monthly', used_sqm=0):
+        """Calculate remaining urgent SQM quota after usage."""
+        quota = self.get_urgent_sqm_quota_for_period(period_type)
+        if not quota:
+            return None
+        
+        remaining = quota - used_sqm
+        return max(remaining, 0)  # Don't go below 0
+    
+    def can_allocate_urgent_sqm(self, requested_sqm, period_type='monthly', used_sqm=0):
+        """Check if compound can allocate requested urgent SQM."""
+        remaining_quota = self.get_remaining_urgent_sqm_quota(period_type, used_sqm)
+        if remaining_quota is None:
+            return False
+        
+        return requested_sqm <= remaining_quota
 
 
 class Building(models.Model):
@@ -295,7 +356,7 @@ class Room(models.Model):
     def generate_barcode_data(self) -> str:
         """
         Generate barcode data string for this room
-        Format: C1-D-B87-R101 (max 14 characters)
+        Format: C1-D-B87-R101 (max 16 characters)
         """
         from accounts.barcode_service import BarcodeService
         return BarcodeService.generate_barcode_data(self)
@@ -314,3 +375,87 @@ class Room(models.Model):
         Get barcode data for display
         """
         return self.generate_barcode_data()
+
+
+class UrgentCleaningRequest(models.Model):
+    """
+    Model for urgent cleaning requests made by admin, manager, or authority users.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    compound = models.ForeignKey(Compound, on_delete=models.CASCADE, related_name='urgent_requests')
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='urgent_requests')
+    title = models.CharField(max_length=200, help_text="Brief title for the urgent cleaning request")
+    description = models.TextField(help_text="Detailed description of the cleaning requirements")
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    requested_sqm = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        help_text="SQM area that needs urgent cleaning"
+    )
+    estimated_duration = models.IntegerField(
+        help_text="Estimated duration in hours",
+        validators=[MinValueValidator(1), MaxValueValidator(24)]
+    )
+    requested_date = models.DateTimeField(default=timezone.now)
+    preferred_start_time = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text="Preferred start time for the cleaning"
+    )
+    approved_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='approved_urgent_requests'
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, help_text="Additional notes or comments")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Urgent Cleaning Request"
+        verbose_name_plural = "Urgent Cleaning Requests"
+    
+    def __str__(self):
+        return f"Urgent Request: {self.title} - {self.compound.name} ({self.get_status_display()})"
+    
+    @property
+    def is_approved(self):
+        return self.status == 'approved'
+    
+    @property
+    def is_completed(self):
+        return self.status == 'completed'
+    
+    @property
+    def is_pending(self):
+        return self.status == 'pending'
+    
+    @property
+    def can_be_approved(self):
+        return self.status == 'pending'
+    
+    @property
+    def can_be_completed(self):
+        return self.status in ['approved', 'in_progress']

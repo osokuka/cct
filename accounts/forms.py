@@ -65,6 +65,12 @@ class UserUpdateForm(forms.ModelForm):
     camp = forms.ModelChoiceField(queryset=Camp.objects.filter(is_active=True), required=False)
     is_team_leader = forms.BooleanField(required=False)
     phone_number = forms.CharField(max_length=20, required=False)
+    compounds = forms.ModelMultipleChoiceField(
+        queryset=Compound.objects.filter(is_active=True),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        help_text="Select compounds for Authority users to supervise"
+    )
     
     class Meta:
         model = User
@@ -80,6 +86,52 @@ class UserUpdateForm(forms.ModelForm):
                 camp = self.request.user.profile.camp
                 if camp:
                     self.fields['camp'].queryset = Camp.objects.filter(id=camp.id)
+        
+        # Set initial values for all profile fields
+        if self.instance.pk and not self.is_bound:
+            try:
+                profile = self.instance.profile
+                # Set initial values for profile fields
+                self.fields['role'].initial = profile.role
+                self.fields['camp'].initial = profile.camp
+                self.fields['is_team_leader'].initial = profile.is_team_leader
+                self.fields['phone_number'].initial = profile.phone_number
+                
+                # Set initial compound assignments for Authority users
+                if profile.role == 'authority':
+                    compound_ids = CompoundAssignment.objects.filter(
+                        user=self.instance, 
+                        is_active=True
+                    ).values_list('compound_id', flat=True)
+                    self.fields['compounds'].initial = compound_ids
+            except UserProfile.DoesNotExist:
+                pass
+        
+        # Add camp ID to compound choices for JavaScript filtering
+        if 'compounds' in self.fields:
+            self.fields['compounds'].queryset = self.fields['compounds'].queryset.select_related('camp')
+            
+        # Ensure compounds are filtered by the user's camp if not admin
+        if self.request and hasattr(self.request.user, 'profile'):
+            if self.request.user.profile.role != 'admin':
+                camp = self.request.user.profile.camp
+                if camp:
+                    self.fields['compounds'].queryset = self.fields['compounds'].queryset.filter(camp=camp)
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        role = cleaned_data.get('role')
+        compounds = cleaned_data.get('compounds')
+        
+        # Authority users must have at least one compound assignment
+        if role == 'authority' and not compounds:
+            raise forms.ValidationError("Authority users must be assigned to at least one compound.")
+        
+        # Non-authority users should not have compound assignments
+        if role != 'authority' and compounds:
+            cleaned_data['compounds'] = []
+            
+        return cleaned_data
     
     def save(self, commit=True):
         user = super().save(commit=commit)
@@ -92,8 +144,13 @@ class UserUpdateForm(forms.ModelForm):
             profile.save()
             
             # Handle compound assignments for authority users
-            if self.cleaned_data['role'] == 'authority' and self.cleaned_data.get('compounds'):
-                for compound in self.cleaned_data['compounds']:
+            if self.cleaned_data['role'] == 'authority':
+                # Remove existing assignments first
+                CompoundAssignment.objects.filter(user=user).delete()
+                
+                # Add new assignments
+                compounds = self.cleaned_data.get('compounds', [])
+                for compound in compounds:
                     CompoundAssignment.objects.create(
                         user=user,
                         compound=compound,

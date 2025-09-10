@@ -37,8 +37,8 @@ RUN mkdir -p /app/staticfiles /app/media /var/log
 RUN echo '#!/bin/bash\ncd /app\npython manage.py daily_task_maintenance' > /app/run_maintenance.sh
 RUN chmod +x /app/run_maintenance.sh
 
-# Add cron job (runs daily at 11:59 PM) - run as cronuser
-RUN echo '59 23 * * * cronuser /app/run_maintenance.sh >> /var/log/cron.log 2>&1' | crontab -
+# Add cron job (runs daily at 11:59 PM) - run as root
+RUN echo '59 23 * * * /app/run_maintenance.sh >> /var/log/cron.log 2>&1' | crontab -
 
 # Create log file and set permissions
 RUN touch /var/log/cron.log && chown cronuser:cronuser /var/log/cron.log

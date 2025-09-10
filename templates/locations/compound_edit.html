@@ -231,6 +231,48 @@
                 {% endif %}
             </div>
             
+            <!-- Urgent SQM Quota Section -->
+            <div class="form-section">
+                <h3><i class="fa-solid fa-exclamation-triangle mr-2"></i>Urgent SQM Quota</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Set additional SQM quota for urgent cleaning requests. This quota can be allocated by Authority users when emergency cleaning is needed.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Monthly Urgent SQM Quota -->
+                    <div class="form-group">
+                        <label for="{{ form.monthly_urgent_sqm_quota.id_for_label }}">{{ form.monthly_urgent_sqm_quota.label }}</label>
+                        {{ form.monthly_urgent_sqm_quota }}
+                        {% if form.monthly_urgent_sqm_quota.help_text %}
+                            <div class="help-text">{{ form.monthly_urgent_sqm_quota.help_text }}</div>
+                        {% endif %}
+                        {% if form.monthly_urgent_sqm_quota.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.monthly_urgent_sqm_quota.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Weekly Urgent SQM Quota -->
+                    <div class="form-group">
+                        <label for="{{ form.weekly_urgent_sqm_quota.id_for_label }}">{{ form.weekly_urgent_sqm_quota.label }}</label>
+                        {{ form.weekly_urgent_sqm_quota }}
+                        {% if form.weekly_urgent_sqm_quota.help_text %}
+                            <div class="help-text">{{ form.weekly_urgent_sqm_quota.help_text }}</div>
+                        {% endif %}
+                        {% if form.weekly_urgent_sqm_quota.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.weekly_urgent_sqm_quota.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
             <!-- Form Actions -->
             <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                 <a href="{% url 'locations:compound_list' %}" class="px-6 py-3 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide btn-industrial">

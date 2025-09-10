@@ -66,6 +66,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Add static file serving middleware for development
+if DEBUG:
+    MIDDLEWARE.insert(0, "django.contrib.staticfiles.middleware.StaticFilesMiddleware")
+
 ROOT_URLCONF = "cct.urls"
 
 TEMPLATES = [

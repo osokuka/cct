@@ -4,7 +4,7 @@
 **Project Name:** ARCOM Cleaning Management System  
 **Implementation Period:** August - September 2025  
 **Current Status:** Production Ready  
-**Last Updated:** September 6, 2025
+**Last Updated:** September 10, 2025
 
 ## System Architecture
 
@@ -50,12 +50,22 @@
 - **Interactive charts** showing compound performance
 - **Task completion monitoring**
 - **Missed task identification** and reporting
+- **Accurate SQM progress tracking** based on room cleaning requirements
+- **Urgent SQM usage monitoring** with proper quota calculations
 
 #### 6. Daily Maintenance Automation
 - **Automated task state updates** (planned → missed)
 - **Scheduled maintenance** via Docker cron
 - **Comprehensive reporting** and logging
 - **Error handling** and recovery
+
+#### 7. Urgent Cleaning Request System
+- **Urgent cleaning request creation** with compound pre-selection
+- **Room filtering** based on selected compound
+- **Status management** (pending, approved, in_progress, completed, rejected)
+- **Barcode-based completion** for cleaners
+- **Quota tracking** for urgent SQM usage
+- **Authority dashboard integration** with urgent request monitoring
 
 ## Technical Implementation
 
@@ -69,6 +79,9 @@
 - Route (team, compounds)
 - DailyCleaningTask (room, date, state, team)
 - CompoundAssignment (authority, compound)
+- UrgentCleaningRequest (compound, rooms, status, requested_sqm)
+- Compound (monthly_urgent_sqm_quota, weekly_urgent_sqm_quota)
+- Room (weekly_required_sqm, monthly_cap_sqm, actual_sqm)
 ```
 
 ### Key Views and URLs
@@ -78,6 +91,9 @@
 - **Task Management:** `/accounts/task-generation/`, `/accounts/task-assignment/`
 - **Location Management:** `/locations/`
 - **Barcode Generation:** `/accounts/barcode-generator/`
+- **Urgent Cleaning:** `/locations/urgent-cleaning/` (list, create, detail)
+- **Barcode Scanner:** `/accounts/scan/` (with urgent request integration)
+- **Authority Dashboard:** `/authority/` (with urgent SQM usage tracking)
 
 ### Security Features
 - **CSRF protection** on all forms
@@ -99,11 +115,22 @@
 8. **Daily Maintenance** - Automated task state management
 9. **Docker Configuration** - Production-ready containerization
 10. **Documentation** - Comprehensive setup and usage guides
+11. **Urgent Cleaning System** - Complete request management with barcode integration
+12. **SQM Progress Tracking** - Accurate calculations based on room requirements
+13. **Urgent SQM Quota Management** - Proper tracking and usage monitoring
 
 ### 🔄 In Progress
 - **Production deployment** testing
 - **Performance optimization** for large datasets
 - **Mobile responsiveness** improvements
+
+### 🆕 Recent Updates (September 10, 2025)
+1. **Fixed Urgent SQM Quota Calculation** - Now only counts completed urgent requests
+2. **Enhanced Urgent Cleaning List** - Shows all statuses including completed tasks
+3. **Corrected SQM Progress Calculations** - Uses actual room cleaning requirements instead of arbitrary percentages
+4. **Fixed Percentage Display Issues** - Capped at 100% maximum to prevent unrealistic values
+5. **Improved Authority Dashboard** - Better integration of urgent request monitoring
+6. **Enhanced Barcode Scanner** - Added urgent request completion functionality
 
 ### 📋 Planned Features
 1. **Email/SMS notifications** for missed tasks
@@ -264,12 +291,15 @@ The ARCOM Cleaning Management System has been successfully implemented with all 
 3. **Automated maintenance** reducing manual overhead
 4. **Comprehensive reporting** for management insights
 5. **Scalable architecture** for future growth
+6. **Urgent cleaning request management** with barcode integration
+7. **Accurate progress tracking** based on actual room cleaning requirements
+8. **Proper quota management** for urgent SQM usage
 
-The system is production-ready and can be deployed immediately with the provided Docker configuration. Ongoing maintenance and monitoring procedures are in place to ensure continued operation and performance.
+The system is production-ready and can be deployed immediately with the provided Docker configuration. Recent updates have significantly improved the accuracy of progress calculations and urgent request management. Ongoing maintenance and monitoring procedures are in place to ensure continued operation and performance.
 
 ---
 
 **Project Team:** AI Assistant  
 **Project Manager:** User  
-**Completion Date:** September 6, 2025  
-**Status:** ✅ Production Ready
+**Last Major Update:** September 10, 2025  
+**Status:** ✅ Production Ready with Recent Enhancements

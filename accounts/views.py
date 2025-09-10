@@ -135,9 +135,16 @@ def check_permission(request, required_roles):
 
 
 def get_authority_compound_ids(user):
-    """Get compound IDs that an Authority user can access."""
-    if not hasattr(user, 'profile') or user.profile.role != 'authority':
+    """Get compound IDs that an Authority, Admin, or Manager user can access."""
+    if not hasattr(user, 'profile') or user.profile.role not in ['authority', 'admin', 'manager']:
         return []
+    
+    # For admin and manager users, return all compounds
+    if user.profile.role in ['admin', 'manager']:
+        from locations.models import Compound
+        return list(Compound.objects.filter(is_active=True).values_list('id', flat=True))
+    
+    # For authority users, return only assigned compounds
     return list(CompoundAssignment.objects.filter(
         user=user, 
         is_active=True
@@ -333,7 +340,7 @@ def user_update(request, profile_uuid):
     else:
         form = UserUpdateForm(instance=user, request=request)
     
-    context = {'form': form, 'user': user}
+    context = {'form': form, 'user_being_edited': user}
     return render(request, 'accounts/user_update.html', context)
 
 
@@ -1451,16 +1458,16 @@ def cleaner_historical_tasks(request):
         for route in cleaner_routes:
             route_compounds.extend(route.compounds.all())
         
-        # Filter tasks by team AND by compounds in their routes
+        # Filter tasks by team AND by compounds in their routes, also include individual assignments
         if route_compounds:
             tasks = DailyCleaningTask.objects.filter(
-                assigned_to_team__in=user_teams,
+                Q(assigned_to_team__in=user_teams) | Q(assigned_to_user=request.user),
                 room__compound__in=route_compounds
             ).select_related('room', 'room__compound', 'room__building', 'assigned_to_team', 'shift')
         else:
-            # If no routes, show tasks from all teams
+            # If no routes, show tasks from all teams and individual assignments
             tasks = DailyCleaningTask.objects.filter(
-                assigned_to_team__in=user_teams
+                Q(assigned_to_team__in=user_teams) | Q(assigned_to_user=request.user)
             ).select_related('room', 'room__compound', 'room__building', 'assigned_to_team', 'shift')
     
     # Order by task date (newest first)

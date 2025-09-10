@@ -45,6 +45,29 @@ Real-time Task Monitoring & Team Performance
             </a>
         </div>
     </div>
+     
+    <!-- Urgent Requests Alert for Cleaners -->
+    {% if urgent_cleaning_requests_count > 0 %}
+    <div class="metallic-card rounded-lg p-6 border border-orange-300 mb-6 bg-orange-50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fa-solid fa-exclamation-triangle text-orange-500 text-2xl mr-4"></i>
+                <div>
+                    <h3 class="heading-font font-bold text-lg text-orange-800 uppercase tracking-wide">URGENT CLEANING REQUESTS</h3>
+                    <p class="text-orange-700">You have {{ urgent_cleaning_requests_count }} urgent request{{ urgent_cleaning_requests_count|pluralize }} that need attention</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="bg-orange-500 text-white px-4 py-2 rounded-full text-lg font-bold">
+                    {{ urgent_cleaning_requests_count }}
+                </span>
+                <a href="{% url 'accounts:urgent_requests_list' %}" class="bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-orange-700 transition-colors">
+                    <i class="fa-solid fa-list mr-2"></i>VIEW REQUESTS
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     {% endif %}
     
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">

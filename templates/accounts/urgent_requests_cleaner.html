@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Urgent Requests - Cleaner{% endblock %}
+{% block page_title %}URGENT REQUESTS{% endblock %}
+{% block page_subtitle %}Active urgent cleaning requests in your compounds{% endblock %}
+
+{% block content %}
+<div class="px-4 lg:px-6 py-6">
+    <div class="metallic-card rounded-lg p-6 border border-orange-300 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <i class="fa-solid fa-exclamation-triangle text-orange-500 text-xl mr-3"></i>
+                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">Active Urgent Requests</h3>
+            </div>
+            <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-semibold">{{ urgent_requests|length }} requests</span>
+        </div>
+        {% if urgent_requests %}
+            <div class="space-y-3">
+                {% for req in urgent_requests %}
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-1">
+                                <span class="bg-orange-500 text-white px-2 py-1 rounded text-xs font-bold mr-2">{{ req.get_priority_display }}</span>
+                                <span class="text-sm font-semibold text-gray-900">{{ req.title }}</span>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">{{ req.description }}</div>
+                            <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                <span><i class="fa-solid fa-building mr-1"></i>{{ req.compound.name }}</span>
+                                <span><i class="fa-solid fa-ruler mr-1"></i>{{ req.requested_sqm }} m²</span>
+                                <span><i class="fa-solid fa-clock mr-1"></i>{{ req.estimated_duration }}h</span>
+                                <span><i class="fa-solid fa-bolt mr-1"></i>{{ req.get_status_display }}</span>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <a href="{% url 'accounts:barcode_scanner' %}?urgent_request={{ req.id }}" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors">
+                                <i class="fa-solid fa-qrcode mr-2"></i>SCAN TO COMPLETE
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">No active urgent requests.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+

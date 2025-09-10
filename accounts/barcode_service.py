@@ -1,6 +1,6 @@
 """
 Barcode Generation Service for Room Identification
-Generates Code128 barcodes with format: C1-D-B87-R101 (max 14 chars)
+Generates Code128 barcodes with format: C1-D-B87-R101 (max 16 chars)
 """
 
 import os
@@ -21,7 +21,7 @@ class BarcodeService:
     def generate_barcode_data(room) -> str:
         """
         Generate barcode data string for a room
-        Format: C1-D-B87-R101 (max 14 characters)
+        Format: C1-D-B87-R101 (max 16 characters)
         """
         # Get camp code (first 2 characters, pad if needed)
         camp_code = room.floor.building.compound.camp.code[:2].upper()
@@ -45,18 +45,20 @@ class BarcodeService:
         elif len(building_num) < 3:
             building_num = building_num.ljust(3, '0')
         
-        # Get room code (first 4 characters, pad with zeros if needed)
-        room_code = room.room_code[:4].upper()
-        if len(room_code) < 4:
-            room_code = room_code.ljust(4, '0')
+        # Get room code candidate and normalize by removing non-alphanumeric characters
+        # Using more of the room code helps avoid collisions like "26-F" vs "26-FI"
+        raw_room_code = (room.room_code or "")
+        room_code = ''.join(ch for ch in raw_room_code.upper() if ch.isalnum())
         
         # Construct barcode data
         barcode_data = f"{camp_code}-{compound_code}-{building_num}-{room_code}"
         
-        # Ensure it doesn't exceed 14 characters
-        if len(barcode_data) > 14:
-            # Truncate room code if needed
-            max_room_chars = 14 - len(f"{camp_code}-{compound_code}-{building_num}-")
+        # Ensure it doesn't exceed 16 characters
+        if len(barcode_data) > 16:
+            # Truncate room code if needed to fit exactly within 16 characters maximum
+            max_room_chars = 16 - len(f"{camp_code}-{compound_code}-{building_num}-")
+            # Guard against negative in case prefixes alone exceed target (very unlikely with current scheme)
+            max_room_chars = max(0, max_room_chars)
             room_code = room_code[:max_room_chars]
             barcode_data = f"{camp_code}-{compound_code}-{building_num}-{room_code}"
         

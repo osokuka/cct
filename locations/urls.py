@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import urgent_cleaning_views
 
 app_name = 'locations'
 
@@ -36,4 +37,21 @@ urlpatterns = [
     path('ajax/load-compounds/', views.ajax_load_compounds, name='ajax_load_compounds'),
     path('ajax/load-buildings/', views.ajax_load_buildings, name='ajax_load_buildings'),
     path('ajax/load-floors/', views.ajax_load_floors, name='ajax_load_floors'),
+    
+    # Urgent Cleaning Request URLs
+    path('urgent-test/', urgent_cleaning_views.test_urgent_cleaning, name='urgent_cleaning_test'),
+    path('urgent-test-detail/<uuid:request_id>/', urgent_cleaning_views.test_urgent_detail, name='urgent_cleaning_test_detail'),
+    path('urgent-cleaning/', urgent_cleaning_views.urgent_cleaning_request_list, name='urgent_cleaning_request_list'),
+    path('urgent-cleaning/create/', urgent_cleaning_views.urgent_cleaning_request_create, name='urgent_cleaning_request_create'),
+    path('urgent-cleaning/<uuid:request_id>/', urgent_cleaning_views.urgent_cleaning_request_detail, name='urgent_cleaning_request_detail'),
+    path('urgent-cleaning/<uuid:request_id>/approve/', urgent_cleaning_views.urgent_cleaning_request_approve, name='urgent_cleaning_request_approve'),
+    path('urgent-cleaning/<uuid:request_id>/reject/', urgent_cleaning_views.urgent_cleaning_request_reject, name='urgent_cleaning_request_reject'),
+    path('urgent-cleaning/<uuid:request_id>/complete/', urgent_cleaning_views.urgent_cleaning_request_complete, name='urgent_cleaning_request_complete'),
+    path('urgent-cleaning/<uuid:request_id>/cancel/', urgent_cleaning_views.urgent_cleaning_request_cancel, name='urgent_cleaning_request_cancel'),
+    path('urgent-cleaning/ajax/', urgent_cleaning_views.urgent_cleaning_request_ajax, name='urgent_cleaning_request_ajax'),
+    
+    # AJAX endpoints for urgent cleaning
+    path('ajax/load-rooms/', urgent_cleaning_views.ajax_load_rooms, name='ajax_load_rooms_urgent'),
+    path('ajax/urgent-quota-info/', urgent_cleaning_views.ajax_urgent_quota_info, name='ajax_urgent_quota_info'),
+    path('ajax/urgent-requests-for-cleaners/', urgent_cleaning_views.urgent_requests_for_cleaners, name='urgent_requests_for_cleaners'),
 ]
