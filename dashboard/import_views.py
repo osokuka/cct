@@ -14,7 +14,8 @@ import io
 import re
 from datetime import datetime
 from cct.mixins import AdminRequiredMixin
-from locations.models import Camp, Compound, Building, Floor, Room, Shift
+from locations.models import Camp, Compound, Building, Floor, Room
+from accounts.models import Shift
 from cct.utils import generate_barcode_data
 
 

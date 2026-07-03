@@ -291,6 +291,49 @@ def dashboard(request):
             status__in=['approved', 'in_progress']
         ).count()
     
+    # Determine active team types in the field
+    active_teams = Team.objects.filter(is_active=True, camp__in=camps)
+    has_cleaning_teams = active_teams.filter(team_type='cleaning').exists()
+    has_collection_teams = active_teams.filter(team_type='collection').exists()
+    
+    # Default to cleaning if no teams are configured yet
+    if not has_cleaning_teams and not has_collection_teams:
+        has_cleaning_teams = True
+        
+    # Calculate cleaning-specific KPIs (SQM)
+    cleaning_stats = {}
+    if has_cleaning_teams:
+        cleaning_rooms = Room.objects.filter(is_active=True, camp__in=camps).exclude(space_type='dumpster')
+        cleaning_tasks = stats_tasks.exclude(room__space_type='dumpster')
+        cleaning_completed = cleaning_tasks.filter(state='done')
+        
+        total_sqm = cleaning_rooms.aggregate(total=Sum('actual_sqm'))['total'] or Decimal('0.0')
+        completed_sqm = cleaning_completed.aggregate(total=Sum('sla_credit_sqm'))['total'] or Decimal('0.0')
+        
+        cleaning_stats = {
+            'total_sqm': total_sqm,
+            'completed_sqm': completed_sqm,
+            'completion_rate': float((completed_sqm / total_sqm * 100) if total_sqm > 0 else 0)
+        }
+        
+    # Calculate garbage collection-specific KPIs (Dumpster counts)
+    collection_stats = {}
+    if has_collection_teams:
+        collection_rooms = Room.objects.filter(is_active=True, camp__in=camps, space_type='dumpster')
+        collection_tasks = stats_tasks.filter(room__space_type='dumpster')
+        collection_completed = collection_tasks.filter(state='done')
+        
+        total_dumpsters = collection_rooms.count()
+        collected_dumpsters = collection_completed.count()
+        planned_dumpsters = collection_tasks.count()
+        
+        collection_stats = {
+            'total_dumpsters': total_dumpsters,
+            'collected_dumpsters': collected_dumpsters,
+            'planned_dumpsters': planned_dumpsters,
+            'completion_rate': float((collected_dumpsters / planned_dumpsters * 100) if planned_dumpsters > 0 else 0)
+        }
+
     # Basic statistics
     context.update({
         'total_users': User.objects.filter(is_active=True).count(),
@@ -305,11 +348,15 @@ def dashboard(request):
         'urgent_requests': urgent_requests,
         'today': today,
         'show_all_tasks': show_all_tasks,
-        'user_role': user_role, # Added user_role to context
-        'cleaner_teams': cleaner_teams, # Added for cleaner dashboard
-        'cleaner_routes': cleaner_routes, # Added for cleaner dashboard
-        'show_all_cleaner_tasks': show_all_cleaner_tasks, # Added for cleaner task filtering
-        'urgent_cleaning_requests_count': urgent_cleaning_requests_count, # Added for cleaner urgent requests count
+        'user_role': user_role,
+        'cleaner_teams': cleaner_teams,
+        'cleaner_routes': cleaner_routes,
+        'show_all_cleaner_tasks': show_all_cleaner_tasks,
+        'urgent_cleaning_requests_count': urgent_cleaning_requests_count,
+        'has_cleaning_teams': has_cleaning_teams,
+        'has_collection_teams': has_collection_teams,
+        'cleaning_stats': cleaning_stats,
+        'collection_stats': collection_stats,
     })
     
     return render(request, 'dashboard/dashboard.html', context)

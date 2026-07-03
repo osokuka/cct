@@ -226,9 +226,12 @@ class GenerateRosterView(AdminRequiredMixin, View):
                             shift = self.get_shift_for_task(room, task_index, shifts)
                             
                             # Find team assigned to this compound and shift via route
+                            # Filters by correct team type (collection for dumpsters, cleaning for rooms)
+                            team_type_needed = 'collection' if room.space_type == 'dumpster' else 'cleaning'
                             route = Route.objects.filter(
-                                compound=room.floor.building.compound,
-                                shift=shift,
+                                compounds=room.floor.building.compound,
+                                team__shift=shift,
+                                team__team_type=team_type_needed,
                                 is_active=True
                             ).first()
                             

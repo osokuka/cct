@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Completed Collections History — NATO Camp Garbage Collection{% endblock %}
+{% block title %}Completed Tasks History — NATO Camp Cleaning & Collection{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b border-gray-700">
         <div>
-            <h1 class="heading-font text-3xl font-bold text-white uppercase tracking-wider">Completed Collections History</h1>
-            <p class="text-gray-400 text-sm mt-1">Read-optimized historical log of completed dumpster collections and compliance counts.</p>
+            <h1 class="heading-font text-3xl font-bold text-white uppercase tracking-wider">Completed Tasks History</h1>
+            <p class="text-gray-400 text-sm mt-1">Read-optimized historical log of completed cleaning tasks (Sqm credits) and dumpster collections.</p>
         </div>
         <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
             <a href="?{{ request.GET.urlencode }}&export=xlsx" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
@@ -26,7 +26,7 @@
         <form method="GET" action="" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <div>
                 <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Search Text</label>
-                <input type="text" name="search" value="{{ filters.search }}" placeholder="Dumpster Tag ID, Team..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+                <input type="text" name="search" value="{{ filters.search }}" placeholder="Code/Tag, Team..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
             </div>
             
             <div>
@@ -64,7 +64,7 @@
                 <select name="team_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
                     <option value="">All Teams</option>
                     {% for team in teams %}
-                    <option value="{{ team.id }}" {% if filters.team == team.id|stringformat:"s" %}selected{% endif %}>{{ team.name }}</option>
+                    <option value="{{ team.id }}" {% if filters.team == team.id|stringformat:"s" %}selected{% endif %}>{{ team.name }} ({{ team.get_team_type_display }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -87,11 +87,11 @@
                 <thead>
                     <tr class="bg-gray-950 border-b border-gray-800 text-gray-400 text-xs font-bold uppercase tracking-wider">
                         <th class="py-4 px-6">Completed Time</th>
-                        <th class="py-4 px-6">Dumpster Path</th>
-                        <th class="py-4 px-6">Dumpster Tag ID (RFID)</th>
+                        <th class="py-4 px-6">Location Path</th>
+                        <th class="py-4 px-6">Code / Tag ID</th>
                         <th class="py-4 px-6">Team</th>
                         <th class="py-4 px-6">Completed By</th>
-                        <th class="py-4 px-6 text-right">Collections Count</th>
+                        <th class="py-4 px-6 text-right">Credit / Count</th>
                         <th class="py-4 px-6 text-center">Requested?</th>
                         {% if user_role == 'admin' %}
                         <th class="py-4 px-6 text-center">Actions</th>
@@ -105,16 +105,30 @@
                         <td class="py-4 px-6 text-xs text-gray-400">
                             {{ task.room.camp.name }} > {{ task.room.compound.name }} > {{ task.room.building.name }} > {{ task.room.floor.name }}
                         </td>
-                        <td class="py-4 px-6 font-mono text-steel-blue font-semibold">{{ task.room.room_code }}</td>
-                        <td class="py-4 px-6">{{ task.assigned_to_team.name|default:"Scanner" }}</td>
+                        <td class="py-4 px-6 font-mono text-steel-blue font-semibold">
+                            {{ task.room.room_code }}
+                            {% if task.room.space_type == 'dumpster' %}
+                            <span class="ml-1 px-1 py-0.5 bg-amber-950 text-amber-400 rounded text-xs font-semibold uppercase tracking-wide">Dumpster</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            {{ task.assigned_to_team.name|default:"Scanner" }}
+                            <span class="text-xs text-gray-500 block uppercase">{{ task.assigned_to_team.get_team_type_display }}</span>
+                        </td>
                         <td class="py-4 px-6">
                             {% if task.assigned_to_user %}
                             {{ task.assigned_to_user.username }}
                             {% else %}
-                            <span class="text-gray-500 font-mono text-xs">RFID Scan</span>
+                            <span class="text-gray-500 font-mono text-xs">{% if task.room.space_type == 'dumpster' %}RFID Scan{% else %}Barcode Scan{% endif %}</span>
                             {% endif %}
                         </td>
-                        <td class="py-4 px-6 text-right font-mono text-white">1.0</td>
+                        <td class="py-4 px-6 text-right font-mono text-white">
+                            {% if task.room.space_type == 'dumpster' %}
+                            1.0 collection
+                            {% else %}
+                            {{ task.sla_credit_sqm }} m²
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-6 text-center">
                             {% if task.task_type != 'regular' %}
                             <span class="px-2 py-0.5 bg-amber-950 text-amber-400 rounded border border-amber-800 text-xs font-semibold uppercase">Yes</span>
@@ -132,7 +146,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="py-8 text-center text-gray-500 font-medium">No completed dumpster collections in history matching filters.</td>
+                        <td colspan="8" class="py-8 text-center text-gray-500 font-medium">No completed tasks in history matching filters.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -158,7 +172,7 @@
 
 <script>
     function deleteCompleted(taskId, roomCode) {
-        if (!confirm('Are you absolutely sure you want to delete this completed dumpster collection record for dumpster ' + roomCode + '? This action is audited.')) {
+        if (!confirm('Are you absolutely sure you want to delete this completed record for ' + roomCode + '? This will void the SLA credit and delete the record. This action is audited.')) {
             return;
         }
         

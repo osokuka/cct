@@ -118,6 +118,16 @@ class Team(models.Model):
         blank=True,
         help_text="Team members"
     )
+    TEAM_TYPE_CHOICES = [
+        ('cleaning', 'Cleaning Team'),
+        ('collection', 'Garbage Collection Team'),
+    ]
+    team_type = models.CharField(
+        max_length=50,
+        choices=TEAM_TYPE_CHOICES,
+        default='cleaning',
+        help_text="Type of team (Cleaning or Garbage Collection)"
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

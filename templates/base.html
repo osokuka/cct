@@ -212,11 +212,11 @@
                         </a>
                         <a href="{% url 'dashboard:tasks_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'tasks_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                             <i class="fa-solid fa-list-check mr-3 text-xs"></i>
-                            <span class="text-xs">All Tasks</span>
+                            <span class="text-xs">Roster Tasks</span>
                         </a>
                         <a href="{% url 'dashboard:completed_tasks_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'completed_tasks_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                             <i class="fa-solid fa-history mr-3 text-xs"></i>
-                            <span class="text-xs">Completed Tasks</span>
+                            <span class="text-xs">Completed History</span>
                         </a>
                 </div>
             </div>
@@ -239,7 +239,7 @@
                     </a>
                     <a href="{% url 'dashboard:rooms_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'rooms_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-door-open mr-3 text-xs"></i>
-                        <span class="text-xs">Rooms</span>
+                        <span class="text-xs">Spaces & Dumpsters</span>
                     </a>
                 </div>
             </div>

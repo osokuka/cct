@@ -1,30 +1,30 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Dumpsters Table — NATO Camp Garbage Collection{% endblock %}
+{% block title %}Space & Dumpster Registry — NATO Camp Cleaning & Collection{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b border-gray-700">
         <div>
-            <h1 class="heading-font text-3xl font-bold text-white uppercase tracking-wider">Dumpster Registry</h1>
-            <p class="text-gray-400 text-sm mt-1">Industrial tabular overview of all waste dumpsters, schedules, and active statuses.</p>
+            <h1 class="heading-font text-3xl font-bold text-white uppercase tracking-wider">Space & Dumpster Registry</h1>
+            <p class="text-gray-400 text-sm mt-1">Industrial tabular overview of all camp rooms, offices, toilets, and dumpsters, including cleaning area and collection schedules.</p>
         </div>
         <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
             {% if user_role in 'admin,manager' %}
             <button onclick="openBulkShiftModal()" class="px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
                 <i class="fa-solid fa-clock mr-2"></i>Assign Shift
             </button>
-            <button onclick="bulkGenerateBarcodes()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
-                <i class="fa-solid fa-rss mr-2"></i>Generate RFIDs
+            <button onclick="bulkGenerateBarcodes()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg" title="Print/Generate barcode & RFID tags">
+                <i class="fa-solid fa-rss mr-2"></i>Generate Tags
             </button>
             <a href="?{{ request.GET.urlencode }}&export=xlsx" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
                 <i class="fa-solid fa-file-excel mr-2"></i>Excel
             </a>
             {% endif %}
             <a href="?{{ request.GET.urlencode }}&barcode_pdf=true" class="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
-                <i class="fa-solid fa-file-pdf mr-2"></i>Print RFID Sheets PDF
+                <i class="fa-solid fa-file-pdf mr-2"></i>Print Sheets PDF
             </a>
         </div>
     </div>
@@ -35,7 +35,7 @@
             <div>
                 <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Search Text</label>
                 <div class="relative">
-                    <input type="text" name="search" value="{{ filters.search }}" placeholder="Tag ID, Location..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+                    <input type="text" name="search" value="{{ filters.search }}" placeholder="Code/Tag, Location..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
                     {% if filters.search %}
                     <a href="?{% for k,v in request.GET.items %}{% if k != 'search' %}{{ k }}={{ v }}&{% endif %}{% endfor %}" class="absolute right-3 top-2.5 text-gray-500 hover:text-white"><i class="fa-solid fa-times"></i></a>
                     {% endif %}
@@ -73,11 +73,15 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Status</label>
-                <select name="active_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
-                    <option value="">All Statuses</option>
-                    <option value="active" {% if filters.active == 'active' %}selected{% endif %}>Active Only</option>
-                    <option value="inactive" {% if filters.active == 'inactive' %}selected{% endif %}>Inactive Only</option>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Space Type</label>
+                <select name="space_type_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    <option value="room" {% if filters.space_type == 'room' %}selected{% endif %}>Room</option>
+                    <option value="office" {% if filters.space_type == 'office' %}selected{% endif %}>Office</option>
+                    <option value="corridor" {% if filters.space_type == 'corridor' %}selected{% endif %}>Corridor</option>
+                    <option value="toilet" {% if filters.space_type == 'toilet' %}selected{% endif %}>Toilet</option>
+                    <option value="dumpster" {% if filters.space_type == 'dumpster' %}selected{% endif %}>Dumpster (Garbage)</option>
+                    <option value="other" {% if filters.space_type == 'other' %}selected{% endif %}>Other</option>
                 </select>
             </div>
             
@@ -96,7 +100,7 @@
     <div id="bulk-bar" class="hidden bg-gray-800 border border-steel-blue rounded-xl p-4 mb-4 flex flex-col sm:flex-row justify-between items-center gap-4 transition-all duration-200">
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-circle-info text-steel-blue"></i>
-            <span class="text-sm text-white font-medium"><span id="selected-count" class="font-bold">0</span> dumpsters selected</span>
+            <span class="text-sm text-white font-medium"><span id="selected-count" class="font-bold">0</span> records selected</span>
         </div>
         <div class="flex gap-2">
             <button onclick="bulkStatusChange(true)" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold rounded uppercase tracking-wider">Activate</button>
@@ -118,12 +122,13 @@
                             <input type="checkbox" id="select-all" class="w-4 h-4 rounded text-steel-blue bg-gray-800 border-gray-700 focus:ring-steel-blue focus:ring-2" onchange="toggleSelectAll(this)">
                         </th>
                         <th class="py-4 px-6">Location Path</th>
-                        <th class="py-4 px-6">Dumpster Tag ID (RFID)</th>
-                        <th class="py-4 px-6">Location Description</th>
-                        <th class="py-4 px-6 text-center">Collection Freq (D / W / M)</th>
-                        <th class="py-4 px-6">Shift Binding</th>
+                        <th class="py-4 px-6">Space Type</th>
+                        <th class="py-4 px-6">Code / Tag ID</th>
+                        <th class="py-4 px-6">Description</th>
+                        <th class="py-4 px-6 text-right">Sqm Area</th>
+                        <th class="py-4 px-6 text-center">Frequency (D / W / M)</th>
                         <th class="py-4 px-6 text-center">Status</th>
-                        <th class="py-4 px-6 text-center">RFID Code</th>
+                        <th class="py-4 px-6 text-center">Barcode / RFID</th>
                         {% if user_role in 'admin,manager,supervisor' %}
                         <th class="py-4 px-6 text-center">Actions</th>
                         {% endif %}
@@ -139,19 +144,28 @@
                             <span class="text-xs text-gray-500 uppercase font-semibold block">{{ room.camp.name }}</span>
                             <span class="text-white">{{ room.compound.name }}</span> <span class="text-gray-500">/</span> <span class="text-gray-400">{{ room.building.name }}</span>
                         </td>
+                        <td class="py-4 px-6 font-semibold uppercase text-xs">
+                            {% if room.space_type == 'dumpster' %}
+                            <span class="px-2 py-0.5 bg-amber-950 text-amber-400 rounded border border-amber-800">Dumpster</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 bg-gray-800 text-gray-400 rounded border border-gray-700">{{ room.get_space_type_display }}</span>
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-6 font-mono text-steel-blue font-semibold">{{ room.room_code }}</td>
                         <td class="py-4 px-6">{{ room.room_description|default:"—" }}</td>
+                        <td class="py-4 px-6 text-right font-mono text-white">
+                            {% if room.space_type == 'dumpster' %}
+                            <span class="text-gray-600">—</span>
+                            {% else %}
+                            {{ room.actual_sqm }} m²
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-6 text-center font-mono text-gray-400">
                             <span class="text-emerald-500 font-semibold">{{ room.frequency_per_day|floatformat:0 }}</span>
                             <span class="text-gray-600">/</span>
                             <span class="text-sky-500 font-semibold">{{ room.frequency_per_week|floatformat:0 }}</span>
                             <span class="text-gray-600">/</span>
                             <span class="text-amber-500 font-semibold">{{ room.max_frequency_per_month }}</span>
-                        </td>
-                        <td class="py-4 px-6 text-xs uppercase font-medium">
-                            <span class="px-2.5 py-1 bg-gray-800 text-gray-400 rounded-full border border-gray-700">
-                                {{ room.custom_field_value|default:"None" }}
-                            </span>
                         </td>
                         <td class="py-4 px-6 text-center">
                             {% if room.is_active %}
@@ -161,18 +175,18 @@
                             {% endif %}
                         </td>
                         <td class="py-4 px-6 text-center">
-                            <span class="font-mono text-xs text-gray-500 hover:text-white cursor-help block" title="RFID Code: {{ room.generate_barcode_data }}">
+                            <span class="font-mono text-xs text-gray-500 hover:text-white cursor-help block" title="Tag Code: {{ room.generate_barcode_data }}">
                                 {{ room.generate_barcode_data }}
                             </span>
                         </td>
                         {% if user_role in 'admin,manager,supervisor' %}
                         <td class="py-4 px-6 text-center">
                             <div class="inline-flex gap-1">
-                                <button onclick='openEditModal({{ room.id|json_script:"room_id_data" }}, "{{ room.room_code }}", "{{ room.room_description|escapejs }}", "{{ room.actual_sqm }}", {{ room.is_active|yesno:"true,false" }}, "{{ room.frequency_per_day }}", "{{ room.frequency_per_week }}", "{{ room.max_frequency_per_month }}")' class="w-8 h-8 rounded bg-gray-800 hover:bg-steel-blue hover:text-white flex items-center justify-center text-gray-400 transition-colors" title="Edit Dumpster">
+                                <button onclick='openEditModal({{ room.id|json_script:"room_id_data" }}, "{{ room.room_code }}", "{{ room.room_description|escapejs }}", "{{ room.space_type }}", "{{ room.actual_sqm }}", {{ room.is_active|yesno:"true,false" }}, "{{ room.frequency_per_day }}", "{{ room.frequency_per_week }}", "{{ room.max_frequency_per_month }}")' class="w-8 h-8 rounded bg-gray-800 hover:bg-steel-blue hover:text-white flex items-center justify-center text-gray-400 transition-colors" title="Edit Space">
                                     <i class="fa-solid fa-edit text-xs"></i>
                                 </button>
                                 {% if user_role == 'admin' %}
-                                <button onclick="deleteSingleRoom('{{ room.id }}', '{{ room.room_code }}')" class="w-8 h-8 rounded bg-gray-800 hover:bg-red-600 hover:text-white flex items-center justify-center text-gray-400 transition-colors" title="Delete Dumpster">
+                                <button onclick="deleteSingleRoom('{{ room.id }}', '{{ room.room_code }}')" class="w-8 h-8 rounded bg-gray-800 hover:bg-red-600 hover:text-white flex items-center justify-center text-gray-400 transition-colors" title="Delete Space">
                                     <i class="fa-solid fa-trash-can text-xs"></i>
                                 </button>
                                 {% endif %}
@@ -182,7 +196,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="py-8 text-center text-gray-500 font-medium">No dumpsters match the selected filters.</td>
+                        <td colspan="10" class="py-8 text-center text-gray-500 font-medium">No rooms or dumpsters match the selected filters.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -210,7 +224,7 @@
 <div id="edit-modal" class="hidden fixed inset-0 z-50 overflow-y-auto flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
     <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg mx-4 overflow-hidden shadow-2xl">
         <div class="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-gray-950">
-            <h3 class="heading-font text-lg font-bold text-white uppercase tracking-wider" id="modal-title">Edit Dumpster Details</h3>
+            <h3 class="heading-font text-lg font-bold text-white uppercase tracking-wider" id="modal-title">Edit Registry Space Details</h3>
             <button onclick="closeEditModal()" class="text-gray-500 hover:text-white"><i class="fa-solid fa-times text-lg"></i></button>
         </div>
         <form id="edit-form" class="p-6 space-y-4">
@@ -220,8 +234,27 @@
             
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Dumpster Tag ID / RFID (Read-Only)</label>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Space Code / RFID Tag (Read-Only)</label>
                     <input type="text" id="edit-room-code" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-500 focus:outline-none" readonly>
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Space Type</label>
+                    <select name="space_type" id="edit-room-type" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-steel-blue focus:outline-none" onchange="toggleSqmInput(this.value)">
+                        <option value="room">Room</option>
+                        <option value="office">Office</option>
+                        <option value="meeting_room">Meeting Room</option>
+                        <option value="corridor">Corridor</option>
+                        <option value="laundry_room">Laundry Room</option>
+                        <option value="toilet">Toilet</option>
+                        <option value="balcony">Balcony</option>
+                        <option value="front_yard">Front Yard</option>
+                        <option value="garage">Garage</option>
+                        <option value="container">Container</option>
+                        <option value="mwa">MWA</option>
+                        <option value="dumpster">Dumpster (Garbage Collection)</option>
+                        <option value="other">Other</option>
+                    </select>
                 </div>
                 
                 <div class="col-span-2">
@@ -229,9 +262,9 @@
                     <input type="text" name="room_description" id="edit-room-desc" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-steel-blue focus:outline-none">
                 </div>
 
-                <div class="hidden">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Area Reference</label>
-                    <input type="number" step="0.01" name="actual_sqm" id="edit-room-sqm" value="1.00">
+                <div class="col-span-2" id="sqm-input-wrapper">
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Area Reference (Sqm)</label>
+                    <input type="number" step="0.01" name="actual_sqm" id="edit-room-sqm" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-steel-blue focus:outline-none">
                 </div>
 
                 <div class="col-span-2">
@@ -243,17 +276,17 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Collections Per Day</label>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Target Freq Per Day</label>
                     <input type="number" step="0.1" name="frequency_per_day" id="edit-room-freq-day" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-steel-blue focus:outline-none" required>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Collections Per Week</label>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Target Freq Per Week</label>
                     <input type="number" step="0.1" name="frequency_per_week" id="edit-room-freq-week" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-steel-blue focus:outline-none" required>
                 </div>
 
                 <div class="col-span-2">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Max Collections Per Month</label>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Max Freq Per Month</label>
                     <input type="number" name="max_frequency_per_month" id="edit-room-freq-month" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-steel-blue focus:outline-none" required>
                 </div>
             </div>
@@ -338,18 +371,31 @@
     }
 
     // Modal Operations
-    function openEditModal(roomId, code, description, sqm, isActive, freqDay, freqWeek, freqMonth) {
+    function openEditModal(roomId, code, description, spaceType, sqm, isActive, freqDay, freqWeek, freqMonth) {
         let rId = (typeof roomId === 'object') ? JSON.parse(document.getElementById('room_id_data').textContent) : roomId;
         document.getElementById('edit-room-id').value = rId;
         document.getElementById('edit-room-code').value = code;
         document.getElementById('edit-room-desc').value = description;
-        document.getElementById('edit-room-sqm').value = "1.00";
+        document.getElementById('edit-room-type').value = spaceType;
+        document.getElementById('edit-room-sqm').value = sqm;
         document.getElementById('edit-room-active').value = isActive ? 'true' : 'false';
         document.getElementById('edit-room-freq-day').value = freqDay;
         document.getElementById('edit-room-freq-week').value = freqWeek;
         document.getElementById('edit-room-freq-month').value = freqMonth;
         
+        toggleSqmInput(spaceType);
         document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function toggleSqmInput(spaceType) {
+        const sqmWrapper = document.getElementById('sqm-input-wrapper');
+        const sqmInput = document.getElementById('edit-room-sqm');
+        if (spaceType === 'dumpster') {
+            sqmWrapper.classList.add('hidden');
+            sqmInput.value = "1.00";
+        } else {
+            sqmWrapper.classList.remove('hidden');
+        }
     }
 
     function closeEditModal() {
@@ -358,7 +404,7 @@
 
     function openBulkShiftModal() {
         if (selectedRoomIds.length === 0) {
-            alert('Please select at least one dumpster.');
+            alert('Please select at least one record.');
             return;
         }
         document.getElementById('shift-modal').classList.remove('hidden');
@@ -418,7 +464,7 @@
     }
 
     function bulkDelete() {
-        if (!confirm('Are you absolutely sure you want to delete ' + selectedRoomIds.length + ' dumpsters? This action is audited and permanent.')) {
+        if (!confirm('Are you absolutely sure you want to delete ' + selectedRoomIds.length + ' records? This action is audited and permanent.')) {
             return;
         }
         const formData = new FormData();
@@ -446,7 +492,7 @@
     }
 
     function deleteSingleRoom(roomId, roomCode) {
-        if (!confirm('Are you sure you want to delete dumpster ' + roomCode + '? This action is audited and permanent.')) {
+        if (!confirm('Are you sure you want to delete ' + roomCode + '? This action is audited and permanent.')) {
             return;
         }
         const formData = new FormData();
@@ -464,7 +510,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showNotification('success', 'Dumpster deleted successfully.');
+                showNotification('success', 'Space deleted successfully.');
                 setTimeout(() => window.location.reload(), 1000);
             } else {
                 alert('Error: ' + data.error);
@@ -505,7 +551,7 @@
 
     function bulkGenerateBarcodes() {
         if (selectedRoomIds.length === 0) {
-            alert('Please select at least one dumpster.');
+            alert('Please select at least one record.');
             return;
         }
         let url = "?barcode_pdf=true";

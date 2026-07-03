@@ -215,6 +215,7 @@ class Room(models.Model):
         ('garage', 'Garage'),
         ('container', 'Container'),
         ('mwa', 'MWA'),
+        ('dumpster', 'Dumpster (Garbage Collection)'),
         ('other', 'Other'),
     ]
 
@@ -324,6 +325,16 @@ class Room(models.Model):
         """
         from django.core.exceptions import ValidationError
         
+        # If space_type is dumpster, auto-fill defaults to bypass physical sqm requirements
+        if self.space_type == 'dumpster':
+            self.square_meters = Decimal('1.00')
+            self.actual_sqm = Decimal('1.00')
+            self.quantity_of_rooms = 1
+            if self.frequency_per_week:
+                self.weekly_required_sqm = self.frequency_per_week
+            if self.max_frequency_per_month:
+                self.monthly_cap_sqm = Decimal(str(self.max_frequency_per_month))
+
         # Date validation
         if self.service_start_date and self.service_end_date:
             if self.service_start_date > self.service_end_date:
@@ -334,20 +345,21 @@ class Room(models.Model):
             if self.frequency_per_week > self.max_frequency_per_month:
                 raise ValidationError("Frequency per week cannot exceed max frequency per month")
         
-        # Area validation
-        if self.actual_sqm and self.square_meters:
-            if self.actual_sqm > self.square_meters:
-                raise ValidationError("Actual Sqm cannot exceed Square Meters")
-        
-        # SLA validation (with tolerance)
-        if self.actual_sqm and self.frequency_per_week and self.weekly_required_sqm:
-            expected_weekly_sqm = self.actual_sqm * self.frequency_per_week
-            tolerance = expected_weekly_sqm * Decimal('0.02')  # 2% tolerance
-            if abs(self.weekly_required_sqm - expected_weekly_sqm) > tolerance:
-                raise ValidationError(
-                    f"Weekly required Sqm ({self.weekly_required_sqm}) should be approximately "
-                    f"Actual Sqm × Frequency Per Week ({expected_weekly_sqm})"
-                )
+        # Area validation (run only for non-dumpster spaces)
+        if self.space_type != 'dumpster':
+            if self.actual_sqm and self.square_meters:
+                if self.actual_sqm > self.square_meters:
+                    raise ValidationError("Actual Sqm cannot exceed Square Meters")
+            
+            # SLA validation (with tolerance)
+            if self.actual_sqm and self.frequency_per_week and self.weekly_required_sqm:
+                expected_weekly_sqm = self.actual_sqm * self.frequency_per_week
+                tolerance = expected_weekly_sqm * Decimal('0.02')  # 2% tolerance
+                if abs(self.weekly_required_sqm - expected_weekly_sqm) > tolerance:
+                    raise ValidationError(
+                        f"Weekly required Sqm ({self.weekly_required_sqm}) should be approximately "
+                        f"Actual Sqm × Frequency Per Week ({expected_weekly_sqm})"
+                    )
 
     def save(self, *args, **kwargs):
         self.clean()

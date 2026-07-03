@@ -17,8 +17,9 @@ import re
 from datetime import datetime, date
 from decimal import Decimal
 from cct.mixins import AdminRequiredMixin
-from locations.models import Camp, Compound, Building, Floor, Room, Shift, Team, Route
-from scans.models import DailyCleaningTask
+from locations.models import Camp, Compound, Building, Floor, Room
+from accounts.models import Shift, Team, Route
+from accounts.task_generation import DailyCleaningTask
 from cct.utils import generate_barcode_data
 
 
