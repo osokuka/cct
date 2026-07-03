@@ -459,3 +459,33 @@ class UrgentCleaningRequest(models.Model):
     @property
     def can_be_completed(self):
         return self.status in ['approved', 'in_progress']
+
+
+class MonthlyRollup(models.Model):
+    """
+    Materialized rollup model for fast reporting and compliance calculations.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='monthly_rollups')
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='monthly_rollups')
+    compound = models.ForeignKey(Compound, on_delete=models.CASCADE, related_name='monthly_rollups')
+    camp = models.ForeignKey(Camp, on_delete=models.CASCADE, related_name='monthly_rollups')
+    period_start = models.DateField(help_text="Start of the rollup period")
+    period_end = models.DateField(help_text="End of the rollup period")
+    required_weekly_sqm = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    achieved_weekly_sqm = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    achieved_monthly_sqm = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    capped_monthly_sqm = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    sla_weekly_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    sla_monthly_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-period_start', 'room__room_code']
+        unique_together = ['room', 'period_start', 'period_end']
+        verbose_name = "Monthly Rollup"
+        verbose_name_plural = "Monthly Rollups"
+
+    def __str__(self):
+        return f"Rollup: {self.room.room_code} ({self.period_start} to {self.period_end})"

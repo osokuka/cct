@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Completed Collections History — NATO Camp Garbage Collection{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b border-gray-700">
+        <div>
+            <h1 class="heading-font text-3xl font-bold text-white uppercase tracking-wider">Completed Collections History</h1>
+            <p class="text-gray-400 text-sm mt-1">Read-optimized historical log of completed dumpster collections and compliance counts.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+            <a href="?{{ request.GET.urlencode }}&export=xlsx" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
+                <i class="fa-solid fa-file-excel mr-2"></i>Excel Export
+            </a>
+            <a href="?{{ request.GET.urlencode }}&export=csv" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
+                <i class="fa-solid fa-file-csv mr-2"></i>CSV Export
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-8 shadow-xl">
+        <form method="GET" action="" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Search Text</label>
+                <input type="text" name="search" value="{{ filters.search }}" placeholder="Dumpster Tag ID, Team..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+            </div>
+            
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Start Date</label>
+                <input type="date" name="date_start" value="{{ filters.date_start }}" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">End Date</label>
+                <input type="date" name="date_end" value="{{ filters.date_end }}" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Compound</label>
+                <select name="compound_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
+                    <option value="">All Compounds</option>
+                    {% for comp in compounds %}
+                    <option value="{{ comp.id }}" {% if filters.compound == comp.id|stringformat:"s" %}selected{% endif %}>{{ comp.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Building/Sector</label>
+                <select name="building_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
+                    <option value="">All Buildings</option>
+                    {% for bldg in buildings %}
+                    <option value="{{ bldg.id }}" {% if filters.building == bldg.id|stringformat:"s" %}selected{% endif %}>{{ bldg.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Team</label>
+                <select name="team_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
+                    <option value="">All Teams</option>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if filters.team == team.id|stringformat:"s" %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 flex justify-end gap-2 mt-2">
+                <button type="submit" class="px-5 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-md">
+                    <i class="fa-solid fa-filter mr-2"></i>Filter
+                </button>
+                <a href="?" class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-md">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-xl overflow-hidden mb-8">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-950 border-b border-gray-800 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                        <th class="py-4 px-6">Completed Time</th>
+                        <th class="py-4 px-6">Dumpster Path</th>
+                        <th class="py-4 px-6">Dumpster Tag ID (RFID)</th>
+                        <th class="py-4 px-6">Team</th>
+                        <th class="py-4 px-6">Completed By</th>
+                        <th class="py-4 px-6 text-right">Collections Count</th>
+                        <th class="py-4 px-6 text-center">Requested?</th>
+                        {% if user_role == 'admin' %}
+                        <th class="py-4 px-6 text-center">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800 text-sm text-gray-300">
+                    {% for task in page_obj %}
+                    <tr class="hover:bg-gray-950 hover:bg-opacity-50 transition-colors" id="row-{{ task.id }}">
+                        <td class="py-4 px-6 font-mono text-white">{{ task.completed_at|date:"Y-m-d H:i" }}</td>
+                        <td class="py-4 px-6 text-xs text-gray-400">
+                            {{ task.room.camp.name }} > {{ task.room.compound.name }} > {{ task.room.building.name }} > {{ task.room.floor.name }}
+                        </td>
+                        <td class="py-4 px-6 font-mono text-steel-blue font-semibold">{{ task.room.room_code }}</td>
+                        <td class="py-4 px-6">{{ task.assigned_to_team.name|default:"Scanner" }}</td>
+                        <td class="py-4 px-6">
+                            {% if task.assigned_to_user %}
+                            {{ task.assigned_to_user.username }}
+                            {% else %}
+                            <span class="text-gray-500 font-mono text-xs">RFID Scan</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-right font-mono text-white">1.0</td>
+                        <td class="py-4 px-6 text-center">
+                            {% if task.task_type != 'regular' %}
+                            <span class="px-2 py-0.5 bg-amber-950 text-amber-400 rounded border border-amber-800 text-xs font-semibold uppercase">Yes</span>
+                            {% else %}
+                            <span class="text-gray-600">No</span>
+                            {% endif %}
+                        </td>
+                        {% if user_role == 'admin' %}
+                        <td class="py-4 px-6 text-center">
+                            <button onclick="deleteCompleted('{{ task.id }}', '{{ task.room.room_code }}')" class="w-8 h-8 rounded bg-gray-800 hover:bg-red-600 hover:text-white flex items-center justify-center text-gray-400 transition-colors" title="Delete Log">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-gray-500 font-medium">No completed dumpster collections in history matching filters.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination Bar -->
+        {% if page_obj.has_other_pages %}
+        <div class="bg-gray-950 px-6 py-4 border-t border-gray-800 flex justify-between items-center">
+            <span class="text-xs text-gray-500">Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <div class="inline-flex gap-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded text-xs font-semibold transition-colors">Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded text-xs font-semibold transition-colors">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function deleteCompleted(taskId, roomCode) {
+        if (!confirm('Are you absolutely sure you want to delete this completed dumpster collection record for dumpster ' + roomCode + '? This action is audited.')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('action', 'delete_completed');
+        formData.append('task_id', taskId);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', data.message);
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+
+    function showNotification(type, message) {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-5 right-5 z-50 px-6 py-3 rounded-lg text-white font-semibold text-sm shadow-2xl transition-all duration-300 transform translate-y-10 opacity-0 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.remove('translate-y-10', 'opacity-0');
+        }, 100);
+        
+        setTimeout(() => {
+            toast.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>
+{% endblock %}

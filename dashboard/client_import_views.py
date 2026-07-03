@@ -347,37 +347,50 @@ class ProcessClientImportView(AdminRequiredMixin, View):
                         defaults={'code': floor_name}
                     )
                     
+                    # Determine space type based on room name
+                    space_type = 'room'
+                    if 'toilet' in room_name.lower():
+                        space_type = 'toilet'
+                    elif 'container' in room_name.lower():
+                        space_type = 'container'
+
                     # Create or update room with SLA fields
                     room, room_created = Room.objects.get_or_create(
                         floor=floor,
-                        name=room_name,
+                        room_code=room_name,
                         defaults={
-                            'code': room_name,
-                            'sqm': row_data['sqm'],
-                            'actual_sqm': row_data['actual_sqm'],
-                            'qty_of_rooms': row_data['qty_rooms'],
-                            'frequency_per_day': row_data['freq_per_day'],
-                            'frequency_per_week': row_data['freq_per_week'],
-                            'max_freq_per_month': row_data['max_freq_per_month'],
-                            'weekly_required_sqm': row_data['total_sqm_week'],
-                            'monthly_cap_sqm': row_data['eom_invoicing_max'],
-                            'service_start': row_data['start_date'],
-                            'service_end': row_data['end_date'],
-                            'weeks_of_service': row_data['weeks_of_service']
+                            'camp': camp,
+                            'compound': compound,
+                            'building': building,
+                            'room_description': room_name,
+                            'space_type': space_type,
+                            'building_code': building.code,
+                            'square_meters': Decimal(str(row_data['sqm'])),
+                            'actual_sqm': Decimal(str(row_data['actual_sqm'])),
+                            'quantity_of_rooms': row_data['qty_rooms'],
+                            'frequency_per_day': Decimal(str(row_data['freq_per_day'])),
+                            'frequency_per_week': Decimal(str(row_data['freq_per_week'])),
+                            'max_frequency_per_month': row_data['max_freq_per_month'],
+                            'weekly_required_sqm': Decimal(str(row_data['total_sqm_week'])),
+                            'monthly_cap_sqm': Decimal(str(row_data['eom_invoicing_max'])),
+                            'service_start_date': row_data['start_date'],
+                            'service_end_date': row_data['end_date'],
+                            'weeks_of_service': row_data['weeks_of_service'],
+                            'is_active': True
                         }
                     )
                     
                     if not room_created:
                         # Update existing room with new SLA data
-                        room.actual_sqm = row_data['actual_sqm']
-                        room.qty_of_rooms = row_data['qty_rooms']
-                        room.frequency_per_day = row_data['freq_per_day']
-                        room.frequency_per_week = row_data['freq_per_week']
-                        room.max_freq_per_month = row_data['max_freq_per_month']
-                        room.weekly_required_sqm = row_data['total_sqm_week']
-                        room.monthly_cap_sqm = row_data['eom_invoicing_max']
-                        room.service_start = row_data['start_date']
-                        room.service_end = row_data['end_date']
+                        room.actual_sqm = Decimal(str(row_data['actual_sqm']))
+                        room.quantity_of_rooms = row_data['qty_rooms']
+                        room.frequency_per_day = Decimal(str(row_data['freq_per_day']))
+                        room.frequency_per_week = Decimal(str(row_data['freq_per_week']))
+                        room.max_frequency_per_month = row_data['max_freq_per_month']
+                        room.weekly_required_sqm = Decimal(str(row_data['total_sqm_week']))
+                        room.monthly_cap_sqm = Decimal(str(row_data['eom_invoicing_max']))
+                        room.service_start_date = row_data['start_date']
+                        room.service_end_date = row_data['end_date']
                         room.weeks_of_service = row_data['weeks_of_service']
                         room.save()
                         updated_count += 1
