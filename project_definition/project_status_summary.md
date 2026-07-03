@@ -132,11 +132,20 @@
 14. **Excel SLA Reporting System** - Complete implementation with proper quota calculations
 15. **Authority Dashboard Filtering** - Fixed compound filter functionality
 16. **Report Generation** - Individual compound weekly and monthly reports
+17. **Epic 9 Industrial Tabular Registry & Board** - Integrated registry, daily board, history logs, and filters
+18. **Garbage Collection & RFID Tracking** - Hybrid system supporting SQM cleaning alongside RFID dumpster collection
 
 ### 🔄 In Progress
 - **Production deployment** testing
-- **Performance optimization** for large datasets
 - **Mobile responsiveness** improvements
+
+### 🆕 Recent Updates (July 3, 2026)
+1. **Implemented Hybrid Space & Dumpster Registry** - Added support for both public area SQM cleaning and RFID dumpster collection.
+2. **Added Team Types** - Created a separation between cleaning teams and garbage collection teams.
+3. **Dynamic Dashboard KPIs** - The dashboard dynamically hides SQM or Dumpster collection rate KPIs depending on active teams in the field.
+4. **Resolved Roster Routing Bugs** - Fixed `Route` query bug in `roster_views.py` and enabled correct auto-assignment of cleaning vs collection tasks.
+5. **Fixed Missing Mixins & Utilities** - Created `AdminRequiredMixin` and `generate_barcode_data` helper in `cct/` to fix CBV inheritance errors.
+6. **Docker Database Migrations** - Generated and ran migrations for accounts, locations, scans, and authority inside the Docker container.
 
 ### 🆕 Recent Updates (September 10, 2025)
 1. **Fixed Urgent SQM Quota Calculation** - Now only counts completed urgent requests
