@@ -157,6 +157,13 @@ class Building(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Street geometry (GeoJSON) so collection routes follow the real road layout
+    # instead of straight lines that cut across properties without streets.
+    geo_polyline = models.TextField(
+        blank=True, null=True,
+        help_text="GeoJSON MultiLineString of the street's road segments"
+    )
+
     class Meta:
         ordering = ['name']
         unique_together = ['compound', 'code']
@@ -216,8 +223,14 @@ class Room(models.Model):
         ('container', 'Container'),
         ('mwa', 'MWA'),
         ('dumpster', 'Dumpster (Garbage Collection)'),
+        ('park', 'Park / Green Space'),
+        ('city_center', 'City Center / Public Plaza'),
+        ('school_yard', 'School Yard'),
         ('other', 'Other'),
     ]
+
+    # Space types treated as public-area cleaning sites (SQM/SLA) on the map.
+    PUBLIC_AREA_TYPES = ['park', 'city_center', 'school_yard', 'front_yard']
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
@@ -305,6 +318,39 @@ class Room(models.Model):
         help_text="Custom field value"
     )
     
+    # Geolocation (for the operations map)
+    latitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Latitude for map placement (WGS84)"
+    )
+    longitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Longitude for map placement (WGS84)"
+    )
+    geo_polygon = models.TextField(
+        blank=True, null=True,
+        help_text="Optional GeoJSON geometry outlining a public area (Polygon)"
+    )
+
+    # Billing client for a collection point (dumpster). Anonymized on the map.
+    client = models.ForeignKey(
+        'CollectionClient', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='dumpsters',
+        help_text="Billing client for this dumpster/collection point"
+    )
+
+    # Weekly collection plan: which weekday (0=Mon..6=Sun) this point is serviced,
+    # so each team collects <= a daily cap and the week covers the whole area.
+    collection_weekday = models.IntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(6)],
+        help_text="Scheduled collection weekday (0=Mon..6=Sun)"
+    )
+    last_collected_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Timestamp of the most recent successful collection"
+    )
+
     # Status
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -387,6 +433,82 @@ class Room(models.Model):
         Get barcode data for display
         """
         return self.generate_barcode_data()
+
+    @property
+    def is_dumpster(self) -> bool:
+        return self.space_type == 'dumpster'
+
+    @property
+    def is_public_area(self) -> bool:
+        return self.space_type in self.PUBLIC_AREA_TYPES
+
+    @property
+    def can_collect(self) -> bool:
+        """
+        Whether a collection team may service this dumpster right now, based on the
+        billing client's payment status. Dumpsters without a client default to
+        blocked (must be confirmed before collecting).
+        """
+        if not self.is_dumpster:
+            return True
+        return bool(self.client and self.client.can_collect)
+
+
+class CollectionClient(models.Model):
+    """
+    Anonymized billing client for a garbage-collection point (dumpster).
+
+    Deliberately holds NO personal name so it can be safely exposed on the
+    operations map. Only an opaque `client_code` and the payment state are shown to
+    teams; any human-readable notes stay in `internal_note` (never serialized to the
+    map API).
+    """
+    PAYMENT_STATUS_CHOICES = [
+        ('paid', 'Paid'),
+        ('unpaid', 'Unpaid'),
+        ('overdue', 'Overdue'),
+        ('exempt', 'Exempt (public)'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    client_code = models.CharField(
+        max_length=50, unique=True,
+        help_text="Anonymized client identifier shown on the map (no name)"
+    )
+    compound = models.ForeignKey(
+        Compound, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='clients', help_text="Neighbourhood this client belongs to"
+    )
+    payment_status = models.CharField(
+        max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid'
+    )
+    paid_until = models.DateField(
+        null=True, blank=True, help_text="Service paid through this date (optional)"
+    )
+    internal_note = models.TextField(
+        blank=True, null=True,
+        help_text="Internal only — never exposed on the public map"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['client_code']
+        verbose_name = "Collection Client"
+        verbose_name_plural = "Collection Clients"
+
+    def __str__(self):
+        return f"{self.client_code} ({self.get_payment_status_display()})"
+
+    @property
+    def can_collect(self) -> bool:
+        """Collection allowed when paid/exempt and not past the paid-until date."""
+        if self.payment_status not in ('paid', 'exempt'):
+            return False
+        if self.paid_until and self.paid_until < timezone.localdate():
+            return False
+        return True
 
 
 class UrgentCleaningRequest(models.Model):

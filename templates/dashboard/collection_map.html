@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Operations Map — Gjakova{% endblock %}
+
+{% block page_title %}OPERATIONS MAP{% endblock %}
+{% block page_subtitle %}Gjakova — Garbage Collection & Public-Area Cleaning{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+    #ops-map { height: calc(100vh - 220px); min-height: 480px; width: 100%; border-radius: 0.5rem; z-index: 0; }
+    .map-legend { background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.25); font-size: 12px; line-height: 1.6; }
+    .legend-dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:6px; vertical-align:middle; border:1px solid rgba(0,0,0,0.3); }
+    .legend-sq { display:inline-block; width:12px; height:12px; margin-right:6px; vertical-align:middle; background:#2563eb; opacity:0.5; border:1px solid #2563eb; }
+    .pay-badge { display:inline-block; padding:1px 8px; border-radius:9999px; font-size:11px; font-weight:600; }
+    .pay-paid { background:#dcfce7; color:#166534; }
+    .pay-unpaid, .pay-unknown { background:#fee2e2; color:#991b1b; }
+    .pay-overdue { background:#ffedd5; color:#9a3412; }
+    .pay-exempt { background:#dbeafe; color:#1e40af; }
+</style>
+
+<div class="p-4 lg:p-6 space-y-4">
+    <!-- Stat strip -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Dumpsters</div>
+            <div id="stat-dumpsters" class="text-2xl font-bold text-dark-graphite heading-font">–</div>
+        </div>
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Collect (paid)</div>
+            <div id="stat-collect" class="text-2xl font-bold text-green-700 heading-font">–</div>
+        </div>
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Blocked (unpaid)</div>
+            <div id="stat-blocked" class="text-2xl font-bold text-red-700 heading-font">–</div>
+        </div>
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Public areas</div>
+            <div id="stat-areas" class="text-2xl font-bold text-steel-blue heading-font">–</div>
+        </div>
+    </div>
+
+    <div class="metallic-card rounded-lg p-3 border border-gray-300">
+        <div id="ops-map"></div>
+    </div>
+</div>
+
+<script id="map-config" type="application/json">
+{
+    "center": {"lat": {{ center.lat }}, "lng": {{ center.lng }}, "zoom": {{ center.zoom }}},
+    "dataUrl": "{% url 'dashboard:collection_map_data' %}"
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function () {
+    var cfg = JSON.parse(document.getElementById('map-config').textContent);
+
+    var map = L.map('ops-map').setView([cfg.center.lat, cfg.center.lng], cfg.center.zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var dumpsterLayer = L.layerGroup().addTo(map);
+    var areaLayer = L.layerGroup().addTo(map);
+
+    function payBadge(status, label) {
+        var cls = 'pay-' + (status || 'unknown');
+        return '<span class="pay-badge ' + cls + '">' + (label || status) + '</span>';
+    }
+
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+
+    function dumpsterPopup(d) {
+        var collect = d.can_collect
+            ? '<span style="color:#166534;font-weight:600;">&#10003; OK to collect</span>'
+            : '<span style="color:#991b1b;font-weight:600;">&#10007; Do NOT collect — confirm payment</span>';
+        return '<div style="min-width:200px">'
+            + '<div style="font-weight:700;font-size:13px;">Dumpster ' + escapeHtml(d.dumpster_id) + '</div>'
+            + '<div style="color:#6b7280;font-size:11px;margin-bottom:6px;">' + escapeHtml(d.barcode) + '</div>'
+            + '<table style="font-size:12px;width:100%">'
+            + '<tr><td style="color:#6b7280;">Client</td><td style="text-align:right;font-family:monospace;">' + escapeHtml(d.client_id || '—') + '</td></tr>'
+            + '<tr><td style="color:#6b7280;">Payment</td><td style="text-align:right;">' + payBadge(d.payment_status, d.payment_label) + '</td></tr>'
+            + (d.paid_until ? '<tr><td style="color:#6b7280;">Paid until</td><td style="text-align:right;">' + escapeHtml(d.paid_until) + '</td></tr>' : '')
+            + '<tr><td style="color:#6b7280;">Street</td><td style="text-align:right;">' + escapeHtml(d.street || '—') + '</td></tr>'
+            + '<tr><td style="color:#6b7280;">Location</td><td style="text-align:right;font-family:monospace;">' + d.lat.toFixed(5) + ', ' + d.lng.toFixed(5) + '</td></tr>'
+            + '<tr><td style="color:#6b7280;">Last collected</td><td style="text-align:right;">' + (d.last_collected ? new Date(d.last_collected).toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—') + '</td></tr>'
+            + '</table>'
+            + '<div style="margin-top:8px;padding-top:6px;border-top:1px solid #e5e7eb;">' + collect + '</div>'
+            + '</div>';
+    }
+
+    function areaPopup(a) {
+        return '<div style="min-width:180px">'
+            + '<div style="font-weight:700;font-size:13px;">' + escapeHtml(a.name) + '</div>'
+            + '<div style="color:#6b7280;font-size:11px;margin-bottom:6px;">' + escapeHtml(a.space_type_label) + '</div>'
+            + '<table style="font-size:12px;width:100%">'
+            + '<tr><td style="color:#6b7280;">Area</td><td style="text-align:right;">' + a.sqm.toLocaleString() + ' m&sup2;</td></tr>'
+            + '<tr><td style="color:#6b7280;">Freq/week</td><td style="text-align:right;">' + a.frequency_per_week + '</td></tr>'
+            + '<tr><td style="color:#6b7280;">Neighbourhood</td><td style="text-align:right;">' + escapeHtml(a.neighbourhood || '—') + '</td></tr>'
+            + '</table></div>';
+    }
+
+    function render(data) {
+        document.getElementById('stat-dumpsters').textContent = data.counts.dumpsters;
+        document.getElementById('stat-collect').textContent = data.counts.collectable;
+        document.getElementById('stat-blocked').textContent = data.counts.blocked;
+        document.getElementById('stat-areas').textContent = data.counts.public_areas;
+
+        var bounds = [];
+
+        (data.public_areas || []).forEach(function (a) {
+            var layer;
+            if (a.geojson) {
+                try {
+                    layer = L.geoJSON(JSON.parse(a.geojson), {
+                        style: { color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.25 }
+                    });
+                } catch (e) { layer = null; }
+            }
+            if (!layer) {
+                var radius = Math.max(30, Math.sqrt((a.sqm || 100) / Math.PI));
+                layer = L.circle([a.lat, a.lng], {
+                    radius: radius, color: '#2563eb', weight: 2,
+                    fillColor: '#2563eb', fillOpacity: 0.25
+                });
+            }
+            layer.bindPopup(areaPopup(a));
+            layer.addTo(areaLayer);
+            bounds.push([a.lat, a.lng]);
+        });
+
+        (data.dumpsters || []).forEach(function (d) {
+            var color = d.can_collect ? '#16a34a' : '#dc2626';
+            var marker = L.circleMarker([d.lat, d.lng], {
+                radius: 7, color: '#ffffff', weight: 1.5,
+                fillColor: color, fillOpacity: 0.95
+            });
+            marker.bindPopup(dumpsterPopup(d));
+            marker.addTo(dumpsterLayer);
+            bounds.push([d.lat, d.lng]);
+        });
+
+        if (bounds.length) {
+            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+        }
+    }
+
+    var legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function () {
+        var div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML =
+            '<div style="font-weight:700;margin-bottom:4px;">Legend</div>'
+            + '<div><span class="legend-dot" style="background:#16a34a"></span>Dumpster — paid (collect)</div>'
+            + '<div><span class="legend-dot" style="background:#dc2626"></span>Dumpster — unpaid (do not collect)</div>'
+            + '<div><span class="legend-sq"></span>Public area (SQM cleaning)</div>';
+        return div;
+    };
+    legend.addTo(map);
+
+    L.control.layers(null, {
+        'Dumpsters': dumpsterLayer,
+        'Public areas': areaLayer
+    }, { collapsed: false }).addTo(map);
+
+    fetch(cfg.dataUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.json(); })
+        .then(render)
+        .catch(function (e) { console.error('Failed to load map data', e); });
+})();
+</script>
+{% endblock %}

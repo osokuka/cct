@@ -19,12 +19,16 @@ from locations.models import Camp, Compound, Room, UrgentCleaningRequest
 def dashboard(request):
     """Main dashboard view with comprehensive management data."""
     # Check permissions - admin, manager, cleaner, and authority can access dashboard
-    if not check_permission(request, ['admin', 'manager', 'cleaner', 'authority']):
+    if not check_permission(request, ['admin', 'manager', 'operations_manager', 'cleaner', 'authority']):
         return redirect('accounts:login')
     
     # Redirect authority users to their dedicated dashboard
     if hasattr(request.user, 'profile') and request.user.profile.role == 'authority':
         return redirect('dashboard:authority_dashboard')
+    
+    # Redirect operations managers to the operations dashboard
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'operations_manager':
+        return redirect('dashboard:operations_dashboard')
     
     context = {}
     

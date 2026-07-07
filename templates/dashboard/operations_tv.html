@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gjakova Operations — TV Wall</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <style>
+        :root { --bg:#0b1220; --panel:#111a2e; --panel2:#0f1728; --line:#1e2a44; --muted:#8ea3c7; --text:#eef4ff; }
+        * { box-sizing: border-box; }
+        html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden; }
+        .wrap { display:flex; flex-direction:column; height:100vh; }
+        header { display:flex; align-items:center; justify-content:space-between; padding:14px 22px;
+            background:linear-gradient(90deg,#0f1930,#0b1220); border-bottom:1px solid var(--line); }
+        header .title { font-size:24px; font-weight:800; letter-spacing:.5px; }
+        header .title small { display:block; font-size:12px; color:var(--muted); font-weight:500; letter-spacing:2px; text-transform:uppercase; }
+        header .clock { text-align:right; }
+        header .clock .t { font-size:30px; font-weight:800; font-variant-numeric: tabular-nums; }
+        header .clock .d { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:2px; }
+        .datebar { display:flex; align-items:center; gap:6px; }
+        .datebar input[type=date] { background:var(--panel); color:#e6edf7; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:13px; color-scheme:dark; }
+        .datebar .dnav { background:var(--panel); color:#cfe0ff; border:1px solid var(--line); border-radius:8px; min-width:30px; height:32px; padding:0 9px; font-size:16px; font-weight:700; cursor:pointer; line-height:1; }
+        .datebar .dnav.today { font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:700; }
+        .datebar .dnav:hover { border-color:#3a4a6a; }
+        .datebar .dpill { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1px; padding:4px 8px; border-radius:9999px; display:none; }
+        .datebar .dpill.past { display:inline-block; background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.4); }
+        .datebar .dpill.future { display:inline-block; background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); }
+        .datebar .dpill.off { display:inline-block; background:rgba(148,163,184,0.15); color:#94a3b8; border:1px solid rgba(148,163,184,0.35); }
+        .kpis { display:flex; gap:14px; }
+        .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:8px 16px; min-width:120px; text-align:center; }
+        .kpi .v { font-size:26px; font-weight:800; font-variant-numeric: tabular-nums; }
+        .kpi .l { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; }
+        .body { flex:1; display:flex; min-height:0; }
+        .left { flex: 1 1 auto; position:relative; min-width:0; }
+        #tv-map { position:absolute; inset:0; }
+        .resizer { flex:0 0 7px; cursor:col-resize; background:var(--line); position:relative; }
+        .resizer:hover, .resizer.dragging { background:#3b82f6; }
+        .resizer::before { content:'⋮'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#6b82ad; font-size:16px; line-height:1; }
+        .resizer.hidden { display:none; }
+        .right { flex:0 0 auto; width:460px; border-left:1px solid var(--line); background:var(--panel2);
+            display:flex; flex-direction:column; min-height:0; }
+        .right.collapsed { display:none; }
+        .panel-h { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 4px; }
+        .panel-h .ttl { font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-weight:700; }
+        .icon-btn { background:#16223c; color:#cfe0ff; border:1px solid var(--line); border-radius:8px; width:30px; height:30px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+        .icon-btn:hover { background:#22345a; }
+        .panel-show { position:absolute; top:12px; right:12px; z-index:500; display:none; }
+        .panel-show.on { display:flex; }
+        .section-h { padding:12px 18px 8px; font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+        .teams { padding:0 14px 8px; overflow-y:auto; flex: 1 1 55%; }
+        .team { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .15s; }
+        .team:hover { border-color:#3b567f; }
+        .team.selected { border-color:#60a5fa; box-shadow:0 0 0 2px rgba(96,165,250,0.35); }
+        .team.dimmed { opacity:0.45; }
+        .focus-bar { display:none; align-items:center; justify-content:space-between; gap:10px; margin:0 14px 8px; padding:8px 12px; background:#0e2038; border:1px solid #2b4a7a; border-radius:10px; font-size:13px; }
+        .focus-bar.on { display:flex; }
+        .focus-bar button { background:#1e3a63; color:#dbeafe; border:none; border-radius:8px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+        .focus-bar button:hover { background:#26507f; }
+        .team .top { display:flex; justify-content:space-between; align-items:baseline; }
+        .team .nm { font-size:17px; font-weight:700; }
+        .team .pct { font-size:20px; font-weight:800; font-variant-numeric: tabular-nums; }
+        .team .meta { font-size:12px; color:var(--muted); margin:2px 0 8px; }
+        .bar { height:12px; border-radius:9999px; background:#1b2740; overflow:hidden; }
+        .bar > span { display:block; height:100%; transition:width .6s ease; }
+        .team .counts { font-size:12px; color:var(--muted); margin-top:8px; }
+        .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+        .streetlist { margin-top:10px; border-top:1px dashed var(--line); padding-top:8px; }
+        .street { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:8px; font-size:13px; cursor:pointer; }
+        .street:hover { background:#16223c; }
+        .street.sel { background:#0e2038; box-shadow:inset 0 0 0 1px #2b4a7a; }
+        .street .snm { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .street .scount { flex:0 0 auto; font-variant-numeric:tabular-nums; color:#cbd5e1; font-weight:700; }
+        .street .scount.full { color:#4ade80; }
+        .route-sum { font-size:12px; color:#cbd5e1; background:#0e1b30; border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin-top:8px; display:flex; gap:12px; flex-wrap:wrap; }
+        .route-sum b { color:#eef4ff; }
+        .st-detail { margin:4px 0 6px 6px; padding-left:8px; border-left:2px solid #2b4a7a; }
+        .drow { display:flex; align-items:center; gap:8px; padding:3px 4px; font-size:12px; }
+        .drow .ddot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+        .drow .dmeta { color:var(--muted); margin-left:auto; font-size:11px; }
+        .feed { flex: 1 1 45%; border-top:1px solid var(--line); overflow-y:auto; padding:0 14px 14px; }
+        .ev { display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:1px solid var(--line); font-size:14px; }
+        .ev .ico { width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:13px; flex:0 0 auto; }
+        .ev .tm { margin-left:auto; color:var(--muted); font-size:12px; font-variant-numeric: tabular-nums; }
+        .badge { font-size:11px; padding:1px 8px; border-radius:9999px; font-weight:700; }
+        .b-done { background:#0e3a24; color:#4ade80; }
+        .b-prog { background:#3a300e; color:#fbbf24; }
+        .map-toggles { position:absolute; top:12px; left:12px; z-index:500; display:flex; gap:8px; }
+        .tgl { background:rgba(10,16,30,0.88); color:#cfe0ff; border:1px solid var(--line); border-radius:8px; padding:6px 11px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:600; }
+        .tgl .sw { width:24px; height:13px; border-radius:9999px; background:#3a4a6a; position:relative; transition:background .15s; flex:0 0 auto; }
+        .tgl .sw::after { content:''; position:absolute; top:1px; left:1px; width:11px; height:11px; border-radius:50%; background:#0b1220; transition:left .15s; }
+        .tgl.on .sw { background:#22c55e; }
+        .tgl.on .sw::after { left:12px; background:#fff; }
+        .tgl:not(.on) { opacity:0.75; }
+        .tgl.basemap, .tgl.basemap:not(.on) { opacity:1; }
+        .tv-legend { background: rgba(10,16,30,0.85); color:#cfe0ff; padding:8px 10px; border-radius:8px; font-size:12px; line-height:1.6; border:1px solid var(--line); }
+        .tv-legend .dot { border:1px solid rgba(255,255,255,0.3); }
+        .empty { color:var(--muted); font-size:14px; padding:14px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <div class="title">GJAKOVA OPERATIONS<small>Live Field Monitoring</small></div>
+        <div class="kpis">
+            <div class="kpi"><div class="v" style="color:#fbbf24;" id="k-col">–</div><div class="l">Collection</div></div>
+            <div class="kpi"><div class="v" style="color:#60a5fa;" id="k-cln">–</div><div class="l">Cleaning</div></div>
+            <div class="kpi"><div class="v" style="color:#4ade80;" id="k-collect">–</div><div class="l">Collected</div></div>
+            <div class="kpi"><div class="v" style="color:#f87171;" id="k-block">–</div><div class="l">Not collected</div></div>
+        </div>
+        <div class="datebar" id="datebar">
+            <button class="dnav" id="date-prev" title="Previous day">‹</button>
+            <input type="date" id="date-input" />
+            <button class="dnav" id="date-next" title="Next day">›</button>
+            <button class="dnav today" id="date-today" title="Jump to today">Today</button>
+            <span class="dpill" id="date-pill"></span>
+        </div>
+        <div class="clock"><div class="t" id="clock">--:--</div><div class="d" id="date">—</div></div>
+    </header>
+    <div class="body">
+        <div class="left">
+            <div id="tv-map"></div>
+            <div class="map-toggles" id="map-toggles">
+                <button class="tgl" id="tgl-routes"><span class="sw"></span> Routes</button>
+                <button class="tgl" id="tgl-cleaning"><span class="sw"></span> Cleaning</button>
+                <button class="tgl basemap on" id="tgl-basemap"><span id="basemap-ico">🌙</span> <span id="basemap-lbl">Dark</span></button>
+            </div>
+            <button class="icon-btn panel-show" id="panel-show" title="Show panel">&#8918;</button>
+        </div>
+        <div class="resizer" id="resizer" title="Drag to resize"></div>
+        <div class="right" id="right-panel">
+            <div class="panel-h">
+                <span class="ttl">Today's Routes</span>
+                <button class="icon-btn" id="panel-hide" title="Hide panel">&#8919;</button>
+            </div>
+            <div class="focus-bar" id="focus-bar">
+                <span>Focused: <b id="focus-name">—</b></span>
+                <button id="focus-clear">Show all ✕</button>
+            </div>
+            <div class="teams" id="tv-teams"><div class="empty">Loading…</div></div>
+            <div class="section-h">Live Activity</div>
+            <div class="feed" id="tv-feed"><div class="empty">Waiting for field updates…</div></div>
+        </div>
+    </div>
+</div>
+
+<script id="tv-config" type="application/json">
+{"center": {"lat": {{ center.lat }}, "lng": {{ center.lng }}, "zoom": {{ center.zoom }}}, "dataUrl": "{% url 'dashboard:operations_data' %}"}
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function () {
+    var cfg = JSON.parse(document.getElementById('tv-config').textContent);
+
+    var map = L.map('tv-map', { zoomControl: false, attributionControl: false })
+        .setView([cfg.center.lat, cfg.center.lng], cfg.center.zoom);
+    var basemaps = {
+        dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }),
+        light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' })
+    };
+    var baseMode = 'dark';
+    try { baseMode = localStorage.getItem('tvBasemap') === 'light' ? 'light' : 'dark'; } catch (e) {}
+    function applyBasemap(mode) {
+        baseMode = mode;
+        map.removeLayer(basemaps.dark); map.removeLayer(basemaps.light);
+        basemaps[mode].addTo(map).bringToBack();
+        document.getElementById('basemap-ico').textContent = mode === 'dark' ? '🌙' : '☀️';
+        document.getElementById('basemap-lbl').textContent = mode === 'dark' ? 'Dark' : 'Light';
+        document.getElementById('tgl-basemap').classList.toggle('on', mode === 'dark');
+        try { localStorage.setItem('tvBasemap', mode); } catch (e) {}
+    }
+    applyBasemap(baseMode);
+
+    var dotLayer = L.layerGroup().addTo(map);
+    var lineLayer = L.layerGroup().addTo(map);
+    var fitted = false;
+    var lastData = null;
+    var selectedTeamId = null;
+    var selectedStreet = null;
+    var selectedDate = null;   // null => server default (today)
+    var routesOn = true, cleaningOn = true;
+    try { routesOn = localStorage.getItem('tvRoutes') !== '0'; cleaningOn = localStorage.getItem('tvCleaning') !== '0'; } catch (e) {}
+
+    var STATUS_COLOR = { collected:'#22c55e', awaiting:'#f59e0b', skip:'#ef4444' };
+    var STATUS_LABEL = { collected:'collected', awaiting:'awaiting', skip:'not collected' };
+    var planLabel = '';
+
+    function esc(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+    function routeLabel(t){
+        if (t.team_type === 'collection') return planLabel + ' Route · Team ' + t.team_no;
+        return planLabel + ' Cleaning · ' + esc(t.name.replace(/^Pastrimi\s*/i, '')) ;
+    }
+    function streetDumpsters(code){ return (lastData && (lastData.dumpsters||[]).filter(function(d){return d.street_code===code;})) || []; }
+    function timeStr(iso){ try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); } catch(e){ return ''; } }
+    function fmtDT(iso){ try { var d=new Date(iso); return d.toLocaleDateString([], {day:'2-digit',month:'short'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return '—'; } }
+    function teamById(id){ return (lastData && (lastData.teams||[]).filter(function(t){return t.id===id;})[0]) || null; }
+
+    function dumpsterPopup(d){
+        return '<div style="min-width:190px;font-size:13px;line-height:1.5">'
+            + '<div style="font-weight:700;margin-bottom:3px">🗑 ' + esc(d.dumpster_id) + '</div>'
+            + '<div>Client: <b>' + esc(d.client_id || '—') + '</b></div>'
+            + '<div>Payment: <b style="color:' + (d.paid ? '#16a34a' : '#dc2626') + '">' + (d.paid ? 'Paid' : 'Not paid') + '</b> <span style="color:#94a3b8">(' + esc(d.payment_label) + ')</span></div>'
+            + '<div>Status: <b style="color:' + (STATUS_COLOR[d.status]||'#888') + '">' + esc(d.status) + '</b></div>'
+            + '<div>Location: ' + d.lat.toFixed(5) + ', ' + d.lng.toFixed(5) + '</div>'
+            + '<div>Street: ' + esc(d.street || '—') + '</div>'
+            + '<div>Last collected: ' + (d.last_collected ? fmtDT(d.last_collected) : '—') + '</div>'
+            + '</div>';
+    }
+
+    function visibleDumpsters(data){
+        var arr = data.dumpsters || [];
+        if (selectedTeamId) arr = arr.filter(function(d){ return d.team_id === selectedTeamId; });
+        if (selectedStreet) arr = arr.filter(function(d){ return d.street_code === selectedStreet; });
+        return arr;
+    }
+
+    function renderMap(data) {
+        dotLayer.clearLayers(); lineLayer.clearLayers();
+        var bounds = [];
+        var team = selectedTeamId ? teamById(selectedTeamId) : null;
+
+        // LINES: master "Routes" toggle. Selected collection team -> its route
+        // (focused); no selection -> all teams' today routes as a light overview.
+        if (routesOn) {
+            var drawTeams;
+            if (team && team.team_type === 'collection') drawTeams = [team];
+            else if (!team) drawTeams = (data.teams || []).filter(function (x) { return x.team_type === 'collection'; });
+            else drawTeams = [];
+            drawTeams.forEach(function (tm) {
+                var focused = team && tm.id === team.id;
+                (tm.streets || []).forEach(function (s) {
+                    if (focused && selectedStreet && s.street_code !== selectedStreet) return;
+                    (s.segments || []).forEach(function (seg) {
+                        if (seg && seg.length > 1) {
+                            L.polyline(seg, { color: tm.color, weight: focused ? 5 : 3, opacity: focused ? 0.95 : 0.55 }).addTo(lineLayer);
+                            if (focused) seg.forEach(function (p) { bounds.push(p); });
+                        }
+                    });
+                });
+            });
+        }
+
+        // DOTS: dumpsters filtered by selection, coloured by collection status.
+        visibleDumpsters(data).forEach(function (d) {
+            var c = STATUS_COLOR[d.status] || '#888';
+            var m = L.circleMarker([d.lat, d.lng], { radius: 7, color: '#0b1220', weight: 1.2, fillColor: c, fillOpacity: 0.95 });
+            m.bindPopup(dumpsterPopup(d));
+            m.addTo(dotLayer);
+            bounds.push([d.lat, d.lng]);
+        });
+
+        // PUBLIC AREAS: gated by the "Cleaning" toggle.
+        var showAreas = cleaningOn && (!team || team.team_type === 'cleaning');
+        if (showAreas) {
+            var areas = data.public_areas || [];
+            if (team && team.team_type === 'cleaning') areas = areas.filter(function(a){ return a.team_id === selectedTeamId; });
+            areas.forEach(function (a) {
+                var c = a.status === 'collected' ? '#22c55e' : '#3b82f6';
+                var radius = Math.max(30, Math.sqrt((a.sqm || 100) / Math.PI));
+                var m = L.circle([a.lat, a.lng], { radius: radius, color: c, weight: 1.5, fillColor: c, fillOpacity: 0.25 });
+                m.bindPopup('<b>' + esc(a.name) + '</b><br>' + esc(a.space_type_label) + '<br>' + (a.status === 'collected' ? '✓ Cleaned' : 'Awaiting cleaning') + '<br>' + Math.round(a.sqm) + ' m²');
+                m.addTo(dotLayer);
+                bounds.push([a.lat, a.lng]);
+            });
+        }
+
+        if (selectedTeamId || selectedStreet) {
+            if (bounds.length) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
+        } else if (!fitted && bounds.length) {
+            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }); fitted = true;
+        }
+    }
+
+    function focusTeam(teamId, name) {
+        selectedTeamId = teamId; selectedStreet = null;
+        var fb = document.getElementById('focus-bar');
+        if (teamId) { fb.classList.add('on'); document.getElementById('focus-name').textContent = name || ''; }
+        else { fb.classList.remove('on'); }
+        if (lastData) { renderMap(lastData); renderTeams(lastData); renderFeed(lastData); }
+        if (!teamId) map.setView([cfg.center.lat, cfg.center.lng], cfg.center.zoom);
+    }
+
+    function selectStreet(code) {
+        selectedStreet = code;
+        if (lastData) { renderMap(lastData); renderTeams(lastData); }
+        var t = teamById(selectedTeamId);
+        if (t && code) {
+            var s = (t.streets || []).filter(function(x){ return x.street_code === code; })[0];
+            document.getElementById('focus-name').textContent = routeLabel(t) + (s ? ' · ' + s.street_name : '');
+        } else if (t) { document.getElementById('focus-name').textContent = routeLabel(t); }
+    }
+
+    function streetDetailHtml(code) {
+        var ds = streetDumpsters(code);
+        if (!ds.length) return '';
+        return '<div class="st-detail">' + ds.map(function (d) {
+            return '<div class="drow"><span class="ddot" style="background:' + (STATUS_COLOR[d.status]||'#888') + '"></span>'
+                + '<span>' + esc(d.dumpster_id) + '</span>'
+                + '<span class="dmeta">' + esc(d.client_id || '—') + ' · ' + (d.paid ? 'paid' : 'not paid') + ' · ' + STATUS_LABEL[d.status] + '</span></div>';
+        }).join('') + '</div>';
+    }
+
+    function routeSummary(t) {
+        var streets = (t.streets || []).length;
+        var tot = 0, col = 0, aw = 0, sk = 0;
+        (t.streets || []).forEach(function (s) { tot += s.total; col += s.collected; aw += s.awaiting; sk += s.skip; });
+        return '<div class="route-sum"><span><b>' + streets + '</b> streets</span><span><b>' + tot + '</b> dumpsters</span>'
+            + '<span style="color:#4ade80"><b>' + col + '</b> collected</span>'
+            + '<span style="color:#fbbf24"><b>' + aw + '</b> awaiting</span>'
+            + '<span style="color:#f87171"><b>' + sk + '</b> not collected</span></div>';
+    }
+
+    function teamHtml(t) {
+        var typeColor = t.team_type === 'collection' ? t.color : '#3b82f6';
+        var barColor = t.percent >= 80 ? '#22c55e' : (t.percent >= 40 ? '#f59e0b' : '#ef4444');
+        var isSel = t.id === selectedTeamId;
+        var cls = 'team' + (isSel ? ' selected' : (selectedTeamId ? ' dimmed' : ''));
+        var label = routeLabel(t);
+        var html = '<div class="' + cls + '" data-team-id="' + t.id + '" data-team-name="' + esc(label) + '">'
+            + '<div class="top"><div class="nm"><span class="dot" style="background:' + typeColor + '"></span>' + label + '</div>'
+            + '<div class="pct" style="color:' + barColor + '">' + t.percent + '%</div></div>'
+            + '<div class="meta">' + esc(t.name) + (t.shift ? ' · ' + esc(t.shift) : '') + ' · ' + t.members + ' members</div>'
+            + '<div class="bar"><span style="width:' + t.percent + '%;background:' + barColor + '"></span></div>'
+            + '<div class="counts"><span class="dot" style="background:#22c55e"></span>' + t.done + ' collected'
+            + '<span class="dot" style="background:#f59e0b;margin-left:10px"></span>' + t.in_progress + ' in progress'
+            + '<span class="dot" style="background:#64748b;margin-left:10px"></span>' + t.planned + ' awaiting / ' + t.total + '</div>';
+        if (isSel && t.team_type === 'collection') {
+            html += routeSummary(t);
+            html += '<div class="streetlist">';
+            if ((t.streets || []).length) {
+                t.streets.forEach(function (s) {
+                    var full = s.total && s.collected >= s.total;
+                    var selStreet = s.street_code === selectedStreet;
+                    html += '<div class="street' + (selStreet ? ' sel' : '') + '" data-street="' + esc(s.street_code) + '">'
+                        + '<span class="snm">' + esc(s.street_name) + '</span>'
+                        + '<span class="scount' + (full ? ' full' : '') + '">' + s.collected + '/' + s.total + '</span></div>';
+                    if (selStreet) html += streetDetailHtml(s.street_code);
+                });
+            } else { html += '<div class="empty" style="padding:6px 4px">No streets scheduled today.</div>'; }
+            html += '</div>';
+        } else if (isSel && t.team_type === 'cleaning') {
+            html += '<div class="streetlist"><div class="empty" style="padding:6px 4px">Cleaning — no route lines. Areas turn green when cleaned.</div></div>';
+        }
+        return html + '</div>';
+    }
+
+    function eventHtml(e) {
+        var isDone = e.state === 'done';
+        var icoBg = e.is_dumpster ? '#3a300e' : '#0e2a3a';
+        var icoCol = e.is_dumpster ? '#fbbf24' : '#60a5fa';
+        var icon = e.is_dumpster ? '🗑' : '🧹';
+        var badge = isDone ? '<span class="badge b-done">DONE</span>' : '<span class="badge b-prog">IN PROGRESS</span>';
+        var title = (e.street ? esc(e.street) : esc(e.room_code));
+        var sub = (e.is_dumpster ? '🗑 ' + esc(e.room_code) + ' · ' : '') + esc(e.team);
+        return '<div class="ev">'
+            + '<div class="ico" style="background:' + icoBg + ';color:' + icoCol + '">' + icon + '</div>'
+            + '<div><div style="font-weight:600;">' + title + ' ' + badge + '</div>'
+            + '<div style="font-size:12px;color:var(--muted);">' + sub + '</div></div>'
+            + '<div class="tm">' + timeStr(e.time) + '</div></div>';
+    }
+
+    function renderTeams(data) {
+        var teamsEl = document.getElementById('tv-teams');
+        var teams = (data.teams || []).filter(function (t) { return cleaningOn || t.team_type !== 'cleaning'; });
+        teamsEl.innerHTML = teams.length ? teams.map(teamHtml).join('') : '<div class="empty">No teams / tasks for today.</div>';
+    }
+
+    function renderFeed(data) {
+        var feedEl = document.getElementById('tv-feed');
+        var acts = data.activity || [];
+        if (selectedTeamId) {
+            var t = teamById(selectedTeamId);
+            var nm = t ? t.name : null;
+            acts = acts.filter(function (e) { return e.team === nm; });
+        }
+        feedEl.innerHTML = acts.length ? acts.map(eventHtml).join('') : '<div class="empty">No recent updates' + (selectedTeamId ? ' for this team.' : '…') + '</div>';
+    }
+
+    function render(data) {
+        lastData = data;
+        planLabel = data.plan_day_label || '';
+        syncDatebar(data);
+        if (selectedTeamId && !(data.teams || []).some(function (t) { return t.id === selectedTeamId; })) {
+            focusTeam(null); return;
+        }
+        renderMap(data); renderTeams(data); renderFeed(data);
+        var selT = teamById(selectedTeamId);
+        if (selT) { document.getElementById('focus-name').textContent = routeLabel(selT); }
+        document.getElementById('k-col').textContent = data.totals.collection.done + '/' + data.totals.collection.total;
+        document.getElementById('k-cln').textContent = data.totals.cleaning.done + '/' + data.totals.cleaning.total;
+        document.getElementById('k-collect').textContent = data.counts.collected;
+        document.getElementById('k-block').textContent = data.counts.skip;
+    }
+
+    // Click a street row to focus it; click a team card to focus the team.
+    document.getElementById('tv-teams').addEventListener('click', function (ev) {
+        var streetRow = ev.target.closest('.street');
+        if (streetRow) {
+            ev.stopPropagation();
+            var code = streetRow.getAttribute('data-street');
+            selectStreet(code === selectedStreet ? null : code);
+            return;
+        }
+        var card = ev.target.closest('.team');
+        if (!card) return;
+        var id = card.getAttribute('data-team-id');
+        var name = card.getAttribute('data-team-name');
+        focusTeam(id === selectedTeamId ? null : id, name);
+    });
+    document.getElementById('focus-clear').addEventListener('click', function () { focusTeam(null); });
+
+    // Routes / Cleaning toggles
+    function syncToggles() {
+        document.getElementById('tgl-routes').classList.toggle('on', routesOn);
+        document.getElementById('tgl-cleaning').classList.toggle('on', cleaningOn);
+    }
+    syncToggles();
+    document.getElementById('tgl-routes').addEventListener('click', function () {
+        routesOn = !routesOn;
+        try { localStorage.setItem('tvRoutes', routesOn ? '1' : '0'); } catch (e) {}
+        syncToggles();
+        if (lastData) renderMap(lastData);
+    });
+    document.getElementById('tgl-cleaning').addEventListener('click', function () {
+        cleaningOn = !cleaningOn;
+        try { localStorage.setItem('tvCleaning', cleaningOn ? '1' : '0'); } catch (e) {}
+        // if a hidden cleaning team was selected, clear the selection
+        var sel = teamById(selectedTeamId);
+        if (!cleaningOn && sel && sel.team_type === 'cleaning') { focusTeam(null); }
+        syncToggles();
+        if (lastData) { renderMap(lastData); renderTeams(lastData); }
+    });
+    document.getElementById('tgl-basemap').addEventListener('click', function () {
+        applyBasemap(baseMode === 'dark' ? 'light' : 'dark');
+    });
+
+    var legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function () {
+        var div = L.DomUtil.create('div', 'tv-legend');
+        function row(c, t){ return '<div><span class="dot" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+c+';margin-right:6px;"></span>'+t+'</div>'; }
+        div.innerHTML = row('#22c55e','Collected')
+            + row('#f59e0b','Awaiting collection')
+            + row('#ef4444','Not collected (unpaid)')
+            + row('#3b82f6','Public area');
+        return div;
+    };
+    legend.addTo(map);
+
+    // ---- Resizable / collapsible right panel ----------------------------
+    var panel = document.getElementById('right-panel');
+    var resizer = document.getElementById('resizer');
+    var MIN_W = 300, MAX_FRAC = 0.7;
+
+    function clampWidth(w) {
+        var max = Math.floor(window.innerWidth * MAX_FRAC);
+        return Math.max(MIN_W, Math.min(w, max));
+    }
+    function applyWidth(w) {
+        panel.style.width = clampWidth(w) + 'px';
+        setTimeout(function () { map.invalidateSize(); }, 0);
+    }
+    function setCollapsed(collapsed) {
+        panel.classList.toggle('collapsed', collapsed);
+        resizer.classList.toggle('hidden', collapsed);
+        document.getElementById('panel-show').classList.toggle('on', collapsed);
+        try { localStorage.setItem('tvPanelCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+        setTimeout(function () { map.invalidateSize(); }, 60);
+    }
+
+    // restore saved state
+    try {
+        var savedW = parseInt(localStorage.getItem('tvPanelWidth'), 10);
+        if (savedW) applyWidth(savedW);
+        if (localStorage.getItem('tvPanelCollapsed') === '1') setCollapsed(true);
+    } catch (e) {}
+
+    document.getElementById('panel-hide').addEventListener('click', function () { setCollapsed(true); });
+    document.getElementById('panel-show').addEventListener('click', function () { setCollapsed(false); });
+
+    var dragging = false;
+    resizer.addEventListener('mousedown', function (e) {
+        dragging = true; resizer.classList.add('dragging');
+        document.body.style.userSelect = 'none'; document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        applyWidth(window.innerWidth - e.clientX);
+    });
+    window.addEventListener('mouseup', function () {
+        if (!dragging) return;
+        dragging = false; resizer.classList.remove('dragging');
+        document.body.style.userSelect = ''; document.body.style.cursor = '';
+        try { localStorage.setItem('tvPanelWidth', parseInt(panel.style.width, 10) || 460); } catch (e) {}
+    });
+    window.addEventListener('resize', function () {
+        applyWidth(parseInt(panel.style.width, 10) || 460);
+    });
+
+    function tickClock() {
+        var now = new Date();
+        document.getElementById('clock').textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        document.getElementById('date').textContent = now.toLocaleDateString([], {weekday:'long', day:'numeric', month:'short'});
+    }
+    tickClock(); setInterval(tickClock, 1000);
+
+    // ---- Date selection -------------------------------------------------
+    function addDays(str, n) {
+        var p = str.split('-');
+        var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+        d.setUTCDate(d.getUTCDate() + n);
+        return d.toISOString().slice(0, 10);
+    }
+    function syncDatebar(data) {
+        var input = document.getElementById('date-input');
+        if (document.activeElement !== input) input.value = data.date;
+        selectedDate = data.date;
+        var pill = document.getElementById('date-pill');
+        pill.className = 'dpill';
+        if (!data.is_working_day) { pill.classList.add('off'); pill.textContent = 'No collection'; }
+        else if (data.is_future) { pill.classList.add('future'); pill.textContent = 'Planned'; }
+        else if (data.is_past) { pill.classList.add('past'); pill.textContent = 'Completed'; }
+        else { pill.textContent = ''; }
+    }
+    function goDate(dateStr) {
+        selectedDate = dateStr;
+        fitted = false;
+        refresh();
+    }
+    document.getElementById('date-input').addEventListener('change', function () {
+        if (this.value) goDate(this.value);
+    });
+    document.getElementById('date-prev').addEventListener('click', function () {
+        goDate(addDays(selectedDate || (lastData && lastData.date), -1));
+    });
+    document.getElementById('date-next').addEventListener('click', function () {
+        goDate(addDays(selectedDate || (lastData && lastData.date), 1));
+    });
+    document.getElementById('date-today').addEventListener('click', function () {
+        selectedDate = null; fitted = false; refresh();
+    });
+
+    function refresh() {
+        var url = cfg.dataUrl + (selectedDate ? ('?date=' + encodeURIComponent(selectedDate)) : '');
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); }).then(render)
+            .catch(function (e) { console.error('tv refresh failed', e); });
+    }
+    refresh();
+    // Live auto-refresh only matters for today; past/future are static plans.
+    setInterval(function () { if (lastData && lastData.is_today) refresh(); }, 15000);
+})();
+</script>
+</body>
+</html>

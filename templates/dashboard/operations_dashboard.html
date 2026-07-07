@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Operations — Gjakova{% endblock %}
+{% block page_title %}OPERATIONS{% endblock %}
+{% block page_subtitle %}Gjakova — Teams, Routes & Live Field Progress{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+    #ops-map { height: 62vh; min-height: 420px; width: 100%; border-radius: 0.5rem; z-index: 0; }
+    .map-legend { background: rgba(255,255,255,0.95); padding: 8px 10px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.25); font-size: 11px; line-height: 1.5; }
+    .legend-dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:6px; vertical-align:middle; border:1px solid rgba(0,0,0,0.3); }
+    .bar { height: 8px; border-radius: 9999px; background: #e5e7eb; overflow: hidden; }
+    .bar > span { display:block; height:100%; }
+    .tgl-sw { width:24px; height:13px; border-radius:9999px; background:#cbd5e1; position:relative; display:inline-block; transition:background .15s; }
+    .tgl-sw::after { content:''; position:absolute; top:1px; left:1px; width:11px; height:11px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,0.3); }
+    .tgl-on .tgl-sw { background:#16a34a; }
+    .tgl-on .tgl-sw::after { left:12px; }
+    button:not(.tgl-on) { opacity:0.8; }
+</style>
+
+<div class="p-4 lg:p-6 space-y-4">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1">
+                <button id="ops-date-prev" class="border border-gray-300 rounded px-2 py-2 text-sm font-bold leading-none" title="Previous day">‹</button>
+                <input type="date" id="ops-date" class="border border-gray-300 rounded px-2 py-2 text-xs" />
+                <button id="ops-date-next" class="border border-gray-300 rounded px-2 py-2 text-sm font-bold leading-none" title="Next day">›</button>
+                <button id="ops-date-today" class="border border-gray-300 rounded px-3 py-2 text-xs uppercase tracking-wide" title="Jump to today">Today</button>
+                <span id="ops-date-pill" class="hidden text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full"></span>
+            </div>
+            <div class="text-sm text-gray-500 ml-1">Last update: <span id="ops-updated" class="font-semibold text-dark-graphite">—</span></div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="tgl-routes" class="border border-gray-300 rounded px-3 py-2 text-xs uppercase tracking-wide flex items-center gap-2">
+                <span class="tgl-sw"></span> Routes
+            </button>
+            <button id="tgl-cleaning" class="border border-gray-300 rounded px-3 py-2 text-xs uppercase tracking-wide flex items-center gap-2">
+                <span class="tgl-sw"></span> Cleaning
+            </button>
+            <button id="tgl-basemap" class="border border-gray-300 rounded px-3 py-2 text-xs uppercase tracking-wide flex items-center gap-2">
+                <span id="ops-basemap-ico">🗺️</span> <span id="ops-basemap-lbl">Light</span>
+            </button>
+            <a href="{% url 'dashboard:operations_tv' %}" target="_blank"
+               class="bg-dark-graphite text-white px-4 py-2 rounded uppercase text-xs tracking-wide flex items-center gap-2 hover:bg-black">
+                <i class="fa-solid fa-tv"></i> Open TV Wall
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Collection today</div>
+            <div class="text-2xl font-bold text-amber-600 heading-font"><span id="kpi-col-done">–</span>/<span id="kpi-col-total">–</span></div>
+            <div class="text-xs text-gray-400"><span id="kpi-col-pct">0</span>% collected</div>
+        </div>
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Cleaning today</div>
+            <div class="text-2xl font-bold text-steel-blue heading-font"><span id="kpi-cln-done">–</span>/<span id="kpi-cln-total">–</span></div>
+            <div class="text-xs text-gray-400"><span id="kpi-cln-pct">0</span>% done</div>
+        </div>
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Dumpsters (collected/not)</div>
+            <div class="text-2xl font-bold text-dark-graphite heading-font"><span id="kpi-collectable" class="text-green-700">–</span>/<span id="kpi-blocked" class="text-red-700">–</span></div>
+        </div>
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Active teams</div>
+            <div class="text-2xl font-bold text-dark-graphite heading-font" id="kpi-teams">–</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Map -->
+        <div class="lg:col-span-2 metallic-card rounded-lg p-3 border border-gray-300">
+            <div id="ops-map"></div>
+        </div>
+        <!-- Teams -->
+        <div class="metallic-card rounded-lg p-4 border border-gray-300">
+            <h3 class="heading-font font-bold text-sm text-gray-600 uppercase tracking-wide mb-3">Teams — Live Progress</h3>
+            <div id="ops-teams" class="space-y-3 max-h-[62vh] overflow-y-auto pr-1">
+                <div class="text-sm text-gray-400">Loading…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script id="ops-config" type="application/json">
+{"center": {"lat": {{ center.lat }}, "lng": {{ center.lng }}, "zoom": {{ center.zoom }}}, "dataUrl": "{% url 'dashboard:operations_data' %}"}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function () {
+    var cfg = JSON.parse(document.getElementById('ops-config').textContent);
+    var map = L.map('ops-map').setView([cfg.center.lat, cfg.center.lng], cfg.center.zoom);
+    var basemaps = {
+        light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '&copy; OpenStreetMap, &copy; CARTO' }),
+        dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '&copy; OpenStreetMap, &copy; CARTO' })
+    };
+    var baseMode = 'light';
+    try { baseMode = localStorage.getItem('opsBasemap') === 'dark' ? 'dark' : 'light'; } catch (e) {}
+    function applyBasemap(mode) {
+        baseMode = mode;
+        map.removeLayer(basemaps.light); map.removeLayer(basemaps.dark);
+        basemaps[mode].addTo(map).bringToBack();
+        document.getElementById('ops-basemap-ico').textContent = mode === 'dark' ? '🌙' : '🗺️';
+        document.getElementById('ops-basemap-lbl').textContent = mode === 'dark' ? 'Dark' : 'Light';
+        try { localStorage.setItem('opsBasemap', mode); } catch (e) {}
+    }
+    applyBasemap(baseMode);
+
+    var dotLayer = L.layerGroup().addTo(map);
+    var lineLayer = L.layerGroup().addTo(map);
+    var fitted = false;
+    var lastData = null;
+    var selectedTeamId = null;
+    var selectedStreet = null;
+    var selectedDate = null;   // null => server default (today)
+    var routesOn = true, cleaningOn = true;
+    try { routesOn = localStorage.getItem('opsRoutes') !== '0'; cleaningOn = localStorage.getItem('opsCleaning') !== '0'; } catch (e) {}
+
+    var STATUS_COLOR = { collected:'#16a34a', awaiting:'#d97706', skip:'#dc2626' };
+    var STATUS_LABEL = { collected:'collected', awaiting:'awaiting', skip:'not collected' };
+    var planLabel = '';
+
+    function esc(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+    function routeLabel(t){ return t.team_type === 'collection' ? (planLabel + ' Route · Team ' + t.team_no) : (planLabel + ' Cleaning · ' + esc(t.name.replace(/^Pastrimi\s*/i,''))); }
+    function streetDumpsters(code){ return (lastData && (lastData.dumpsters||[]).filter(function(d){return d.street_code===code;})) || []; }
+    function fmtDT(iso){ try { var d=new Date(iso); return d.toLocaleDateString([], {day:'2-digit',month:'short'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return '—'; } }
+    function teamById(id){ return (lastData && (lastData.teams||[]).filter(function(t){return t.id===id;})[0]) || null; }
+
+    function dumpsterPopup(d){
+        return '<div style="min-width:180px;font-size:12px;line-height:1.5">'
+            + '<b>🗑 ' + esc(d.dumpster_id) + '</b><br>'
+            + 'Client: <b>' + esc(d.client_id || '—') + '</b><br>'
+            + 'Payment: <b style="color:' + (d.paid?'#16a34a':'#dc2626') + '">' + (d.paid?'Paid':'Not paid') + '</b><br>'
+            + 'Location: ' + d.lat.toFixed(5) + ', ' + d.lng.toFixed(5) + '<br>'
+            + 'Street: ' + esc(d.street || '—') + '<br>'
+            + 'Last collected: ' + (d.last_collected ? fmtDT(d.last_collected) : '—') + '</div>';
+    }
+
+    function visibleDumpsters(data){
+        var arr = data.dumpsters || [];
+        if (selectedTeamId) arr = arr.filter(function(d){ return d.team_id === selectedTeamId; });
+        if (selectedStreet) arr = arr.filter(function(d){ return d.street_code === selectedStreet; });
+        return arr;
+    }
+
+    function renderMap(data) {
+        dotLayer.clearLayers(); lineLayer.clearLayers();
+        var bounds = [];
+        var team = selectedTeamId ? teamById(selectedTeamId) : null;
+
+        if (routesOn) {
+            var drawTeams;
+            if (team && team.team_type === 'collection') drawTeams = [team];
+            else if (!team) drawTeams = (data.teams || []).filter(function (x) { return x.team_type === 'collection'; });
+            else drawTeams = [];
+            drawTeams.forEach(function (tm) {
+                var focused = team && tm.id === team.id;
+                (tm.streets || []).forEach(function (s) {
+                    if (focused && selectedStreet && s.street_code !== selectedStreet) return;
+                    (s.segments || []).forEach(function (seg) {
+                        if (seg && seg.length > 1) {
+                            L.polyline(seg, { color: tm.color, weight: focused ? 5 : 3, opacity: focused ? 0.9 : 0.5 }).addTo(lineLayer);
+                            if (focused) seg.forEach(function (p) { bounds.push(p); });
+                        }
+                    });
+                });
+            });
+        }
+
+        visibleDumpsters(data).forEach(function (d) {
+            var c = STATUS_COLOR[d.status] || '#888';
+            L.circleMarker([d.lat, d.lng], { radius: 6, color: '#fff', weight: 1.2, fillColor: c, fillOpacity: 0.95 })
+                .bindPopup(dumpsterPopup(d)).addTo(dotLayer);
+            bounds.push([d.lat, d.lng]);
+        });
+
+        var showAreas = cleaningOn && (!team || team.team_type === 'cleaning');
+        if (showAreas) {
+            var areas = data.public_areas || [];
+            if (team && team.team_type === 'cleaning') areas = areas.filter(function(a){ return a.team_id === selectedTeamId; });
+            areas.forEach(function (a) {
+                var c = a.status === 'collected' ? '#16a34a' : '#2563eb';
+                var radius = Math.max(30, Math.sqrt((a.sqm || 100) / Math.PI));
+                L.circle([a.lat, a.lng], { radius: radius, color: c, weight: 1.5, fillColor: c, fillOpacity: 0.22 })
+                    .bindPopup('<b>' + esc(a.name) + '</b><br>' + (a.status==='collected'?'✓ Cleaned':'Awaiting') + '<br>' + Math.round(a.sqm) + ' m²').addTo(dotLayer);
+                bounds.push([a.lat, a.lng]);
+            });
+        }
+
+        if (selectedTeamId || selectedStreet) {
+            if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+        } else if (!fitted && bounds.length) {
+            map.fitBounds(bounds, { padding: [30,30], maxZoom: 15 }); fitted = true;
+        }
+    }
+
+    function routeSummary(t) {
+        var tot = 0, col = 0, aw = 0, sk = 0;
+        (t.streets || []).forEach(function (s) { tot += s.total; col += s.collected; aw += s.awaiting; sk += s.skip; });
+        return '<div style="font-size:11px;color:#374151;background:#f3f4f6;border-radius:6px;padding:5px 8px;margin-top:6px;">'
+            + '<b>' + (t.streets||[]).length + '</b> streets · <b>' + tot + '</b> dumpsters · '
+            + '<span style="color:#16a34a"><b>' + col + '</b> collected</span> · '
+            + '<span style="color:#d97706"><b>' + aw + '</b> awaiting</span> · '
+            + '<span style="color:#dc2626"><b>' + sk + '</b> not collected</span></div>';
+    }
+    function streetDetailHtml(code) {
+        var ds = streetDumpsters(code);
+        if (!ds.length) return '';
+        return '<div style="margin:2px 0 4px 6px;padding-left:8px;border-left:2px solid #bfdbfe;">' + ds.map(function (d) {
+            return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:2px 4px;">'
+                + '<span style="width:8px;height:8px;border-radius:50%;background:' + (STATUS_COLOR[d.status]||'#888') + '"></span>'
+                + '<span>' + esc(d.dumpster_id) + '</span>'
+                + '<span style="margin-left:auto;color:#6b7280;">' + esc(d.client_id||'—') + ' · ' + (d.paid?'paid':'not paid') + '</span></div>';
+        }).join('') + '</div>';
+    }
+
+    function teamCard(t) {
+        var typeColor = t.team_type === 'collection' ? (t.color || '#d97706') : '#2563eb';
+        var barColor = t.percent >= 80 ? '#16a34a' : (t.percent >= 40 ? '#d97706' : '#dc2626');
+        var isSel = t.id === selectedTeamId;
+        var border = isSel ? '#2563eb' : '#e5e7eb';
+        var label = routeLabel(t);
+        var html = '<div class="ops-team" data-team-id="' + t.id + '" style="border:1px solid ' + border + ';border-radius:8px;padding:10px;cursor:pointer;' + (isSel ? 'box-shadow:0 0 0 2px rgba(37,99,235,0.25);' : (selectedTeamId ? 'opacity:0.5;' : '')) + '">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+            + '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + typeColor + ';margin-right:6px;"></span>'
+            + '<span style="font-weight:700;font-size:13px;">' + label + '</span></div>'
+            + '<span style="font-size:12px;font-weight:700;">' + t.percent + '%</span></div>'
+            + '<div style="font-size:11px;color:#6b7280;margin:2px 0 6px;">' + esc(t.name) + (t.shift ? ' · ' + esc(t.shift) : '') + ' · ' + t.members + ' members</div>'
+            + '<div class="bar"><span style="width:' + t.percent + '%;background:' + barColor + '"></span></div>'
+            + '<div style="font-size:11px;color:#6b7280;margin-top:6px;">🟢 ' + t.done + ' collected · 🟠 ' + t.in_progress + ' in progress · ⚪ ' + t.planned + ' awaiting (of ' + t.total + ')</div>';
+        if (isSel && t.team_type === 'collection') {
+            html += routeSummary(t);
+            html += '<div style="margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:6px;">';
+            if ((t.streets || []).length) {
+                t.streets.forEach(function (s) {
+                    var full = s.total && s.collected >= s.total;
+                    var selStreet = s.street_code === selectedStreet;
+                    html += '<div class="ops-street" data-street="' + esc(s.street_code) + '" style="display:flex;justify-content:space-between;gap:8px;padding:4px 6px;border-radius:6px;font-size:12px;' + (selStreet?'background:#e0edff;':'') + '">'
+                        + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(s.street_name) + '</span>'
+                        + '<span style="font-weight:700;color:' + (full?'#16a34a':'#374151') + '">' + s.collected + '/' + s.total + '</span></div>';
+                    if (selStreet) html += streetDetailHtml(s.street_code);
+                });
+            } else { html += '<div style="font-size:12px;color:#9ca3af;padding:4px 6px;">No streets scheduled today.</div>'; }
+            html += '</div>';
+        }
+        return html + '</div>';
+    }
+
+    function renderTeams(data) {
+        planLabel = data.plan_day_label || planLabel;
+        var el = document.getElementById('ops-teams');
+        var teams = (data.teams || []).filter(function (t) { return cleaningOn || t.team_type !== 'cleaning'; });
+        if (!teams.length) { el.innerHTML = '<div class="text-sm text-gray-400">No teams / tasks for today.</div>'; }
+        else { el.innerHTML = teams.map(teamCard).join(''); }
+
+        var c = data.totals.collection, k = data.totals.cleaning;
+        document.getElementById('kpi-col-done').textContent = c.done;
+        document.getElementById('kpi-col-total').textContent = c.total;
+        document.getElementById('kpi-col-pct').textContent = c.percent;
+        document.getElementById('kpi-cln-done').textContent = k.done;
+        document.getElementById('kpi-cln-total').textContent = k.total;
+        document.getElementById('kpi-cln-pct').textContent = k.percent;
+        document.getElementById('kpi-collectable').textContent = data.counts.collected;
+        document.getElementById('kpi-blocked').textContent = data.counts.skip;
+        document.getElementById('kpi-teams').textContent = data.teams.length;
+        document.getElementById('ops-updated').textContent = new Date(data.generated_at).toLocaleTimeString();
+    }
+
+    document.getElementById('ops-teams').addEventListener('click', function (ev) {
+        var streetRow = ev.target.closest('.ops-street');
+        if (streetRow) {
+            ev.stopPropagation();
+            var code = streetRow.getAttribute('data-street');
+            selectedStreet = (code === selectedStreet) ? null : code;
+            if (lastData) { renderMap(lastData); renderTeams(lastData); }
+            return;
+        }
+        var card = ev.target.closest('.ops-team');
+        if (!card) return;
+        var id = card.getAttribute('data-team-id');
+        selectedTeamId = (id === selectedTeamId) ? null : id;
+        selectedStreet = null;
+        if (!selectedTeamId) map.setView([cfg.center.lat, cfg.center.lng], cfg.center.zoom);
+        if (lastData) { renderMap(lastData); renderTeams(lastData); }
+    });
+
+    function syncToggles() {
+        document.getElementById('tgl-routes').classList.toggle('tgl-on', routesOn);
+        document.getElementById('tgl-cleaning').classList.toggle('tgl-on', cleaningOn);
+    }
+    syncToggles();
+    document.getElementById('tgl-routes').addEventListener('click', function () {
+        routesOn = !routesOn;
+        try { localStorage.setItem('opsRoutes', routesOn ? '1' : '0'); } catch (e) {}
+        syncToggles();
+        if (lastData) renderMap(lastData);
+    });
+    document.getElementById('tgl-cleaning').addEventListener('click', function () {
+        cleaningOn = !cleaningOn;
+        try { localStorage.setItem('opsCleaning', cleaningOn ? '1' : '0'); } catch (e) {}
+        var sel = teamById(selectedTeamId);
+        if (!cleaningOn && sel && sel.team_type === 'cleaning') { selectedTeamId = null; selectedStreet = null; }
+        syncToggles();
+        if (lastData) { renderMap(lastData); renderTeams(lastData); }
+    });
+    document.getElementById('tgl-basemap').addEventListener('click', function () {
+        applyBasemap(baseMode === 'dark' ? 'light' : 'dark');
+    });
+
+    // ---- Date selection -------------------------------------------------
+    function addDays(str, n) {
+        var p = str.split('-');
+        var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+        d.setUTCDate(d.getUTCDate() + n);
+        return d.toISOString().slice(0, 10);
+    }
+    function syncDatebar(data) {
+        var input = document.getElementById('ops-date');
+        if (document.activeElement !== input) input.value = data.date;
+        selectedDate = data.date;
+        var pill = document.getElementById('ops-date-pill');
+        pill.className = 'text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full';
+        if (!data.is_working_day) { pill.classList.add('bg-gray-100','text-gray-500'); pill.textContent = 'No collection'; }
+        else if (data.is_future) { pill.classList.add('bg-amber-100','text-amber-700'); pill.textContent = 'Planned'; }
+        else if (data.is_past) { pill.classList.add('bg-green-100','text-green-700'); pill.textContent = 'Completed'; }
+        else { pill.classList.add('hidden'); pill.textContent = ''; }
+    }
+    function goDate(dateStr) { selectedDate = dateStr; fitted = false; refresh(); }
+    document.getElementById('ops-date').addEventListener('change', function () { if (this.value) goDate(this.value); });
+    document.getElementById('ops-date-prev').addEventListener('click', function () { goDate(addDays(selectedDate || (lastData && lastData.date), -1)); });
+    document.getElementById('ops-date-next').addEventListener('click', function () { goDate(addDays(selectedDate || (lastData && lastData.date), 1)); });
+    document.getElementById('ops-date-today').addEventListener('click', function () { selectedDate = null; fitted = false; refresh(); });
+
+    var legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function () {
+        var div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML = '<div><span class="legend-dot" style="background:#16a34a"></span>Collected</div>'
+            + '<div><span class="legend-dot" style="background:#d97706"></span>Awaiting</div>'
+            + '<div><span class="legend-dot" style="background:#dc2626"></span>Not collected</div>'
+            + '<div><span class="legend-dot" style="background:#2563eb"></span>Public area</div>';
+        return div;
+    };
+    legend.addTo(map);
+
+    function refresh() {
+        var url = cfg.dataUrl + (selectedDate ? ('?date=' + encodeURIComponent(selectedDate)) : '');
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) { lastData = data; syncDatebar(data); renderMap(data); renderTeams(data); })
+            .catch(function (e) { console.error('ops refresh failed', e); });
+    }
+    refresh();
+    // Live auto-refresh only matters for today; past/future are static plans.
+    setInterval(function () { if (lastData && lastData.is_today) refresh(); }, 30000);
+})();
+</script>
+{% endblock %}

@@ -139,6 +139,31 @@
 - **Production deployment** testing
 - **Mobile responsiveness** improvements
 
+### 🆕 Recent Updates (July 7, 2026)
+-1. **Operations Manager role + TV wall** - New `operations_manager` role with a
+   focused Operations console (`/operations/`) built around the map, teams and live
+   field progress, plus a full-screen office **TV monitoring wall** (`/operations/tv/`)
+   showing route polylines + dumpster/area dots on the left and live team progress +
+   activity feed on the right (auto-refreshing). Demo: `opsmanager / ops123`; seed via
+   `seed_operations`.
+0. **Gjakova Operations Map** - Added an interactive Leaflet/OpenStreetMap page
+   (`/map/`) showing public-area cleaning sites and garbage-collection dumpsters.
+   Dumpster dots are green (paid → collect) or red (unpaid/overdue/unconfirmed →
+   do not collect), with popups showing dumpster ID, anonymized client ID (no name)
+   and payment status. Backed by new `Room` geo fields, a GDPR-safe
+   `CollectionClient` model, public-area space types, and a `seed_gjakova` demo
+   command.
+1. **Gjakova Municipality Pivot (documented)** - Re-targeted the tracker to the
+   Municipality of Gjakova: garbage collection along real streets/city blocks
+   (neighbourhoods → streets → dumpsters) plus public-area SQM cleaning focused on
+   parks, city-center plazas, and school yards. Full domain remapping, reference
+   geography, coding scheme, teams/routes, and seed plan in
+   `project_definition/gjakova_municipality_pivot.md`.
+2. **Docker-only workflow enforced** - Added `.cursor/rules/docker-only-workflow.mdc`;
+   all development and management commands run inside Docker.
+3. **Fresh-DB migration repair** - Fixed the `accounts` migration history and a
+   `Decimal` import bug so the branch migrates and runs on a clean Postgres DB.
+
 ### 🆕 Recent Updates (July 3, 2026)
 1. **Implemented Hybrid Space & Dumpster Registry** - Added support for both public area SQM cleaning and RFID dumpster collection.
 2. **Added Team Types** - Created a separation between cleaning teams and garbage collection teams.

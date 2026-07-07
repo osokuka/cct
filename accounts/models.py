@@ -16,6 +16,7 @@ class UserProfile(models.Model):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
         ('manager', 'Manager'),
+        ('operations_manager', 'Operations Manager'),
         ('cleaner', 'Cleaner'),
         ('authority', 'Authority'),
     ]

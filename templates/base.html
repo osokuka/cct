@@ -179,6 +179,24 @@
             <span class="{% if request.resolver_match.url_name == 'dashboard' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Dashboard</span>
         </a>
         {% endif %}
+
+        {% if user.profile.role == 'admin' or user.profile.role == 'manager' or user.profile.role == 'operations_manager' %}
+        <a href="{% url 'dashboard:operations_dashboard' %}" class="px-4 py-3 flex items-center {% if 'operations' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-satellite-dish mr-3 {% if 'operations' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if 'operations' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Operations</span>
+        </a>
+        <a href="{% url 'dashboard:operations_tv' %}" target="_blank" class="px-4 py-3 flex items-center hover:bg-gray-800 cursor-pointer transition-colors">
+            <i class="fa-solid fa-tv mr-3 text-gray-400"></i>
+            <span class="text-sm">TV Wall</span>
+        </a>
+        {% endif %}
+
+        {% if user.profile.role != 'authority' %}
+        <a href="{% url 'dashboard:collection_map' %}" class="px-4 py-3 flex items-center {% if request.resolver_match.url_name == 'collection_map' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
+            <i class="fa-solid fa-map-location-dot mr-3 {% if request.resolver_match.url_name == 'collection_map' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+            <span class="{% if request.resolver_match.url_name == 'collection_map' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Operations Map</span>
+        </a>
+        {% endif %}
         
         {% if user.is_authenticated %}
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
