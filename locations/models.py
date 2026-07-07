@@ -168,11 +168,23 @@ class Compound(models.Model):
         (4, 'Friday'), (5, 'Saturday'), (6, 'Sunday'),
     ]
 
+    ZONE_TYPE_CHOICES = [
+        ('collection', 'Collection zone (dumpsters)'),
+        ('public_area', 'Public area (SQM)'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     camp = models.ForeignKey(Camp, on_delete=models.CASCADE, related_name='compounds')
     code = models.CharField(max_length=50, help_text="Compound code")
     name = models.CharField(max_length=200, help_text="Compound name")
     is_active = models.BooleanField(default=True)
+
+    # A zone is either a garbage-collection zone (serviced per dumpster) or an
+    # independent public area (serviced by surface area, measured in m²).
+    zone_type = models.CharField(
+        max_length=20, choices=ZONE_TYPE_CHOICES, default='collection',
+        help_text="Collection zone (dumpsters) or public area (SQM)"
+    )
 
     # Collection day for the whole zone. New dumpsters added to this zone inherit
     # this day automatically. The shift/time is assigned separately by the field
@@ -315,6 +327,72 @@ class Compound(models.Model):
         if self.area_sqm:
             return round(float(self.area_sqm) / 10000.0, 2)
         return None
+
+    @property
+    def is_public_area(self) -> bool:
+        return self.zone_type == 'public_area'
+
+    def ensure_area_room(self):
+        """For a public-area zone, get/maintain the single representative Service
+        Point that carries its cleaning task and surface area (m²). Returns the
+        Room, or None for collection zones."""
+        if self.zone_type != 'public_area':
+            return None
+        from datetime import date, timedelta
+        from decimal import Decimal as _D
+
+        area = self.area_sqm or self.compute_area_sqm() or _D('1.00')
+        center = self.boundary_center or {}
+        lat = center.get('lat')
+        lng = center.get('lng')
+
+        building, _ = Building.objects.get_or_create(
+            compound=self, code='AREA',
+            defaults={'name': self.name[:200]},
+        )
+        floor, _ = Floor.objects.get_or_create(
+            building=building, code='A', defaults={'name': 'Area'},
+        )
+        today = date.today()
+        defaults = {
+            'camp': self.camp,
+            'building': building,
+            'floor': floor,
+            'room_description': f'Public area — {self.name}',
+            'space_type': 'public_area',
+            'building_code': 'AREA',
+            'square_meters': area,
+            'quantity_of_rooms': 1,
+            'actual_sqm': area,
+            'frequency_per_day': _D('0'),
+            'frequency_per_week': _D('1'),
+            'max_frequency_per_month': 4,
+            'weekly_required_sqm': area,
+            'monthly_cap_sqm': area * 4,
+            'service_start_date': today,
+            'service_end_date': today + timedelta(days=365),
+            'weeks_of_service': 52,
+            'latitude': _D(str(round(lat, 6))) if lat is not None else None,
+            'longitude': _D(str(round(lng, 6))) if lng is not None else None,
+            'collection_weekday': self.collection_weekday,
+            'is_active': True,
+        }
+        room, created = Room.objects.get_or_create(
+            compound=self, room_code=f'{self.code}-AREA', defaults=defaults,
+        )
+        if not created:
+            room.space_type = 'public_area'
+            room.actual_sqm = area
+            room.square_meters = area
+            room.weekly_required_sqm = area
+            room.monthly_cap_sqm = area * 4
+            if lat is not None and lng is not None:
+                room.latitude = _D(str(round(lat, 6)))
+                room.longitude = _D(str(round(lng, 6)))
+            room.collection_weekday = self.collection_weekday
+            room.is_active = True
+            room.save()
+        return room
     
     @property
     def has_urgent_sqm_quota(self):
@@ -439,6 +517,7 @@ class Room(models.Model):
         ('container', 'Container'),
         ('mwa', 'MWA'),
         ('dumpster', 'Dumpster (Garbage Collection)'),
+        ('public_area', 'Public Area (SQM)'),
         ('park', 'Park / Green Space'),
         ('city_center', 'City Center / Public Plaza'),
         ('school_yard', 'School Yard'),
@@ -446,7 +525,7 @@ class Room(models.Model):
     ]
 
     # Space types treated as public-area cleaning sites (SQM/SLA) on the map.
-    PUBLIC_AREA_TYPES = ['park', 'city_center', 'school_yard', 'front_yard']
+    PUBLIC_AREA_TYPES = ['public_area', 'park', 'city_center', 'school_yard', 'front_yard']
 
     # For dumpsters only: whether the bin serves a single household or is a
     # shared communal bin for a whole block.

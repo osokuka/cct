@@ -228,12 +228,16 @@ def generate_tasks_for_zone(zone, start_date: date, end_date: date):
     if team is None or wd is None:
         return {'created': 0, 'updated': 0}
 
-    rooms = list(
-        Room.objects.filter(compound=zone, is_active=True).filter(
-            models.Q(space_type='dumpster')
-            | models.Q(space_type__in=Room.PUBLIC_AREA_TYPES)
+    if zone.zone_type == 'public_area':
+        # A public area is one independent cleaning task, measured by its area.
+        area_room = zone.ensure_area_room()
+        rooms = [area_room] if area_room else []
+    else:
+        # A collection zone generates one task per dumpster (no inheritance to
+        # public-area rooms).
+        rooms = list(
+            Room.objects.filter(compound=zone, space_type='dumpster', is_active=True)
         )
-    )
     if not rooms:
         return {'created': 0, 'updated': 0}
 

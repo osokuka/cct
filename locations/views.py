@@ -417,6 +417,8 @@ def zone_create(request):
                 zone.save(update_fields=['area_sqm'])
             Room.objects.filter(compound=zone, space_type='dumpster').update(
                 collection_weekday=zone.collection_weekday)
+            if zone.zone_type == 'public_area':
+                zone.ensure_area_room()
             messages.success(request, f'Zone "{zone.name}" created successfully.')
             return redirect('locations:compound_view', compound_id=zone.id)
         messages.error(request, 'Please correct the errors below.')
@@ -619,6 +621,8 @@ def compound_edit(request, compound_id):
                 zone.save(update_fields=['area_sqm'])
             Room.objects.filter(compound=zone, space_type='dumpster').update(
                 collection_weekday=zone.collection_weekday)
+            if zone.zone_type == 'public_area':
+                zone.ensure_area_room()
             messages.success(request, f'Zone "{compound.name}" updated successfully.')
             return redirect('locations:compound_view', compound_id=compound.id)
         messages.error(request, 'Please correct the errors below.')
@@ -714,6 +718,8 @@ def zone_measure_area(request, compound_id):
 
     compound.area_sqm = area
     compound.save(update_fields=['area_sqm'])
+    if compound.zone_type == 'public_area':
+        compound.ensure_area_room()
 
     generate = request.POST.get('generate') in ('1', 'true', 'on')
     result = {'created': 0, 'updated': 0}

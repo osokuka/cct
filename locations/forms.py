@@ -59,22 +59,25 @@ class ZoneForm(forms.ModelForm):
 
     class Meta:
         model = Compound
-        fields = ['camp', 'code', 'name', 'assigned_team', 'collection_weekday', 'geo_polygon', 'is_active']
+        fields = ['camp', 'code', 'name', 'zone_type', 'assigned_team', 'collection_weekday', 'geo_polygon', 'is_active']
         widgets = {
             'camp': forms.Select(attrs={'class': INPUT_CLS}),
             'code': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Z1'}),
             'name': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Zona 1 — Qendra'}),
+            'zone_type': forms.Select(attrs={'class': INPUT_CLS}),
             'assigned_team': forms.Select(attrs={'class': INPUT_CLS}),
             'geo_polygon': forms.HiddenInput(),
             'is_active': forms.CheckboxInput(attrs={'class': CHECKBOX_CLS}),
         }
         labels = {
             'camp': 'Site', 'code': 'Zone code', 'name': 'Zone name',
+            'zone_type': 'Zone type',
             'assigned_team': 'Assigned team', 'collection_weekday': 'Collection day',
             'is_active': 'Active',
         }
         help_texts = {
-            'assigned_team': 'Team responsible for collecting this zone.',
+            'zone_type': 'Collection zone (serviced per dumpster) or public area (serviced by measured m²).',
+            'assigned_team': 'Team responsible for this zone.',
         }
 
     def __init__(self, *args, **kwargs):
