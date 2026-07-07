@@ -22,7 +22,13 @@ class Migration(migrations.Migration):
                 to="accounts.shift",
             ),
         ),
-        migrations.DeleteModel(
-            name="RouteCompounds",
+        # State-only removal of the phantom RouteCompounds model (see 0007/0008).
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.DeleteModel(
+                    name="RouteCompounds",
+                ),
+            ],
+            database_operations=[],
         ),
     ]

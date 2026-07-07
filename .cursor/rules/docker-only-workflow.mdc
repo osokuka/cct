@@ -1,0 +1,42 @@
+---
+description: Always develop and run the CCT project in Docker, never on the local machine
+alwaysApply: true
+---
+
+# Docker-Only Workflow (CCT / ARCOM Cleaning Tracker)
+
+This project MUST be developed and run inside Docker. NEVER create a local
+virtualenv, `pip install` on the host, or run `python manage.py` directly on the
+host machine.
+
+## Services (see `docker-compose.yml`)
+
+- `web` — Django app (port `8232` → `8000`)
+- `db` — PostgreSQL 15
+- `cron` — daily maintenance
+
+## Run the stack
+
+```bash
+docker compose up -d          # start web + db + cron
+docker compose logs -f web    # tail app logs
+docker compose down           # stop
+```
+
+## Run Django management commands
+
+Use the running container (or `run --rm` if it isn't up):
+
+```bash
+docker compose exec web python manage.py <command>
+docker compose run --rm web python manage.py migrate
+docker compose run --rm web python manage.py makemigrations
+docker compose run --rm web python manage.py check
+```
+
+## Rules
+
+- Do NOT create `.venv` / `venv` or install dependencies on the host.
+- Do NOT run tests, migrations, or the dev server outside Docker.
+- Add new dependencies to `requirements.txt`, then rebuild: `docker compose build web`.
+- The host `db.sqlite3` is legacy; the canonical DB is the `db` Postgres service.

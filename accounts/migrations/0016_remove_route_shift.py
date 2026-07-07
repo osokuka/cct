@@ -10,8 +10,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='route',
-            name='shift',
+        # The `shift_id` column was already dropped from the database by the raw
+        # SQL in 0014 (a DB-only operation). Here we only reconcile the migration
+        # state so we don't try to drop the column a second time.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='route',
+                    name='shift',
+                ),
+            ],
+            database_operations=[],
         ),
     ]

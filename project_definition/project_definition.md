@@ -1,5 +1,12 @@
 # 📋 NATO Camp Cleaning Tracker — MVP Jira Backlog (Django, due Sept 8)
 
+> **Scope note — Development Environment:** This project is developed and run
+> **exclusively in Docker**. Never create a local virtualenv or run `manage.py`
+> on the host. Use `docker compose up -d` and
+> `docker compose exec web python manage.py <cmd>`. See
+> `.cursor/rules/docker-only-workflow.mdc`.
+
+
 ## EPIC 1 — Authentication & Security
 
 **Goal:** Ensure strong, role-based authentication with multi-tenant scoping from day 1.

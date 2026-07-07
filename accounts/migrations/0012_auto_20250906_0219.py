@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     operations = [
         # Skip the problematic migration and just set the unique constraint
         migrations.RunSQL(
-            "CREATE UNIQUE INDEX IF NOT EXISTS accounts_route_team_unique ON accounts_route(team_id) WHERE is_active = 1;",
+            "CREATE UNIQUE INDEX IF NOT EXISTS accounts_route_team_unique ON accounts_route(team_id) WHERE is_active;",
             reverse_sql="DROP INDEX IF EXISTS accounts_route_team_unique;"
         ),
     ]

@@ -10,19 +10,28 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='RouteCompounds',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('route', models.ForeignKey(on_delete=models.deletion.CASCADE, to='accounts.route')),
-                ('compound', models.ForeignKey(on_delete=models.deletion.CASCADE, to='locations.compound')),
+        # NOTE: The `accounts_route_compounds` table is already created by the
+        # ManyToManyField added in 0003. Registering the explicit RouteCompounds
+        # model here must therefore be a STATE-ONLY operation so we don't try to
+        # re-create (or later drop) the shared M2M through table on a fresh DB.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.CreateModel(
+                    name='RouteCompounds',
+                    fields=[
+                        ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                        ('route', models.ForeignKey(on_delete=models.deletion.CASCADE, to='accounts.route')),
+                        ('compound', models.ForeignKey(on_delete=models.deletion.CASCADE, to='locations.compound')),
+                    ],
+                    options={
+                        'db_table': 'accounts_route_compounds',
+                    },
+                ),
+                migrations.AddConstraint(
+                    model_name='routecompounds',
+                    constraint=models.UniqueConstraint(fields=('route', 'compound'), name='unique_route_compound'),
+                ),
             ],
-            options={
-                'db_table': 'accounts_route_compounds',
-            },
-        ),
-        migrations.AddConstraint(
-            model_name='routecompounds',
-            constraint=models.UniqueConstraint(fields=('route', 'compound'), name='unique_route_compound'),
+            database_operations=[],
         ),
     ]

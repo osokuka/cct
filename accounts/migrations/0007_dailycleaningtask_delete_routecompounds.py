@@ -129,7 +129,15 @@ class Migration(migrations.Migration):
                 "unique_together": {("room", "task_date", "index_in_day")},
             },
         ),
-        migrations.DeleteModel(
-            name="RouteCompounds",
+        # State-only: RouteCompounds is a phantom model mapped to the shared
+        # `accounts_route_compounds` M2M through table (created in 0003). Only
+        # remove it from migration state; never drop the underlying table.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.DeleteModel(
+                    name="RouteCompounds",
+                ),
+            ],
+            database_operations=[],
         ),
     ]

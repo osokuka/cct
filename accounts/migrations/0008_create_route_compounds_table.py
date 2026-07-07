@@ -10,19 +10,27 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="RouteCompounds",
-            fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("route", models.ForeignKey(on_delete=models.CASCADE, to="accounts.route")),
-                ("compound", models.ForeignKey(on_delete=models.CASCADE, to="locations.compound")),
+        # State-only: the `accounts_route_compounds` table already exists (auto
+        # M2M through from 0003). Re-register the phantom model in state without
+        # touching the database.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.CreateModel(
+                    name="RouteCompounds",
+                    fields=[
+                        ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("route", models.ForeignKey(on_delete=models.CASCADE, to="accounts.route")),
+                        ("compound", models.ForeignKey(on_delete=models.CASCADE, to="locations.compound")),
+                    ],
+                    options={
+                        "db_table": "accounts_route_compounds",
+                    },
+                ),
+                migrations.AddConstraint(
+                    model_name="routecompounds",
+                    constraint=models.UniqueConstraint(fields=("route", "compound"), name="unique_route_compound"),
+                ),
             ],
-            options={
-                "db_table": "accounts_route_compounds",
-            },
-        ),
-        migrations.AddConstraint(
-            model_name="routecompounds",
-            constraint=models.UniqueConstraint(fields=("route", "compound"), name="unique_route_compound"),
+            database_operations=[],
         ),
     ]

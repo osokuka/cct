@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from datetime import date, timedelta
+from decimal import Decimal
 from accounts.models import User, UserProfile, Team, Shift, Route
 from accounts.task_generation import DailyCleaningTask
 from accounts.views import check_permission

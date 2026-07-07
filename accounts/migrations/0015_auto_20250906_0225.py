@@ -12,6 +12,6 @@ class Migration(migrations.Migration):
         # Remove the unique constraint on team_id to allow multiple routes per team
         migrations.RunSQL(
             "DROP INDEX IF EXISTS accounts_route_team_unique;",
-            reverse_sql="CREATE UNIQUE INDEX accounts_route_team_unique ON accounts_route(team_id) WHERE is_active = 1;"
+            reverse_sql="CREATE UNIQUE INDEX accounts_route_team_unique ON accounts_route(team_id) WHERE is_active;"
         ),
     ]
