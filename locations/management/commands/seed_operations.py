@@ -50,15 +50,9 @@ class Command(BaseCommand):
     # -- shifts ------------------------------------------------------------
 
     def _seed_shifts(self, camp):
-        morning, _ = Shift.objects.get_or_create(
-            camp=camp, name="Morning",
-            defaults={"start_time": time(6, 0), "end_time": time(14, 0)},
-        )
-        afternoon, _ = Shift.objects.get_or_create(
-            camp=camp, name="Afternoon",
-            defaults={"start_time": time(14, 0), "end_time": time(22, 0)},
-        )
-        return {"morning": morning, "afternoon": afternoon}
+        # Shifts are simplified to a single standard 08:00-17:00 shift.
+        standard = Shift.get_or_create_default(camp)
+        return {"standard": standard}
 
     # -- users -------------------------------------------------------------
 
@@ -95,14 +89,20 @@ class Command(BaseCommand):
 
     def _seed_teams(self, camp, shifts):
         specs = [
-            ("Grumbullimi Zona 1", "collection", "morning", "cz1"),
-            ("Grumbullimi Zona 2", "collection", "morning", "cz2"),
-            ("Grumbullimi Zona 3", "collection", "afternoon", "cz3"),
-            ("Pastrimi Veri", "cleaning", "morning", "clnn"),
-            ("Pastrimi Jug", "cleaning", "morning", "clns"),
+            ("Grumbullimi Zona 1", "collection", "cz1", 3, "Garbage Truck GJ-101-AA",
+             "Rear loader truck, 2× bin lifters, gloves, high-vis vests"),
+            ("Grumbullimi Zona 2", "collection", "cz2", 3, "Garbage Truck GJ-102-AB",
+             "Rear loader truck, 2× bin lifters, gloves, high-vis vests"),
+            ("Grumbullimi Zona 3", "collection", "cz3", 4, "Garbage Truck GJ-103-AC",
+             "Side loader truck, bin lifter, gloves, high-vis vests"),
+            ("Pastrimi Veri", "cleaning", "clnn", 4, "Utility Van GJ-201-BA",
+             "Brooms, litter pickers, pressure washer, bags, high-vis vests"),
+            ("Pastrimi Jug", "cleaning", "clns", 4, "Utility Van GJ-202-BB",
+             "Brooms, litter pickers, leaf blower, bags, high-vis vests"),
         ]
+        standard = shifts["standard"]
         teams = {}
-        for idx, (name, team_type, shift_key, slug) in enumerate(specs, start=1):
+        for idx, (name, team_type, slug, emp, vehicle, equipment) in enumerate(specs, start=1):
             leader = self._cleaner(f"lead_{slug}", "Lider", name.split()[-1], camp)
             m1 = self._cleaner(f"mem_{slug}_a", "Punëtor", f"{slug}A", camp)
             m2 = self._cleaner(f"mem_{slug}_b", "Punëtor", f"{slug}B", camp)
@@ -110,13 +110,16 @@ class Command(BaseCommand):
                 camp=camp, name=name,
                 defaults={
                     "team_type": team_type,
-                    "shift": shifts[shift_key],
+                    "shift": standard,
                     "team_leader": leader,
                 },
             )
             team.team_type = team_type
-            team.shift = shifts[shift_key]
+            team.shift = standard
             team.team_leader = leader
+            team.employee_count = emp
+            team.vehicle = vehicle
+            team.equipment = equipment
             team.save()
             team.members.set([m1, m2])
             teams[name] = team

@@ -26,5 +26,4 @@ between operations screens and the rest of the app.
   toggle.
 
 **Affected areas:** `templates/base.html`, `templates/dashboard/operations_dashboard.html`,
-`templates/dashboard/operations_tv.html`, `templates/dashboard/collection_map.html`,
-and all management/list templates under `templates/`.
+`templates/dashboard/operations_tv.html`, and all management/list templates under `templates/`.

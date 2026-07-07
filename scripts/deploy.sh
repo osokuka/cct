@@ -43,6 +43,10 @@ sleep 10
 echo "📊 Running database migrations..."
 docker-compose exec -T web python manage.py migrate
 
+# Ensure the database cache table exists (used for cached config reads)
+echo "🗃️  Ensuring cache table..."
+docker-compose exec -T web python manage.py createcachetable
+
 # Create superuser (if not exists)
 echo "👤 Creating superuser..."
 docker-compose exec -T web python manage.py shell -c "

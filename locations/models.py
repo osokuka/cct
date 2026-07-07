@@ -5,9 +5,72 @@ Location models for the NATO Camp Cleaning Tracker.
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.cache import cache
 from django.utils import timezone
 from decimal import Decimal
 import uuid
+
+
+class OperationsConfig(models.Model):
+    """
+    Global, site-wide operations settings (singleton, pk=1).
+
+    This platform is an operations-management tool, not a payment tracker. The
+    payment integration is optional: when ``payment_tracking_enabled`` is off,
+    payment status is ignored entirely — every point is collected and clients are
+    simply billed at the end of the month.
+    """
+    _CACHE_KEY = "operations_config_payment_tracking"
+
+    id = models.AutoField(primary_key=True)
+    payment_tracking_enabled = models.BooleanField(
+        default=True,
+        help_text="When on, unpaid clients are flagged and skipped on the map. "
+                  "When off, everyone is collected and billed monthly.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Operations Settings"
+        verbose_name_plural = "Operations Settings"
+
+    def __str__(self):
+        return "Operations Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # enforce singleton
+        super().save(*args, **kwargs)
+        try:
+            cache.set(self._CACHE_KEY, self.payment_tracking_enabled, 300)
+        except Exception:
+            pass  # cache backend may be unavailable; DB remains source of truth
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @classmethod
+    def payment_tracking_on(cls):
+        """Cached read of the payment-tracking flag.
+
+        Resilient to a missing cache table (fresh DB) and to reads before the
+        model's own migration has run — defaults to True in those cases.
+        """
+        try:
+            val = cache.get(cls._CACHE_KEY)
+        except Exception:
+            val = None
+        if val is None:
+            try:
+                val = cls.get_solo().payment_tracking_enabled
+            except Exception:
+                return True
+            try:
+                cache.set(cls._CACHE_KEY, val, 300)
+            except Exception:
+                pass
+        return val
 
 
 class Camp(models.Model):
@@ -232,6 +295,13 @@ class Room(models.Model):
     # Space types treated as public-area cleaning sites (SQM/SLA) on the map.
     PUBLIC_AREA_TYPES = ['park', 'city_center', 'school_yard', 'front_yard']
 
+    # For dumpsters only: whether the bin serves a single household or is a
+    # shared communal bin for a whole block.
+    DUMPSTER_TYPE_CHOICES = [
+        ('household', 'Household (single family)'),
+        ('communal', 'Communal (shared block)'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
     # Location hierarchy
@@ -339,6 +409,12 @@ class Room(models.Model):
         help_text="Billing client for this dumpster/collection point"
     )
 
+    # For dumpsters: household (single family) vs communal (shared block bin).
+    dumpster_type = models.CharField(
+        max_length=20, choices=DUMPSTER_TYPE_CHOICES, default='household', blank=True,
+        help_text="For dumpsters: single-family household bin or shared communal block bin"
+    )
+
     # Weekly collection plan: which weekday (0=Mon..6=Sun) this point is serviced,
     # so each team collects <= a daily cap and the week covers the whole area.
     collection_weekday = models.IntegerField(
@@ -439,6 +515,14 @@ class Room(models.Model):
         return self.space_type == 'dumpster'
 
     @property
+    def is_communal_dumpster(self) -> bool:
+        return self.is_dumpster and self.dumpster_type == 'communal'
+
+    @property
+    def dumpster_type_label(self) -> str:
+        return self.get_dumpster_type_display() if self.is_dumpster else ''
+
+    @property
     def is_public_area(self) -> bool:
         return self.space_type in self.PUBLIC_AREA_TYPES
 
@@ -450,6 +534,10 @@ class Room(models.Model):
         blocked (must be confirmed before collecting).
         """
         if not self.is_dumpster:
+            return True
+        # Payment integration is optional. When disabled, everyone is collected
+        # (billed monthly) — this is an operations tool, not a payment tracker.
+        if not OperationsConfig.payment_tracking_on():
             return True
         return bool(self.client and self.client.can_collect)
 

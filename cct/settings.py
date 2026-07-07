@@ -25,7 +25,20 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-*&v#&okfzv%-wgvm#q=&q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
+
+# Origins trusted for CSRF-protected POSTs (Django 4+). Must include scheme and
+# port, e.g. "http://192.168.10.6:8232". Provided via env, comma separated.
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
+
+# Fallback map center (no site is hardcoded in code). The maps derive their
+# center from the data (centroid of geolocated points); this is only used when a
+# scope has no geolocated points. Configure per deployment via env.
+MAP_DEFAULT_CENTER = {
+    'lat': float(os.environ.get('MAP_DEFAULT_LAT', '0') or 0),
+    'lng': float(os.environ.get('MAP_DEFAULT_LNG', '0') or 0),
+    'zoom': int(os.environ.get('MAP_DEFAULT_ZOOM', '13') or 13),
+}
 
 # Security settings for reverse proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

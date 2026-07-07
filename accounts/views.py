@@ -589,7 +589,7 @@ def team_list(request):
     all_teams = Team.objects.all()
     total_teams = all_teams.count()
     active_teams = all_teams.filter(is_active=True).count()
-    total_members = sum(team.members.count() for team in all_teams)
+    total_members = sum(team.employee_count for team in all_teams)
     avg_team_size = total_members / total_teams if total_teams > 0 else 0
     
     # Get available camps for filter
@@ -744,15 +744,8 @@ def team_update(request, team_id):
     else:
         form = TeamUpdateForm(instance=team, request=request)
     
-    # Get current member IDs for template
-    current_member_ids = list(team.members.values_list('id', flat=True))
-    
-    context = {
-        'form': form, 
-        'team': team,
-        'current_member_ids': current_member_ids
-    }
-    return render(request, 'accounts/team_update.html', context)
+    context = {'form': form, 'team': team}
+    return render(request, 'accounts/team_create.html', context)
 
 
 @login_required
@@ -818,45 +811,6 @@ def team_activate(request, team_id):
     
     context = {'team': team, 'action': 'activate'}
     return render(request, 'accounts/team_confirm_delete.html', context)
-
-
-# Shift Management Views
-@login_required
-def shift_list(request):
-    """List all shifts."""
-    if not check_permission(request, ['admin', 'manager']):
-        return redirect('accounts:login')
-    
-    shifts = Shift.objects.select_related('camp').all()
-    
-    # Filter by camp if manager
-    user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp:
-            shifts = shifts.filter(camp=camp)
-    
-    context = {'shifts': shifts}
-    return render(request, 'accounts/shift_list.html', context)
-
-
-@login_required
-def shift_create(request):
-    """Create a new shift."""
-    if not check_permission(request, ['admin', 'manager']):
-        return redirect('accounts:login')
-    
-    if request.method == 'POST':
-        form = ShiftCreateForm(request.POST)
-        if form.is_valid():
-            shift = form.save()
-            messages.success(request, f'Shift {shift.name} created successfully.')
-            return redirect('accounts:shift_list')
-    else:
-        form = ShiftCreateForm()
-    
-    context = {'form': form}
-    return render(request, 'accounts/shift_form.html', context)
 
 
 # Route Management Views

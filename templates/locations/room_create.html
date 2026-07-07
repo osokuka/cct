@@ -145,6 +145,16 @@
                             {% endif %}
                         </div>
                         <div>
+                            <label for="{{ form.dumpster_type.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
+                                <i class="fa-solid fa-trash-can mr-1"></i>Dumpster Type
+                            </label>
+                            {{ form.dumpster_type }}
+                            <p class="text-xs text-gray-500 mt-1">Only applies to dumpsters: household (single family) vs communal (shared block).</p>
+                            {% if form.dumpster_type.errors %}
+                                <p class="text-red-500 text-xs italic mt-1">{{ form.dumpster_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
                             <label for="{{ form.room_description.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
                                 <i class="fa-solid fa-align-left mr-1"></i>Description
                             </label>

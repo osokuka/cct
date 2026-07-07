@@ -55,10 +55,17 @@
                     <div class="mt-1 text-sm text-charcoal-black">{{ task.index_in_day }}</div>
                 </div>
                 
+                {% if task.room.space_type == 'dumpster' %}
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Collection Credit</span>
+                    <div class="mt-1 text-sm text-charcoal-black font-semibold">1 collection</div>
+                </div>
+                {% else %}
                 <div>
                     <span class="text-sm font-medium text-gray-500">SLA Credit</span>
                     <div class="mt-1 text-sm text-charcoal-black font-semibold">{{ task.sla_credit_sqm }} m²</div>
                 </div>
+                {% endif %}
                 
                 {% if task.is_urgent %}
                 <div>
@@ -184,10 +191,12 @@
                         <div class="mt-1 text-xs text-charcoal-black font-semibold">{{ task.room.room_code }}</div>
                     </div>
                     
+                    {% if task.room.space_type != 'dumpster' %}
                     <div>
                         <span class="text-xs font-medium text-gray-500">Area</span>
                         <div class="mt-1 text-xs text-charcoal-black">{{ task.room.square_meters }} m²</div>
                     </div>
+                    {% endif %}
                     
                     <div>
                         <span class="text-xs font-medium text-gray-500">Street</span>
@@ -206,6 +215,56 @@
                 </div>
             </div>
         </div>
+
+        <!-- Garbage Collection Card (dumpster tasks only) -->
+        {% if task.room.space_type == 'dumpster' %}
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                <i class="fa-solid fa-trash-can text-amber-600"></i>
+                <h3 class="text-sm font-semibold text-charcoal-black">Garbage Collection</h3>
+            </div>
+            <div class="p-4">
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Dumpster ID</span>
+                        <div class="mt-1 text-xs text-charcoal-black font-semibold">{{ task.room.room_code }}</div>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Dumpster Type</span>
+                        <div class="mt-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if task.room.dumpster_type == 'communal' %}bg-indigo-100 text-indigo-800{% else %}bg-slate-100 text-slate-800{% endif %}">
+                                <i class="fa-solid {% if task.room.dumpster_type == 'communal' %}fa-people-group{% else %}fa-house{% endif %} mr-1"></i>
+                                {{ task.room.get_dumpster_type_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Client ID</span>
+                        <div class="mt-1 text-xs text-charcoal-black font-mono">
+                            {% if task.room.dumpster_type == 'communal' %}
+                            <span class="text-gray-400 italic">Shared block bin</span>
+                            {% else %}
+                            {{ task.room.client.client_code|default:"—" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">GPS Coordinates</span>
+                        {% if task.room.latitude is not None and task.room.longitude is not None %}
+                        <div class="mt-1 text-xs text-charcoal-black font-mono">{{ task.room.latitude }}, {{ task.room.longitude }}</div>
+                        <a href="https://www.google.com/maps?q={{ task.room.latitude }},{{ task.room.longitude }}" target="_blank" rel="noopener"
+                           class="mt-1 inline-flex items-center text-xs text-steel-blue hover:underline">
+                            <i class="fa-solid fa-location-dot mr-1"></i> Open in Maps
+                        </a>
+                        {% else %}
+                        <div class="mt-1 text-xs text-gray-400 italic">No coordinates recorded</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Description Card -->
         {% if task.room.room_description %}

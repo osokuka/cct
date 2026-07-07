@@ -154,6 +154,9 @@ def dashboard(request):
         'today_tasks': today_tasks.count(),
         'completed_tasks': stats_tasks.filter(state='done').count(),
         'missed_tasks': missed_tasks.count(),
+        # Split overdue work into missed garbage collections vs missed cleaning deadlines.
+        'missed_collection_tasks': missed_tasks.filter(room__space_type='dumpster').count(),
+        'missed_cleaning_tasks': missed_tasks.exclude(room__space_type='dumpster').count(),
         'planned_tasks': stats_tasks.filter(state='planned').count(),
         'in_progress_tasks': stats_tasks.filter(state='in_progress').count(),
         'urgent_tasks': stats_tasks.filter(task_type='requested').count(),
@@ -339,8 +342,34 @@ def dashboard(request):
             'completion_rate': float((collected_dumpsters / planned_dumpsters * 100) if planned_dumpsters > 0 else 0)
         }
 
+    # Per-team daily achievement (today) — powers the team performance chart.
+    teams_data = []
+    for team in active_teams.select_related('team_leader'):
+        tteam = today_tasks.filter(assigned_to_team=team)
+        t_total = tteam.count()
+        t_done = tteam.filter(state='done').count()
+        t_prog = tteam.filter(state='in_progress').count()
+        t_remaining = t_total - t_done - t_prog
+        if t_remaining < 0:
+            t_remaining = 0
+        teams_data.append({
+            'id': str(team.id),
+            'name': team.name,
+            'team_type': team.team_type,
+            'leader': (team.team_leader.get_full_name() or team.team_leader.username) if team.team_leader else '—',
+            'employee_count': team.employee_count,
+            'total': t_total,
+            'done': t_done,
+            'in_progress': t_prog,
+            'remaining': t_remaining,
+            'completion_rate': round((t_done / t_total * 100) if t_total else 0, 1),
+        })
+    # Show teams with work first, highest completion on top.
+    teams_data.sort(key=lambda t: (t['total'] == 0, -t['completion_rate']))
+
     # Basic statistics
     context.update({
+        'teams_data': teams_data,
         'total_users': User.objects.filter(is_active=True).count(),
         'total_camps': Camp.objects.filter(is_active=True).count(),
         'total_compounds': Compound.objects.filter(is_active=True).count(),

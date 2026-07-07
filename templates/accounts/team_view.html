@@ -48,6 +48,21 @@
                     </div>
                     
                     <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Team Type</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {{ team.get_team_type_display }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Shift</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            <i class="fa-regular fa-clock mr-2 text-gray-400"></i>
+                            {% if team.shift %}{{ team.shift.name }} ({{ team.shift.start_time }}–{{ team.shift.end_time }}){% else %}Standard 08:00–17:00{% endif %}
+                        </div>
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium text-gray-500 mb-2">Status</label>
                         <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
@@ -60,46 +75,32 @@
                 </div>
             </div>
 
-            <!-- Team Members Section -->
+            <!-- Vehicle & Equipment Section -->
             <div class="metallic-card rounded-lg p-6 border border-gray-300">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center">
-                        <i class="fa-solid fa-user-friends text-steel-blue mr-3"></i>
-                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TEAM MEMBERS</h3>
-                    </div>
-                    <div class="text-sm text-gray-500">
-                        {{ team.members.count }} member{{ team.members.count|pluralize }}
-                    </div>
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-truck text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">VEHICLE & EQUIPMENT</h3>
                 </div>
-                
-                {% if team.members.exists %}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for member in team.members.all %}
-                    <div class="flex items-center p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div class="w-10 h-10 rounded bg-green-600 flex items-center justify-center mr-3">
-                            <span class="text-white font-semibold text-sm">{{ member.first_name|first|default:member.username|first|upper }}</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-sm font-medium text-dark-graphite">{{ member.get_full_name|default:member.username }}</div>
-                            <div class="text-xs text-gray-500">{{ member.username }}</div>
-                            <div class="text-xs text-gray-500">{{ member.email|default:"No email" }}</div>
-                        </div>
-                        <div class="text-right">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                {% if member.is_active and member.profile.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                {% if member.is_active and member.profile.is_active %}Active{% else %}Inactive{% endif %}
-                            </span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Number of Employees</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            <i class="fa-solid fa-user-group mr-2 text-gray-400"></i>{{ team.employee_count }}
                         </div>
                     </div>
-                    {% endfor %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Vehicle</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
+                            {% if team.vehicle %}<i class="fa-solid fa-truck mr-2 text-gray-400"></i>{{ team.vehicle }}{% else %}<span class="text-gray-400">Not assigned</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Equipment</label>
+                        <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite whitespace-pre-line">
+                            {% if team.equipment %}{{ team.equipment }}{% else %}<span class="text-gray-400">No equipment recorded</span>{% endif %}
+                        </div>
+                    </div>
                 </div>
-                {% else %}
-                <div class="text-center py-8 text-gray-500">
-                    <i class="fa-solid fa-user-slash text-4xl mb-4"></i>
-                    <p class="text-lg font-medium">No members assigned</p>
-                    <p class="text-sm">This team doesn't have any members yet.</p>
-                </div>
-                {% endif %}
             </div>
 
             <!-- Team Statistics Section -->
@@ -111,15 +112,15 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-steel-blue heading-font mb-2">{{ team.members.count }}</div>
-                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Total Members</div>
-                        <div class="text-xs text-gray-500 mt-1">Currently assigned</div>
+                        <div class="text-3xl font-bold text-steel-blue heading-font mb-2">{{ team.employee_count }}</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Employees</div>
+                        <div class="text-xs text-gray-500 mt-1">On this team</div>
                     </div>
                     
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-green-600 heading-font mb-2">{{ active_members_count }}</div>
-                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Active Members</div>
-                        <div class="text-xs text-gray-500 mt-1">Ready for work</div>
+                        <div class="text-3xl font-bold text-green-600 heading-font mb-2">{{ team.routes.count }}</div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Daily Routes</div>
+                        <div class="text-xs text-gray-500 mt-1">Across the week</div>
                     </div>
                     
                     <div class="text-center">

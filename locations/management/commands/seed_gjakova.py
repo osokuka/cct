@@ -160,28 +160,38 @@ class Command(BaseCommand):
             for n, pt in enumerate(points, start=1):
                 lat, lng = pt[0], pt[1]
                 day = int(pt[2]) if pt[2] is not None else None
-                status = PAYMENT_CYCLE[pay_i % len(PAYMENT_CYCLE)]
-                pay_i += 1
-                paid_until = None
-                if status == "paid":
-                    paid_until = today + timedelta(days=180)
-                elif status == "overdue":
-                    paid_until = today - timedelta(days=20)
 
-                client = CollectionClient.objects.create(
-                    client_code=f"GJ-CL-{client_seq:05d}",
-                    compound=compound, payment_status=status, paid_until=paid_until,
-                    internal_note="Demo client (seed_gjakova / OSM)",
-                )
-                client_seq += 1
+                # The first bin on each street is a communal (shared block) bin
+                # with no single billing client; the rest are household bins.
+                is_communal = (n == 1)
+
+                client = None
+                if not is_communal:
+                    status = PAYMENT_CYCLE[pay_i % len(PAYMENT_CYCLE)]
+                    pay_i += 1
+                    paid_until = None
+                    if status == "paid":
+                        paid_until = today + timedelta(days=180)
+                    elif status == "overdue":
+                        paid_until = today - timedelta(days=20)
+                    client = CollectionClient.objects.create(
+                        client_code=f"GJ-CL-{client_seq:05d}",
+                        compound=compound, payment_status=status, paid_until=paid_until,
+                        internal_note="Demo client (seed_gjakova / OSM)",
+                    )
+                    client_seq += 1
 
                 Room.objects.create(
                     camp=camp, compound=compound, building=building, floor=floor,
                     room_code=f"{street['code']}-{n:03d}"[:100],
                     building_code=street["code"][:20],
-                    room_description=f"Kontejner {n} — {street['name']}",
+                    room_description=(
+                        f"Kontejner komunal — {street['name']}" if is_communal
+                        else f"Kontejner {n} — {street['name']}"
+                    ),
                     latitude=Decimal(str(lat)), longitude=Decimal(str(lng)),
                     client=client, collection_weekday=day, last_collected_at=last_week,
+                    dumpster_type=("communal" if is_communal else "household"),
                     **self._dumpster_defaults(),
                 )
                 total += 1

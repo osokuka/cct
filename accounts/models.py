@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, time as dtime
 import uuid
 
 
@@ -119,13 +119,25 @@ class Team(models.Model):
         User, 
         on_delete=models.CASCADE, 
         related_name='led_teams',
-        help_text="Team leader (must be a Manager or Admin)"
+        help_text="Team leader"
     )
     members = models.ManyToManyField(
         User, 
         related_name='teams',
         blank=True,
-        help_text="Team members"
+        help_text="Team members (optional)"
+    )
+    employee_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of employees on this team (including the leader)"
+    )
+    vehicle = models.CharField(
+        max_length=120, blank=True,
+        help_text="Vehicle assigned to this team (e.g. Truck GJ-123-AB)"
+    )
+    equipment = models.TextField(
+        blank=True,
+        help_text="Equipment assigned to this team"
     )
     TEAM_TYPE_CHOICES = [
         ('cleaning', 'Cleaning Team'),
@@ -170,6 +182,9 @@ class Team(models.Model):
         
 
     def save(self, *args, **kwargs):
+        # Shifts are simplified to a single standard 08:00-17:00 shift per site.
+        if not self.shift_id and self.camp_id:
+            self.shift = Shift.get_or_create_default(self.camp)
         self.clean()
         super().save(*args, **kwargs)
 
@@ -193,8 +208,23 @@ class Shift(models.Model):
         verbose_name_plural = "Shifts"
         ordering = ['start_time']
 
+    #: Canonical shift used across the app now that shifts are simplified.
+    DEFAULT_NAME = "Standard"
+    DEFAULT_START = dtime(8, 0)
+    DEFAULT_END = dtime(17, 0)
+
     def __str__(self):
         return f"{self.name} ({self.start_time} - {self.end_time}) - {self.camp.name}"
+
+    @classmethod
+    def get_or_create_default(cls, camp):
+        """Return the single standard 08:00-17:00 shift for a Site (Camp)."""
+        shift, _ = cls.objects.get_or_create(
+            camp=camp, name=cls.DEFAULT_NAME,
+            defaults={"start_time": cls.DEFAULT_START,
+                      "end_time": cls.DEFAULT_END, "is_active": True},
+        )
+        return shift
 
     def clean(self):
         """

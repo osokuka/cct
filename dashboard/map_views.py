@@ -1,55 +1,46 @@
 """
-Operations map views for Gjakova.
+Map feature helpers for Gjakova operations.
 
-Renders an interactive Leaflet map of the municipality showing:
-  * public-area cleaning sites (SQM/SLA) as blue areas, and
-  * garbage-collection points (dumpsters) as dots coloured by whether the billing
-    client has paid (green = collect, red = do not collect / confirm).
-
-Client identity is anonymized: only an opaque client code and payment status are
-exposed, never a name.
+Builds serializable dumpster + public-area feature lists and a data-driven map
+center. Consumed by the Operations dashboard/TV endpoints. Client identity is
+anonymized: only an opaque client code and payment status are exposed.
 """
 
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import render, redirect
-
-from accounts.views import check_permission
-from locations.models import Camp, Room
+from django.conf import settings
 
 
-# Gjakova operations focus area (WGS84) — collection zone, ~1.5 km radius.
-GJAKOVA_CENTER = {"lat": 42.37092943416372, "lng": 20.435394872814765, "zoom": 15}
+def default_center():
+    """Configurable fallback map center (no site hardcoded in code).
 
-_ALLOWED_ROLES = ["admin", "manager", "operations_manager", "cleaner", "authority"]
-
-
-def _scoped_rooms(request):
-    """Return active rooms scoped to the user's camp (admins see all)."""
-    rooms = Room.objects.filter(is_active=True).select_related(
-        "client", "compound", "building", "floor", "camp"
-    )
-    profile = getattr(request.user, "profile", None)
-    role = getattr(profile, "role", None)
-    if role != "admin":
-        camp = getattr(profile, "camp", None)
-        if camp is not None:
-            rooms = rooms.filter(camp=camp)
-        else:
-            rooms = rooms.none()
-    return rooms
-
-
-@login_required
-def collection_map(request):
-    """Render the operations map page."""
-    if not check_permission(request, _ALLOWED_ROLES):
-        return redirect("accounts:login")
-    context = {
-        "center": GJAKOVA_CENTER,
-        "data_url": "collection_map_data",
+    Set ``MAP_DEFAULT_CENTER`` in settings/env to a dict {lat,lng,zoom}. Only
+    used when the scope has no geolocated points to derive a center from.
+    """
+    c = getattr(settings, "MAP_DEFAULT_CENTER", None) or {}
+    return {
+        "lat": float(c.get("lat", 0.0)),
+        "lng": float(c.get("lng", 0.0)),
+        "zoom": int(c.get("zoom", 13)),
     }
-    return render(request, "dashboard/collection_map.html", context)
+
+
+def center_from_rooms(rooms):
+    """Data-driven map center: the centroid of the given rooms' coordinates.
+
+    ``rooms`` may be a queryset or a materialized list of Room instances.
+    Falls back to :func:`default_center` when nothing is geolocated.
+    """
+    lats, lngs = [], []
+    for r in rooms:
+        if r.latitude is not None and r.longitude is not None:
+            lats.append(float(r.latitude))
+            lngs.append(float(r.longitude))
+    if not lats:
+        return default_center()
+    return {
+        "lat": sum(lats) / len(lats),
+        "lng": sum(lngs) / len(lngs),
+        "zoom": default_center()["zoom"],
+    }
 
 
 def build_map_features(rooms):
@@ -70,6 +61,8 @@ def build_map_features(rooms):
             dumpsters.append({
                 "id": str(room.id),
                 "dumpster_id": room.room_code,
+                "dumpster_type": room.dumpster_type or "household",
+                "dumpster_type_label": room.dumpster_type_label,
                 "barcode": _safe_barcode(room),
                 "client_id": client.client_code if client else None,
                 "payment_status": payment_status,
@@ -109,23 +102,6 @@ def map_counts(dumpsters, public_areas):
         "blocked": sum(1 for d in dumpsters if not d["can_collect"]),
         "public_areas": len(public_areas),
     }
-
-
-@login_required
-def collection_map_data(request):
-    """Return map features as JSON (dumpsters + public areas)."""
-    if not check_permission(request, _ALLOWED_ROLES):
-        return JsonResponse({"error": "forbidden"}, status=403)
-
-    rooms = _scoped_rooms(request)
-    dumpsters, public_areas = build_map_features(rooms)
-
-    return JsonResponse({
-        "center": GJAKOVA_CENTER,
-        "dumpsters": dumpsters,
-        "public_areas": public_areas,
-        "counts": map_counts(dumpsters, public_areas),
-    })
 
 
 def _safe_barcode(room):

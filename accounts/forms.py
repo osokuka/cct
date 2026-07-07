@@ -163,111 +163,42 @@ class UserUpdateForm(forms.ModelForm):
 
 
 class TeamCreateForm(forms.ModelForm):
-    """Form for creating teams."""
-    
+    """Create a team: leader, headcount, vehicle and equipment.
+
+    Shifts are simplified to a single standard 08:00-17:00 shift and assigned
+    automatically, so they are not part of this form.
+    """
+
     class Meta:
         model = Team
-        fields = ['name', 'camp', 'shift', 'team_leader', 'members', 'is_active']
+        fields = ['name', 'camp', 'team_type', 'team_leader',
+                  'employee_count', 'vehicle', 'equipment', 'is_active']
         widgets = {
-            'members': forms.CheckboxSelectMultiple(),
+            'equipment': forms.Textarea(attrs={'rows': 3,
+                'placeholder': 'e.g. 2× bins lift, brooms, high-vis vests, pressure washer'}),
+            'vehicle': forms.TextInput(attrs={'placeholder': 'e.g. Garbage Truck GJ-123-AB'}),
         }
-    
+
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        
-        # Filter team leaders to only managers and admins
-        if self.request:
-            self.fields['team_leader'].queryset = User.objects.filter(
-                profile__role__in=['admin', 'manager', 'cleaner'],
-                profile__is_active=True
-            )
-            
-            # Filter members to only cleaners who are not already assigned to any team
-            self.fields['members'].queryset = User.objects.filter(
-                profile__role='cleaner',
-                profile__is_active=True
-            ).exclude(teams__is_active=True)
-            
-            # Filter shifts by user's camp if not admin
-            if self.request.user.profile.role != 'admin':
-                camp = self.request.user.profile.camp
-                if camp:
-                    self.fields['shift'].queryset = Shift.objects.filter(camp=camp, is_active=True)
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        camp = cleaned_data.get('camp')
-        shift = cleaned_data.get('shift')
-        
-        # Validate shift belongs to the selected camp
-        if camp and shift and shift.camp != camp:
-            raise forms.ValidationError(
-                f"Shift '{shift.name}' does not belong to camp '{camp.name}'"
-            )
-        
-        return cleaned_data
 
-
-class TeamUpdateForm(forms.ModelForm):
-    """Form for updating teams."""
-    
-    class Meta:
-        model = Team
-        fields = ['name', 'camp', 'shift', 'team_leader', 'members', 'is_active']
-        widgets = {
-            'members': forms.CheckboxSelectMultiple(),
-        }
-    
-    def __init__(self, *args, **kwargs):
-        self.request = kwargs.pop('request', None)
-        super().__init__(*args, **kwargs)
-        
-        # Filter team leaders to only managers and admins
         self.fields['team_leader'].queryset = User.objects.filter(
             profile__role__in=['admin', 'manager', 'cleaner'],
-            profile__is_active=True
+            profile__is_active=True,
         )
-        
-        # Filter shifts by camp - use team's camp if updating, user's camp if creating
-        if self.instance and self.instance.pk:
-            # Updating existing team - filter by team's camp
-            camp = self.instance.camp
-            if camp:
-                self.fields['shift'].queryset = Shift.objects.filter(camp=camp, is_active=True)
-        elif self.request and self.request.user.profile.role != 'admin':
-            # Creating new team - filter by user's camp for non-admin users
+        # Non-admins can only create teams in their own site.
+        if self.request and hasattr(self.request.user, 'profile') \
+                and self.request.user.profile.role != 'admin':
             camp = self.request.user.profile.camp
             if camp:
-                self.fields['shift'].queryset = Shift.objects.filter(camp=camp, is_active=True)
-        
-        # Filter members to only cleaners who are not already assigned to any team
-        # But include current team members so they can be removed if needed
-        current_team_members = []
-        if self.instance and self.instance.pk:
-            current_team_members = list(self.instance.members.values_list('id', flat=True))
-        
-        self.fields['members'].queryset = User.objects.filter(
-            profile__role='cleaner',
-            profile__is_active=True
-        ).filter(
-            models.Q(teams__isnull=True) |  # No teams assigned
-            models.Q(teams__is_active=False) |  # Only inactive teams
-            models.Q(id__in=current_team_members)  # Current team members
-        ).distinct()
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        camp = cleaned_data.get('camp')
-        shift = cleaned_data.get('shift')
-        
-        # Validate shift belongs to the selected camp
-        if camp and shift and shift.camp != camp:
-            raise forms.ValidationError(
-                f"Shift '{shift.name}' does not belong to camp '{camp.name}'"
-            )
-        
-        return cleaned_data
+                self.fields['camp'].queryset = Camp.objects.filter(id=camp.id)
+                self.fields['camp'].initial = camp
+
+
+class TeamUpdateForm(TeamCreateForm):
+    """Same builder, used for editing an existing team."""
+    pass
 
 
 class ShiftCreateForm(forms.ModelForm):

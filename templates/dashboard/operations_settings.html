@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Operations Settings - Gjakova Cleaning Tracker{% endblock %}
+{% block page_title %}OPERATIONS SETTINGS{% endblock %}
+{% block page_subtitle %}Global toggles for the operations platform{% endblock %}
+
+{% block content %}
+<div class="px-6 py-4 max-w-3xl">
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">PAYMENT SYSTEM INTEGRATION</h3>
+        </div>
+        <div class="p-6">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-900">
+                <i class="fa-solid fa-circle-info mr-2"></i>
+                This platform is an <strong>operations &amp; work-control tool</strong>, not a payment tracker.
+                Payment integration is optional:
+                <ul class="list-disc ml-6 mt-2 space-y-1">
+                    <li><strong>On:</strong> unpaid clients are flagged and shown as "not collected" on the map (current behaviour).</li>
+                    <li><strong>Off:</strong> there are no unpaying clients — every point is collected, and clients are simply billed at the end of the month.</li>
+                </ul>
+            </div>
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" name="payment_tracking_enabled" class="h-5 w-5 mt-0.5 text-steel-blue border-gray-300 rounded"
+                           {% if config.payment_tracking_enabled %}checked{% endif %}>
+                    <span>
+                        <span class="text-sm font-semibold text-dark-graphite">Enable payment tracking</span>
+                        <span class="block text-xs text-gray-500">
+                            Currently: <strong>{% if config.payment_tracking_enabled %}Enabled — unpaid clients are flagged{% else %}Disabled — everyone is collected, billed monthly{% endif %}</strong>
+                        </span>
+                    </span>
+                </label>
+
+                <div class="pt-4 border-t border-gray-200">
+                    <button type="submit" class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine">
+                        <i class="fa-solid fa-save mr-2"></i> Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

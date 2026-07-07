@@ -242,271 +242,6 @@ def rooms_table(request):
 
 
 @login_required
-def tasks_table(request):
-    """Tabular list of tasks with claim, assign, bulk assign, inline edits, and exports."""
-    if not check_permission(request, ['admin', 'manager', 'supervisor', 'cleaner', 'authority']):
-        return redirect('dashboard:dashboard')
-
-    user_role = get_user_role(request)
-    today = timezone.now().date()
-    
-    # Scoping per RBAC
-    if user_role == 'authority':
-        assigned_compound_ids = get_authority_compound_ids(request.user)
-        tasks_qs = DailyCleaningTask.objects.filter(room__compound_id__in=assigned_compound_ids)
-    elif user_role == 'cleaner':
-        # Cleaners see tasks assigned to their teams or unassigned on compounds in their routes
-        user_teams = Team.objects.filter(Q(team_leader=request.user) | Q(members=request.user))
-        cleaner_routes = Route.objects.filter(team__in=user_teams, is_active=True).prefetch_related('compounds')
-        route_compounds = []
-        for route in cleaner_routes:
-            route_compounds.extend(route.compounds.all())
-            
-        tasks_qs = DailyCleaningTask.objects.filter(
-            Q(assigned_to_team__in=user_teams) | Q(assigned_to_user=request.user) | Q(assigned_to_team__isnull=True, room__compound__in=route_compounds)
-        )
-    elif user_role in ['manager', 'supervisor']:
-        user_profile = request.user.profile if hasattr(request.user, 'profile') else None
-        if user_profile and user_profile.camp:
-            tasks_qs = DailyCleaningTask.objects.filter(room__camp=user_profile.camp)
-        else:
-            tasks_qs = DailyCleaningTask.objects.all()
-    else:
-        # Admin
-        tasks_qs = DailyCleaningTask.objects.all()
-
-    tasks_qs = tasks_qs.select_related('room', 'room__camp', 'room__compound', 'room__building', 'room__floor', 'assigned_to_team', 'shift', 'assigned_to_user').order_by('-task_date', 'room__room_code')
-
-    # Handle AJAX POST actions (inline edit, claim, bulk reassign, etc.)
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        
-        # 1. Cleaner Team Leader claiming unassigned tasks (first-come-first-served locking)
-        if action == 'claim_task':
-            task_id = request.POST.get('task_id')
-            task = get_object_or_404(DailyCleaningTask, id=task_id)
-            
-            if task.assigned_to_team:
-                return JsonResponse({'success': False, 'error': 'Task is already assigned to a team.'})
-                
-            # Find user's active team where they are the leader
-            team = Team.objects.filter(team_leader=request.user, is_active=True).first()
-            if not team:
-                return JsonResponse({'success': False, 'error': 'You must be a team leader to claim unassigned tasks.'})
-                
-            task.assigned_to_team = team
-            task.save()
-            log_audit(request, 'claim_task', f"DailyCleaningTask:{task.id}", {'team_id': str(team.id), 'team_name': team.name})
-            return JsonResponse({'success': True, 'message': f'Task successfully claimed for team "{team.name}".'})
-
-        # Write actions require Admin/Manager/Supervisor
-        if user_role not in ['admin', 'manager', 'supervisor']:
-            return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
-
-        # 2. Inline Reassign
-        if action == 'inline_reassign':
-            task_id = request.POST.get('task_id')
-            team_id = request.POST.get('team_id')
-            task = get_object_or_404(DailyCleaningTask, id=task_id)
-            
-            if team_id:
-                team = get_object_or_404(Team, id=team_id)
-                task.assigned_to_team = team
-            else:
-                task.assigned_to_team = None
-            task.save()
-            log_audit(request, 'reassign_task', f"DailyCleaningTask:{task.id}", {'team_id': team_id})
-            return JsonResponse({'success': True, 'message': 'Task reassigned successfully.'})
-            
-        # 3. Inline Mark Done
-        elif action == 'inline_mark_done':
-            task_id = request.POST.get('task_id')
-            task = get_object_or_404(DailyCleaningTask, id=task_id)
-            task.state = 'done'
-            task.completed_at = timezone.now()
-            task.save()
-            # Also record ScanEvent for auditing
-            ScanEvent.objects.create(
-                room=task.room,
-                user=request.user,
-                scan_type='CLEANED',
-                device_id='web-industrial-dashboard',
-                barcode_scanned=task.room.room_code,
-                daily_task=task,
-                is_urgent=task.is_urgent
-            )
-            log_audit(request, 'mark_task_done', f"DailyCleaningTask:{task.id}")
-            return JsonResponse({'success': True, 'message': 'Task marked as DONE.'})
-
-        # 4. Bulk reassign
-        elif action == 'bulk_reassign':
-            task_ids = request.POST.getlist('task_ids[]')
-            team_id = request.POST.get('team_id')
-            team = get_object_or_404(Team, id=team_id) if team_id else None
-            updated = DailyCleaningTask.objects.filter(id__in=task_ids).update(assigned_to_team=team)
-            log_audit(request, 'bulk_reassign_tasks', f"TasksCount:{updated}", {'task_ids': task_ids, 'team_id': team_id})
-            return JsonResponse({'success': True, 'message': f'Reassigned {updated} tasks successfully.'})
-
-        # 5. Bulk mark done
-        elif action == 'bulk_mark_done':
-            task_ids = request.POST.getlist('task_ids[]')
-            updated_count = 0
-            with transaction.atomic():
-                for t_id in task_ids:
-                    task = DailyCleaningTask.objects.filter(id=t_id).first()
-                    if task and task.state != 'done':
-                        task.state = 'done'
-                        task.completed_at = timezone.now()
-                        task.save()
-                        ScanEvent.objects.create(
-                            room=task.room,
-                            user=request.user,
-                            scan_type='CLEANED',
-                            device_id='web-industrial-dashboard',
-                            barcode_scanned=task.room.room_code,
-                            daily_task=task,
-                            is_urgent=task.is_urgent
-                        )
-                        updated_count += 1
-            log_audit(request, 'bulk_mark_done_tasks', f"TasksCount:{updated_count}", {'task_ids': task_ids})
-            return JsonResponse({'success': True, 'message': f'Marked {updated_count} tasks as DONE.'})
-
-        # 6. Bulk delete (Admin only)
-        elif action == 'bulk_delete':
-            if user_role != 'admin':
-                return JsonResponse({'success': False, 'error': 'Only Admins can delete tasks.'}, status=403)
-            task_ids = request.POST.getlist('task_ids[]')
-            deleted, _ = DailyCleaningTask.objects.filter(id__in=task_ids).delete()
-            log_audit(request, 'bulk_delete_tasks', f"TasksCount:{deleted}", {'task_ids': task_ids})
-            return JsonResponse({'success': True, 'message': f'Deleted {deleted} tasks successfully.'})
-
-        # 7. Bulk regenerate roster for selected rooms/days
-        elif action == 'bulk_regenerate':
-            room_ids = request.POST.getlist('room_ids[]')
-            task_ids = request.POST.getlist('task_ids[]')
-            target_date_str = request.POST.get('target_date', '')
-            try:
-                target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
-            except ValueError:
-                return JsonResponse({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD.'})
-
-            # Resolve room_ids from task_ids if not directly provided
-            if task_ids and not room_ids:
-                room_ids = list(DailyCleaningTask.objects.filter(id__in=task_ids).values_list('room_id', flat=True).distinct())
-
-            # Fetch rooms
-            rooms = Room.objects.filter(id__in=room_ids)
-            regenerated = 0
-            with transaction.atomic():
-                # Delete existing planned/missed tasks for these rooms and date
-                DailyCleaningTask.objects.filter(room_id__in=room_ids, task_date=target_date, state__in=['planned', 'missed']).delete()
-                # Run generation
-                for room in rooms:
-                    # Roster generator based on frequency_per_day
-                    freq = int(room.frequency_per_day) if room.frequency_per_day > 0 else 1
-                    for index in range(1, freq + 1):
-                        # Create task
-                        DailyCleaningTask.objects.create(
-                            room=room,
-                            task_date=target_date,
-                            index_in_day=index,
-                            sla_credit_sqm=room.actual_sqm,
-                            task_type='regular',
-                            state='planned'
-                        )
-                        regenerated += 1
-            log_audit(request, 'bulk_regenerate_roster', f"TasksGenerated:{regenerated}", {'room_ids': room_ids, 'date': target_date_str})
-            return JsonResponse({'success': True, 'message': f'Regenerated {regenerated} daily tasks successfully.'})
-
-        return JsonResponse({'success': False, 'error': 'Invalid action.'}, status=400)
-
-    # Apply filters (GET Request)
-    search_query = request.GET.get('search', '').strip()
-    date_start = request.GET.get('date_start', '')
-    date_end = request.GET.get('date_end', '')
-    state_filter = request.GET.get('state_filter', '')
-    type_filter = request.GET.get('type_filter', '')
-    team_filter = request.GET.get('team_filter', '')
-    shift_filter = request.GET.get('shift_filter', '')
-    compound_filter = request.GET.get('compound_filter', '')
-    building_filter = request.GET.get('building_filter', '')
-
-    if search_query:
-        tasks_qs = tasks_qs.filter(
-            Q(room__room_code__icontains=search_query) |
-            Q(room__room_description__icontains=search_query) |
-            Q(assigned_to_team__name__icontains=search_query)
-        )
-    if date_start:
-        tasks_qs = tasks_qs.filter(task_date__gte=date_start)
-    if date_end:
-        tasks_qs = tasks_qs.filter(task_date__lte=date_end)
-    if state_filter:
-        tasks_qs = tasks_qs.filter(state=state_filter)
-    if type_filter:
-        tasks_qs = tasks_qs.filter(task_type=type_filter)
-    if team_filter:
-        if team_filter == 'unassigned':
-            tasks_qs = tasks_qs.filter(assigned_to_team__isnull=True)
-        else:
-            tasks_qs = tasks_qs.filter(assigned_to_team_id=team_filter)
-    if shift_filter:
-        tasks_qs = tasks_qs.filter(shift_id=shift_filter)
-    if compound_filter:
-        tasks_qs = tasks_qs.filter(room__compound_id=compound_filter)
-    if building_filter:
-        tasks_qs = tasks_qs.filter(room__building_id=building_filter)
-
-    # Exports
-    export_format = request.GET.get('export', '')
-    if export_format in ['csv', 'xlsx']:
-        log_audit(request, 'export_tasks', f"TasksCount:{tasks_qs.count()}", {'format': export_format})
-        if export_format == 'csv':
-            return export_tasks_csv(tasks_qs)
-        elif export_format == 'xlsx':
-            return export_tasks_xlsx(tasks_qs)
-
-    # Pagination
-    paginator = Paginator(tasks_qs, 25)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
-
-    # Get filter dropdowns
-    if user_role == 'authority':
-        assigned_compounds = get_authority_compound_ids(request.user)
-        compounds = Compound.objects.filter(id__in=assigned_compounds, is_active=True)
-        buildings = Building.objects.filter(compound_id__in=assigned_compounds, is_active=True)
-        teams = Team.objects.filter(is_active=True) # Read-only access to team list
-    else:
-        compounds = Compound.objects.filter(is_active=True)
-        buildings = Building.objects.filter(is_active=True)
-        teams = Team.objects.filter(is_active=True)
-
-    shifts = Shift.objects.filter(is_active=True)
-
-    context = {
-        'page_obj': page_obj,
-        'compounds': compounds,
-        'buildings': buildings,
-        'teams': teams,
-        'shifts': shifts,
-        'filters': {
-            'search': search_query,
-            'date_start': date_start,
-            'date_end': date_end,
-            'state': state_filter,
-            'type': type_filter,
-            'team': team_filter,
-            'shift': shift_filter,
-            'compound': compound_filter,
-            'building': building_filter,
-        },
-        'user_role': user_role
-    }
-    return render(request, 'dashboard/tasks_table.html', context)
-
-
-@login_required
 def completed_tasks_table(request):
     """Tabular history of completed tasks (read-only to non-Admin)."""
     # Check permissions: Admin, Manager, Supervisor, and Authority can access
@@ -587,7 +322,32 @@ def completed_tasks_table(request):
         elif export_format == 'xlsx':
             return export_completed_tasks_xlsx(completed_tasks_qs)
 
-    # Pagination
+    # Optional grouping (zone / team / street). When set, we render grouped
+    # sections instead of a flat paginated list.
+    group_by = request.GET.get('group_by', '')
+    grouped = None
+    if group_by in ('zone', 'team', 'street'):
+        from collections import OrderedDict
+        buckets = OrderedDict()
+        for task in completed_tasks_qs:
+            if group_by == 'zone':
+                key = task.room.compound.name if task.room.compound_id else 'Unassigned zone'
+            elif group_by == 'team':
+                key = task.assigned_to_team.name if task.assigned_to_team_id else 'Scanner / Unassigned'
+            else:  # street
+                key = task.room.building.name if task.room.building_id else 'Unknown street'
+            bucket = buckets.setdefault(key, {
+                'name': key, 'tasks': [], 'count': 0, 'dumpsters': 0, 'sqm': 0.0,
+            })
+            bucket['tasks'].append(task)
+            bucket['count'] += 1
+            if task.room.space_type == 'dumpster':
+                bucket['dumpsters'] += 1
+            else:
+                bucket['sqm'] += float(task.sla_credit_sqm or 0)
+        grouped = sorted(buckets.values(), key=lambda g: -g['count'])
+
+    # Pagination (flat view only)
     paginator = Paginator(completed_tasks_qs, 25)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
@@ -605,6 +365,8 @@ def completed_tasks_table(request):
 
     context = {
         'page_obj': page_obj,
+        'grouped': grouped,
+        'group_by': group_by,
         'compounds': compounds,
         'buildings': buildings,
         'teams': teams,
@@ -701,79 +463,6 @@ def export_rooms_xlsx(queryset):
         
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="rooms_export.xlsx"'
-    wb.save(response)
-    return response
-
-
-def export_tasks_csv(queryset):
-    """Export tasks list as CSV."""
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="tasks_export.csv"'
-    
-    writer = csv.writer(response)
-    writer.writerow([
-        'Date', 'Camp', 'Compound', 'Building', 'Room Code', 'Type', 
-        'State', 'Team', 'Shift', 'Urgent', 'Sqm Credit'
-    ])
-    
-    for task in queryset:
-        writer.writerow([
-            task.task_date.strftime('%Y-%m-%d'),
-            task.room.camp.name,
-            task.room.compound.name,
-            task.room.building.name,
-            task.room.room_code,
-            task.get_task_type_display(),
-            task.get_state_display(),
-            task.assigned_to_team.name if task.assigned_to_team else 'Unassigned',
-            task.shift.name if task.shift else '',
-            'Yes' if task.is_urgent else 'No',
-            task.sla_credit_sqm
-        ])
-    return response
-
-
-def export_tasks_xlsx(queryset):
-    """Export tasks list as Excel."""
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Daily Cleaning Tasks"
-    
-    headers = [
-        'Date', 'Camp', 'Compound', 'Building', 'Room Code', 'Type', 
-        'State', 'Team', 'Shift', 'Urgent', 'Sqm Credit'
-    ]
-    ws.append(headers)
-    
-    # Styling
-    for col in range(1, len(headers) + 1):
-        cell = ws.cell(row=1, column=col)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill(start_color="1F2937", end_color="1F2937", fill_type="solid")
-        cell.alignment = Alignment(horizontal="center")
-        
-    for task in queryset:
-        ws.append([
-            task.task_date.strftime('%Y-%m-%d'),
-            task.room.camp.name,
-            task.room.compound.name,
-            task.room.building.name,
-            task.room.room_code,
-            task.get_task_type_display(),
-            task.get_state_display(),
-            task.assigned_to_team.name if task.assigned_to_team else 'Unassigned',
-            task.shift.name if task.shift else '',
-            'Yes' if task.is_urgent else 'No',
-            float(task.sla_credit_sqm)
-        ])
-        
-    for col in ws.columns:
-        max_len = max(len(str(cell.value or '')) for cell in col)
-        col_letter = get_column_letter(col[0].column)
-        ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
-        
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="tasks_export.xlsx"'
     wb.save(response)
     return response
 

@@ -6,42 +6,42 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b border-gray-700">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b border-gray-300">
         <div>
-            <h1 class="heading-font text-3xl font-bold text-white uppercase tracking-wider">Completed Tasks History</h1>
-            <p class="text-gray-400 text-sm mt-1">Read-optimized historical log of completed cleaning tasks (Sqm credits) and dumpster collections.</p>
+            <h1 class="heading-font text-3xl font-bold text-charcoal-black uppercase tracking-wider">Completed Tasks History</h1>
+            <p class="text-gray-500 text-sm mt-1">Read-optimized historical log of completed cleaning tasks (Sqm credits) and dumpster collections.</p>
         </div>
         <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
-            <a href="?{{ request.GET.urlencode }}&export=xlsx" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
+            <a href="?{{ request.GET.urlencode }}&export=xlsx" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-sm">
                 <i class="fa-solid fa-file-excel mr-2"></i>Excel Export
             </a>
-            <a href="?{{ request.GET.urlencode }}&export=csv" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-lg">
+            <a href="?{{ request.GET.urlencode }}&export=csv" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-sm">
                 <i class="fa-solid fa-file-csv mr-2"></i>CSV Export
             </a>
         </div>
     </div>
 
     <!-- Filters Section -->
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-8 shadow-xl">
+    <div class="metallic-card border border-gray-300 rounded-lg p-6 mb-8 shadow-sm">
         <form method="GET" action="" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Search Text</label>
-                <input type="text" name="search" value="{{ filters.search }}" placeholder="Code/Tag, Team..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+                <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Search Text</label>
+                <input type="text" name="search" value="{{ filters.search }}" placeholder="Code/Tag, Team..." class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200">
             </div>
             
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Start Date</label>
-                <input type="date" name="date_start" value="{{ filters.date_start }}" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+                <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Start Date</label>
+                <input type="date" name="date_start" value="{{ filters.date_start }}" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200">
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">End Date</label>
-                <input type="date" name="date_end" value="{{ filters.date_end }}" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200">
+                <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">End Date</label>
+                <input type="date" name="date_end" value="{{ filters.date_end }}" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200">
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Zone</label>
-                <select name="compound_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
+                <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Zone</label>
+                <select name="compound_filter" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200" onchange="this.form.submit()">
                     <option value="">All Zones</option>
                     {% for comp in compounds %}
                     <option value="{{ comp.id }}" {% if filters.compound == comp.id|stringformat:"s" %}selected{% endif %}>{{ comp.name }}</option>
@@ -50,8 +50,8 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Building/Sector</label>
-                <select name="building_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
+                <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Building/Sector</label>
+                <select name="building_filter" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200" onchange="this.form.submit()">
                     <option value="">All Streets</option>
                     {% for bldg in buildings %}
                     <option value="{{ bldg.id }}" {% if filters.building == bldg.id|stringformat:"s" %}selected{% endif %}>{{ bldg.name }}</option>
@@ -60,8 +60,8 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Team</label>
-                <select name="team_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
+                <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Team</label>
+                <select name="team_filter" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200" onchange="this.form.submit()">
                     <option value="">All Teams</option>
                     {% for team in teams %}
                     <option value="{{ team.id }}" {% if filters.team == team.id|stringformat:"s" %}selected{% endif %}>{{ team.name }} ({{ team.get_team_type_display }})</option>
@@ -69,23 +69,77 @@
                 </select>
             </div>
             
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Group By</label>
+                <select name="group_by" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-dark-graphite focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200" onchange="this.form.submit()">
+                    <option value="" {% if not group_by %}selected{% endif %}>No grouping (flat list)</option>
+                    <option value="zone" {% if group_by == 'zone' %}selected{% endif %}>Zone</option>
+                    <option value="team" {% if group_by == 'team' %}selected{% endif %}>Team</option>
+                    <option value="street" {% if group_by == 'street' %}selected{% endif %}>Street</option>
+                </select>
+            </div>
+
             <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 flex justify-end gap-2 mt-2">
-                <button type="submit" class="px-5 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-md">
+                <button type="submit" class="px-5 py-2 bg-steel-blue hover:bg-opacity-90 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-sm">
                     <i class="fa-solid fa-filter mr-2"></i>Filter
                 </button>
-                <a href="?" class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-md">
+                <a href="?" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-dark-graphite font-semibold rounded-lg uppercase text-xs tracking-wider transition-all duration-200 shadow-sm">
                     Reset
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- Data Table Card -->
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-xl overflow-hidden mb-8">
+    {% if grouped is not None %}
+    <!-- Grouped View -->
+    {% for group in grouped %}
+    <div class="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden mb-6">
+        <div class="bg-gray-50 border-b border-gray-300 px-6 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid {% if group_by == 'zone' %}fa-layer-group{% elif group_by == 'team' %}fa-users{% else %}fa-road{% endif %} text-steel-blue"></i>
+                <h3 class="heading-font font-bold text-dark-graphite uppercase tracking-wide">{{ group.name }}</h3>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-gray-600">
+                <span><span class="font-bold text-charcoal-black">{{ group.count }}</span> completed</span>
+                {% if group.dumpsters %}<span><i class="fa-solid fa-trash-can text-amber-600 mr-1"></i>{{ group.dumpsters }} collections</span>{% endif %}
+                {% if group.sqm %}<span><i class="fa-solid fa-ruler-combined text-steel-blue mr-1"></i>{{ group.sqm|floatformat:1 }} m²</span>{% endif %}
+            </div>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-gray-950 border-b border-gray-800 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    <tr class="bg-white border-b border-gray-200 text-dark-graphite text-xs font-bold uppercase tracking-wider">
+                        <th class="py-3 px-6">Completed Time</th>
+                        <th class="py-3 px-6">Location Path</th>
+                        <th class="py-3 px-6">Code / Tag ID</th>
+                        <th class="py-3 px-6">Team</th>
+                        <th class="py-3 px-6">Completed By</th>
+                        <th class="py-3 px-6 text-right">Credit / Count</th>
+                        <th class="py-3 px-6 text-center">Requested?</th>
+                        {% if user_role == 'admin' %}
+                        <th class="py-3 px-6 text-center">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 text-sm text-gray-700">
+                    {% include 'dashboard/_completed_task_rows.html' with rows=group.tasks %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-white border border-gray-300 rounded-lg shadow-sm p-8 text-center text-gray-500 font-medium mb-8">
+        No completed tasks in history matching filters.
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <!-- Data Table Card (flat) -->
+    <div class="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden mb-8">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-300 text-dark-graphite text-xs font-bold uppercase tracking-wider">
                         <th class="py-4 px-6">Completed Time</th>
                         <th class="py-4 px-6">Location Path</th>
                         <th class="py-4 px-6">Code / Tag ID</th>
@@ -98,76 +152,35 @@
                         {% endif %}
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-800 text-sm text-gray-300">
-                    {% for task in page_obj %}
-                    <tr class="hover:bg-gray-950 hover:bg-opacity-50 transition-colors" id="row-{{ task.id }}">
-                        <td class="py-4 px-6 font-mono text-white">{{ task.completed_at|date:"Y-m-d H:i" }}</td>
-                        <td class="py-4 px-6 text-xs text-gray-400">
-                            {{ task.room.camp.name }} > {{ task.room.compound.name }} > {{ task.room.building.name }} > {{ task.room.floor.name }}
-                        </td>
-                        <td class="py-4 px-6 font-mono text-steel-blue font-semibold">
-                            {{ task.room.room_code }}
-                            {% if task.room.space_type == 'dumpster' %}
-                            <span class="ml-1 px-1 py-0.5 bg-amber-950 text-amber-400 rounded text-xs font-semibold uppercase tracking-wide">Dumpster</span>
-                            {% endif %}
-                        </td>
-                        <td class="py-4 px-6">
-                            {{ task.assigned_to_team.name|default:"Scanner" }}
-                            <span class="text-xs text-gray-500 block uppercase">{{ task.assigned_to_team.get_team_type_display }}</span>
-                        </td>
-                        <td class="py-4 px-6">
-                            {% if task.assigned_to_user %}
-                            {{ task.assigned_to_user.username }}
-                            {% else %}
-                            <span class="text-gray-500 font-mono text-xs">{% if task.room.space_type == 'dumpster' %}RFID Scan{% else %}Barcode Scan{% endif %}</span>
-                            {% endif %}
-                        </td>
-                        <td class="py-4 px-6 text-right font-mono text-white">
-                            {% if task.room.space_type == 'dumpster' %}
-                            1.0 collection
-                            {% else %}
-                            {{ task.sla_credit_sqm }} m²
-                            {% endif %}
-                        </td>
-                        <td class="py-4 px-6 text-center">
-                            {% if task.task_type != 'regular' %}
-                            <span class="px-2 py-0.5 bg-amber-950 text-amber-400 rounded border border-amber-800 text-xs font-semibold uppercase">Yes</span>
-                            {% else %}
-                            <span class="text-gray-600">No</span>
-                            {% endif %}
-                        </td>
-                        {% if user_role == 'admin' %}
-                        <td class="py-4 px-6 text-center">
-                            <button onclick="deleteCompleted('{{ task.id }}', '{{ task.room.room_code }}')" class="w-8 h-8 rounded bg-gray-800 hover:bg-red-600 hover:text-white flex items-center justify-center text-gray-400 transition-colors" title="Delete Log">
-                                <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% empty %}
+                <tbody class="divide-y divide-gray-200 text-sm text-gray-700">
+                    {% if page_obj %}
+                    {% include 'dashboard/_completed_task_rows.html' with rows=page_obj %}
+                    {% endif %}
+                    {% if not page_obj %}
                     <tr>
                         <td colspan="8" class="py-8 text-center text-gray-500 font-medium">No completed tasks in history matching filters.</td>
                     </tr>
-                    {% endfor %}
+                    {% endif %}
                 </tbody>
             </table>
         </div>
         
         <!-- Pagination Bar -->
         {% if page_obj.has_other_pages %}
-        <div class="bg-gray-950 px-6 py-4 border-t border-gray-800 flex justify-between items-center">
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-between items-center">
             <span class="text-xs text-gray-500">Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
             <div class="inline-flex gap-1">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded text-xs font-semibold transition-colors">Previous</a>
+                <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-dark-graphite rounded text-xs font-semibold transition-colors">Previous</a>
                 {% endif %}
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded text-xs font-semibold transition-colors">Next</a>
+                <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-dark-graphite rounded text-xs font-semibold transition-colors">Next</a>
                 {% endif %}
             </div>
         </div>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 
 <script>

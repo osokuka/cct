@@ -391,7 +391,7 @@ class RoomCreateForm(forms.ModelForm):
         model = Room
         fields = [
             'camp', 'compound', 'building', 'floor', 'room_code', 'room_description', 
-            'space_type', 'building_code', 'square_meters', 'quantity_of_rooms', 
+            'space_type', 'dumpster_type', 'building_code', 'square_meters', 'quantity_of_rooms', 
             'actual_sqm', 'frequency_per_day', 'frequency_per_week', 
             'max_frequency_per_month', 'weekly_required_sqm', 'monthly_cap_sqm',
             'service_start_date', 'service_end_date', 'weeks_of_service',
@@ -496,7 +496,7 @@ class RoomEditForm(forms.ModelForm):
     class Meta:
         model = Room
         fields = [
-            'room_code', 'room_description', 'space_type', 'building_code', 
+            'room_code', 'room_description', 'space_type', 'dumpster_type', 'building_code', 
             'square_meters', 'quantity_of_rooms', 'actual_sqm', 'frequency_per_day', 
             'frequency_per_week', 'max_frequency_per_month', 'weekly_required_sqm', 
             'monthly_cap_sqm', 'service_start_date', 'service_end_date', 

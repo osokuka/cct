@@ -18,6 +18,7 @@
     .tgl-sw::after { content:''; position:absolute; top:1px; left:1px; width:11px; height:11px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,0.3); }
     .tgl-on .tgl-sw { background:#16a34a; }
     .tgl-on .tgl-sw::after { left:12px; }
+    .dmp-marker { background:transparent; border:0; }
     button:not(.tgl-on) { opacity:0.8; }
 </style>
 
@@ -128,18 +129,41 @@
     var STATUS_COLOR = { collected:'#16a34a', awaiting:'#d97706', skip:'#dc2626' };
     var STATUS_LABEL = { collected:'collected', awaiting:'awaiting', skip:'not collected' };
     var planLabel = '';
+    var ALB_DAYS = ['E hënë', 'E martë', 'E mërkurë', 'E enjte', 'E premte', 'E shtunë', 'E diel'];
 
     function esc(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-    function routeLabel(t){ return t.team_type === 'collection' ? (planLabel + ' Route · Team ' + t.team_no) : (planLabel + ' Cleaning · ' + esc(t.name.replace(/^Pastrimi\s*/i,''))); }
+    function routeLabel(t){ return (planLabel ? planLabel + ' · ' : '') + esc(t.name); }
     function streetDumpsters(code){ return (lastData && (lastData.dumpsters||[]).filter(function(d){return d.street_code===code;})) || []; }
     function fmtDT(iso){ try { var d=new Date(iso); return d.toLocaleDateString([], {day:'2-digit',month:'short'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return '—'; } }
     function teamById(id){ return (lastData && (lastData.teams||[]).filter(function(t){return t.id===id;})[0]) || null; }
 
+    function dumpsterSvg(fill){
+        return '<svg viewBox="0 0 24 24" width="100%" height="100%" style="display:block">'
+            + '<g fill="' + fill + '">'
+            + '<path d="M2.4 6.4 h19.2 l-0.8 2.3 h-17.6 z"/>'
+            + '<path d="M4 9 h16 l-1.35 8.6 h-13.3 z"/>'
+            + '<circle cx="7.7" cy="19.5" r="1.3"/><circle cx="16.3" cy="19.5" r="1.3"/>'
+            + '</g></svg>';
+    }
+    function dumpsterIcon(d, color){
+        if (d.dumpster_type === 'communal') {
+            return L.divIcon({ className:'dmp-marker',
+                html:'<div style="width:28px;height:28px;border-radius:50%;background:' + color
+                    + ';border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;">'
+                    + '<div style="width:16px;height:16px;">' + dumpsterSvg('#ffffff') + '</div></div>',
+                iconSize:[28,28], iconAnchor:[14,14], popupAnchor:[0,-14] });
+        }
+        return L.divIcon({ className:'dmp-marker',
+            html:'<div style="width:20px;height:20px;filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);">' + dumpsterSvg(color) + '</div>',
+            iconSize:[20,20], iconAnchor:[10,10], popupAnchor:[0,-10] });
+    }
+    function paymentTracking(){ return !lastData || lastData.payment_tracking !== false; }
     function dumpsterPopup(d){
         return '<div style="min-width:180px;font-size:12px;line-height:1.5">'
             + '<b>🗑 ' + esc(d.dumpster_id) + '</b><br>'
-            + 'Client: <b>' + esc(d.client_id || '—') + '</b><br>'
-            + 'Payment: <b style="color:' + (d.paid?'#16a34a':'#dc2626') + '">' + (d.paid?'Paid':'Not paid') + '</b><br>'
+            + 'Type: <b>' + esc(d.dumpster_type_label || (d.dumpster_type === 'communal' ? 'Communal' : 'Household')) + '</b><br>'
+            + 'Client: <b>' + (d.dumpster_type === 'communal' ? 'Shared block bin' : esc(d.client_id || '—')) + '</b><br>'
+            + (paymentTracking() ? 'Payment: <b style="color:' + (d.paid?'#16a34a':'#dc2626') + '">' + (d.paid?'Paid':'Not paid') + '</b><br>' : '')
             + 'Location: ' + d.lat.toFixed(5) + ', ' + d.lng.toFixed(5) + '<br>'
             + 'Street: ' + esc(d.street || '—') + '<br>'
             + 'Last collected: ' + (d.last_collected ? fmtDT(d.last_collected) : '—') + '</div>';
@@ -176,12 +200,14 @@
             });
         }
 
-        visibleDumpsters(data).forEach(function (d) {
-            var c = STATUS_COLOR[d.status] || '#888';
-            L.circleMarker([d.lat, d.lng], { radius: 6, color: '#fff', weight: 1.2, fillColor: c, fillOpacity: 0.95 })
-                .bindPopup(dumpsterPopup(d)).addTo(dotLayer);
-            bounds.push([d.lat, d.lng]);
-        });
+        if (routesOn) {
+            visibleDumpsters(data).forEach(function (d) {
+                var c = STATUS_COLOR[d.status] || '#888';
+                L.marker([d.lat, d.lng], { icon: dumpsterIcon(d, c) })
+                    .bindPopup(dumpsterPopup(d)).addTo(dotLayer);
+                bounds.push([d.lat, d.lng]);
+            });
+        }
 
         var showAreas = cleaningOn && (!team || team.team_type === 'cleaning');
         if (showAreas) {
@@ -234,7 +260,7 @@
             + '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + typeColor + ';margin-right:6px;"></span>'
             + '<span style="font-weight:700;font-size:13px;">' + label + '</span></div>'
             + '<span style="font-size:12px;font-weight:700;">' + t.percent + '%</span></div>'
-            + '<div style="font-size:11px;color:#6b7280;margin:2px 0 6px;">' + esc(t.name) + (t.shift ? ' · ' + esc(t.shift) : '') + ' · ' + t.members + ' members</div>'
+            + '<div style="font-size:11px;color:#6b7280;margin:2px 0 6px;">' + (t.team_type === 'collection' ? 'Grumbullim' : 'Pastrim') + (t.shift ? ' · ' + esc(t.shift) : '') + ' · ' + t.members + ' punëtorë</div>'
             + '<div class="bar"><span style="width:' + t.percent + '%;background:' + barColor + '"></span></div>'
             + '<div style="font-size:11px;color:#6b7280;margin-top:6px;">🟢 ' + t.done + ' collected · 🟠 ' + t.in_progress + ' in progress · ⚪ ' + t.planned + ' awaiting (of ' + t.total + ')</div>';
         if (isSel && t.team_type === 'collection') {
@@ -256,7 +282,7 @@
     }
 
     function renderTeams(data) {
-        planLabel = data.plan_day_label || planLabel;
+        planLabel = (typeof data.plan_day === 'number' && ALB_DAYS[data.plan_day]) ? ALB_DAYS[data.plan_day] : (data.plan_day_label || planLabel);
         var el = document.getElementById('ops-teams');
         var teams = (data.teams || []).filter(function (t) { return cleaningOn || t.team_type !== 'cleaning'; });
         if (!teams.length) { el.innerHTML = '<div class="text-sm text-gray-400">No teams / tasks for today.</div>'; }
@@ -343,9 +369,11 @@
     var legend = L.control({ position: 'bottomright' });
     legend.onAdd = function () {
         var div = L.DomUtil.create('div', 'map-legend');
-        div.innerHTML = '<div><span class="legend-dot" style="background:#16a34a"></span>Collected</div>'
-            + '<div><span class="legend-dot" style="background:#d97706"></span>Awaiting</div>'
-            + '<div><span class="legend-dot" style="background:#dc2626"></span>Not collected</div>'
+        function ic(c){ return '<span style="display:inline-block;width:15px;height:15px;margin-right:6px;vertical-align:middle;">' + dumpsterSvg(c) + '</span>'; }
+        div.innerHTML = '<div>' + ic('#16a34a') + 'Collected</div>'
+            + '<div>' + ic('#d97706') + 'Awaiting</div>'
+            + '<div>' + ic('#dc2626') + 'Not collected</div>'
+            + '<div><span style="display:inline-flex;width:17px;height:17px;margin-right:6px;vertical-align:middle;border-radius:50%;background:#16a34a;border:2px solid #fff;align-items:center;justify-content:center;"><span style="width:9px;height:9px;">' + dumpsterSvg('#ffffff') + '</span></span>Communal bin</div>'
             + '<div><span class="legend-dot" style="background:#2563eb"></span>Public area</div>';
         return div;
     };

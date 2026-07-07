@@ -81,7 +81,7 @@ class RoomAdmin(admin.ModelAdmin):
         'max_frequency_per_month', 'weekly_required_sqm', 'monthly_cap_sqm', 'is_active'
     ]
     list_filter = [
-        'space_type', 'is_active', 'camp', 'compound', 'building', 'floor',
+        'space_type', 'dumpster_type', 'is_active', 'camp', 'compound', 'building', 'floor',
         'service_start_date', 'service_end_date', 'created_at'
     ]
     search_fields = [
@@ -95,7 +95,7 @@ class RoomAdmin(admin.ModelAdmin):
             'fields': ('id', 'camp', 'compound', 'building', 'floor')
         }),
         ('Basic Information', {
-            'fields': ('room_code', 'room_description', 'space_type', 'building_code')
+            'fields': ('room_code', 'room_description', 'space_type', 'dumpster_type', 'building_code')
         }),
         ('Physical Properties', {
             'fields': ('square_meters', 'quantity_of_rooms', 'actual_sqm')

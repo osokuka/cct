@@ -77,7 +77,7 @@
                 <i class="fa-solid fa-user-friends text-white text-xl"></i>
             </div>
             <div class="text-3xl font-bold text-warning-orange heading-font mb-1">{{ stats.total_members }}</div>
-            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Total Members</div>
+            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Total Employees</div>
             <div class="text-xs text-gray-500 mt-1">Across all teams</div>
         </div>
 
@@ -107,7 +107,9 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Team</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Site</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Team Leader</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Members</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Employees</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Vehicle</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
                     </tr>
@@ -139,24 +141,18 @@
                             </div>
                         </td>
                         <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs rounded uppercase font-medium {% if team.team_type == 'collection' %}bg-amber-100 text-amber-800{% else %}bg-teal-100 text-teal-800{% endif %}">
+                                {{ team.get_team_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
                             <div class="flex items-center space-x-1">
-                                <span class="text-sm font-medium text-dark-graphite">{{ team.members.count }}</span>
-                                <span class="text-xs text-gray-500">members</span>
-                                {% if team.members.count > 0 %}
-                                <div class="flex -space-x-1">
-                                    {% for member in team.members.all|slice:":3" %}
-                                    <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center border-2 border-white" title="{{ member.get_full_name|default:member.username }}">
-                                        <span class="text-white font-semibold text-xs">{{ member.first_name|first|default:member.username|first|upper }}</span>
-                                    </div>
-                                    {% endfor %}
-                                    {% if team.members.count > 3 %}
-                                    <div class="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center border-2 border-white text-white text-xs font-semibold">
-                                        +{{ team.members.count|add:"-3" }}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
+                                <i class="fa-solid fa-user-group text-gray-400 text-xs"></i>
+                                <span class="text-sm font-medium text-dark-graphite">{{ team.employee_count }}</span>
                             </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {% if team.vehicle %}<i class="fa-solid fa-truck text-gray-400 mr-1"></i>{{ team.vehicle }}{% else %}<span class="text-gray-400">—</span>{% endif %}
                         </td>
                         <td class="px-6 py-4">
                             {% if team.is_active %}
@@ -195,7 +191,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-muted">No teams found.</td>
+                        <td colspan="8" class="px-6 py-4 text-center text-muted">No teams found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

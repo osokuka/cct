@@ -176,12 +176,16 @@ Real-time Task Monitoring & Team Performance
                 </div>
                 <div class="text-right">
                             <div class="text-3xl font-bold text-dark-graphite heading-font">{{ task_stats.missed_tasks|default:"0" }}</div>
-                            <div class="text-sm text-gray-600 uppercase tracking-wide">MISSED</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">MISSED / OVERDUE</div>
                 </div>
             </div>
-            <div class="flex items-center">
-                        <div class="text-red-600 text-sm font-medium">URGENT</div>
-                        <div class="text-xs text-gray-500 ml-2">{{ task_stats.urgent_tasks|default:"0" }} urgent</div>
+            <div class="flex items-center justify-between text-xs">
+                        <div class="flex items-center text-amber-700 font-medium">
+                            <i class="fa-solid fa-trash-can mr-1"></i>{{ task_stats.missed_collection_tasks|default:"0" }} collections
+                        </div>
+                        <div class="flex items-center text-steel-blue font-medium">
+                            <i class="fa-solid fa-ruler-combined mr-1"></i>{{ task_stats.missed_cleaning_tasks|default:"0" }} cleaning
+                        </div>
             </div>
                 </a>
 
@@ -229,23 +233,58 @@ Real-time Task Monitoring & Team Performance
 </div>
             {% endif %}
 
-            <!-- Zone Performance Chart - Hidden for cleaners -->
+            <!-- Team Daily Achievement - Hidden for cleaners -->
             {% if user.profile.role != 'cleaner' %}
             <div class="metallic-card rounded-lg p-6 border border-gray-300">
-            <div class="flex items-center justify-between mb-6">
-                <div>
-                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ZONE PERFORMANCE</h3>
-                        <p class="text-sm text-gray-600">Task completion by compound</p>
+                <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+                    <div>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TEAM DAILY ACHIEVEMENT</h3>
+                        <p class="text-sm text-gray-600">Today's task progress by team ({{ today|date:"F j, Y" }})</p>
+                    </div>
+                    <div id="team-chart-types" class="flex flex-wrap gap-1">
+                        <button data-type="column" onclick="setTeamChartType('column')" class="team-type-btn px-3 py-1 text-xs rounded uppercase tracking-wide transition-colors bg-gray-200 text-gray-600 hover:bg-gray-300"><i class="fa-solid fa-chart-column mr-1"></i>Bars</button>
+                        <button data-type="bar" onclick="setTeamChartType('bar')" class="team-type-btn px-3 py-1 text-xs rounded uppercase tracking-wide transition-colors bg-gray-200 text-gray-600 hover:bg-gray-300"><i class="fa-solid fa-chart-bar mr-1"></i>Horizontal</button>
+                        <button data-type="line" onclick="setTeamChartType('line')" class="team-type-btn px-3 py-1 text-xs rounded uppercase tracking-wide transition-colors bg-gray-200 text-gray-600 hover:bg-gray-300"><i class="fa-solid fa-chart-line mr-1"></i>Lines</button>
+                        <button data-type="area" onclick="setTeamChartType('area')" class="team-type-btn px-3 py-1 text-xs rounded uppercase tracking-wide transition-colors bg-gray-200 text-gray-600 hover:bg-gray-300"><i class="fa-solid fa-chart-area mr-1"></i>Area</button>
+                        <button data-type="scatter" onclick="setTeamChartType('scatter')" class="team-type-btn px-3 py-1 text-xs rounded uppercase tracking-wide transition-colors bg-gray-200 text-gray-600 hover:bg-gray-300"><i class="fa-solid fa-braille mr-1"></i>Dots</button>
+                        <button data-type="pie" onclick="setTeamChartType('pie')" class="team-type-btn px-3 py-1 text-xs rounded uppercase tracking-wide transition-colors bg-gray-200 text-gray-600 hover:bg-gray-300"><i class="fa-solid fa-chart-pie mr-1"></i>Pie</button>
+                    </div>
                 </div>
-                <div class="flex space-x-2">
-                        <button onclick="filterChart('filtered')" class="px-3 py-1 bg-steel-blue text-white text-xs rounded uppercase tracking-wide hover:bg-opacity-90 transition-colors">CURRENT</button>
-                        <button onclick="filterChart('today')" class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer hover:bg-gray-400 transition-colors">TODAY</button>
-                        <button onclick="filterChart('week')" class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer hover:bg-gray-400 transition-colors">WEEK</button>
-                        <button onclick="filterChart('month')" class="px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded uppercase tracking-wide metallic-shine cursor-pointer hover:bg-gray-400 transition-colors">MONTH</button>
+                <div class="h-80"><canvas id="team-chart-canvas"></canvas></div>
+
+                <!-- Per-team progress rows -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for t in teams_data %}
+                    <a href="{% url 'accounts:team_view' t.id %}" class="block bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-steel-blue hover:shadow-sm transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-dark-graphite">{{ t.name }}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide {% if t.team_type == 'collection' %}bg-amber-100 text-amber-800{% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                                    {% if t.team_type == 'collection' %}Grumbullim{% else %}Pastrim{% endif %}
+                                </span>
+                            </div>
+                            <span class="text-sm font-bold {% if t.completion_rate >= 80 %}text-green-600{% elif t.completion_rate >= 40 %}text-amber-600{% else %}text-red-600{% endif %}">{{ t.completion_rate }}%</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mb-2">Leader: {{ t.leader }} · {{ t.employee_count }} employees</div>
+                        <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden flex">
+                            <div class="bg-green-500 h-full" style="width: {% widthratio t.done t.total 100 %}%"></div>
+                            <div class="bg-blue-400 h-full" style="width: {% widthratio t.in_progress t.total 100 %}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-600 mt-1.5">
+                            <span><span class="text-green-600 font-semibold">{{ t.done }}</span> done</span>
+                            <span><span class="text-blue-500 font-semibold">{{ t.in_progress }}</span> in progress</span>
+                            <span><span class="text-gray-500 font-semibold">{{ t.remaining }}</span> remaining</span>
+                            <span class="text-gray-400">of {{ t.total }}</span>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="text-center py-6 text-gray-500 md:col-span-2">
+                        <i class="fa-solid fa-users-slash text-2xl mb-2 block"></i>
+                        <p class="text-sm">No teams with tasks today</p>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-                <div id="compound-chart" class="h-80"></div>
-        </div>
             {% endif %}
 
             <!-- Cleaner Team & Route Information -->
@@ -341,7 +380,7 @@ Real-time Task Monitoring & Team Performance
                 <div class="flex items-center justify-between mb-6">
                     <div>
                         <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">TODAY'S TASKS</h3>
-                        <p class="text-sm text-gray-600">All tasks for today ({{ recent_activity|length }} total)</p>
+                        <p class="text-sm text-gray-600">Latest activity — showing {{ recent_activity|length }} of {{ task_stats.today_tasks }}</p>
         </div>
                     <div class="text-right">
                         <div class="text-2xl font-bold text-steel-blue">{{ task_stats.today_tasks }}</div>
@@ -524,7 +563,30 @@ Real-time Task Monitoring & Team Performance
         <!-- Right Column - Teams & Activity - Hidden for cleaners -->
         {% if user.profile.role != 'cleaner' %}
         <div class="space-y-6">
-            
+
+            <!-- Quick Actions -->
+            <div class="metallic-card rounded-lg p-6 border border-gray-300">
+                <div class="flex items-center mb-6">
+                    <i class="fa-solid fa-bolt text-steel-blue mr-3"></i>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">QUICK ACTIONS</h3>
+                </div>
+
+                <div class="space-y-3">
+                    <a href="{% url 'accounts:task_assignment_dashboard' %}" class="block w-full bg-steel-blue text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-tasks mr-2"></i>Task Assignment
+                    </a>
+                    <a href="{% url 'accounts:task_generation_dashboard' %}" class="block w-full bg-green-600 text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-plus mr-2"></i>Generate Tasks
+                    </a>
+                    <a href="{% url 'accounts:task_list' %}" class="block w-full bg-warning-orange text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-list mr-2"></i>View All Tasks
+                    </a>
+                    <a href="{% url 'accounts:team_list' %}" class="block w-full bg-purple-600 text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
+                        <i class="fa-solid fa-users mr-2"></i>Manage Teams
+                    </a>
+                </div>
+            </div>
+
             <!-- Active Teams -->
             <div class="metallic-card rounded-lg p-6 border border-gray-300">
                 <div class="flex items-center mb-6">
@@ -537,13 +599,16 @@ Real-time Task Monitoring & Team Performance
                     <a href="{% url 'accounts:team_view' team.id %}" class="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer block">
                         <div class="flex items-center justify-between mb-2">
                             <div class="font-medium text-dark-graphite">{{ team.name }}</div>
-                            <div class="text-xs text-gray-500">{{ team.camp.name }}</div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide {% if team.team_type == 'collection' %}bg-amber-100 text-amber-800{% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                                {% if team.team_type == 'collection' %}Grumbullim{% else %}Pastrim{% endif %}
+                            </span>
                         </div>
                         <div class="text-xs text-gray-600">
-                            Leader: {{ team.team_leader.get_full_name|default:team.team_leader.username }}
+                            Leader: {{ team.team_leader.get_full_name|default:team.team_leader.username|default:"—" }}
                         </div>
-                        <div class="text-xs text-gray-500">
-                            {{ team.members.count }} members
+                        <div class="text-xs text-gray-500 flex items-center gap-3 mt-0.5">
+                            <span><i class="fa-solid fa-user-group mr-1"></i>{{ team.employee_count }} employees</span>
+                            {% if team.vehicle %}<span><i class="fa-solid fa-truck mr-1"></i>{{ team.vehicle }}</span>{% endif %}
                         </div>
                     </a>
                     {% empty %}
@@ -586,219 +651,101 @@ Real-time Task Monitoring & Team Performance
                     {% endfor %}
     </div>
 </div>
-
-            <!-- Quick Actions -->
-            <div class="metallic-card rounded-lg p-6 border border-gray-300">
-                <div class="flex items-center mb-6">
-                    <i class="fa-solid fa-bolt text-steel-blue mr-3"></i>
-                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">QUICK ACTIONS</h3>
-        </div>
-        
-                <div class="space-y-3">
-                    <a href="{% url 'accounts:task_assignment_dashboard' %}" class="block w-full bg-steel-blue text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
-                        <i class="fa-solid fa-tasks mr-2"></i>Task Assignment
-                    </a>
-                    <a href="{% url 'accounts:task_generation_dashboard' %}" class="block w-full bg-green-600 text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
-                        <i class="fa-solid fa-plus mr-2"></i>Generate Tasks
-                    </a>
-                    <a href="{% url 'accounts:task_list' %}" class="block w-full bg-warning-orange text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
-                        <i class="fa-solid fa-list mr-2"></i>View All Tasks
-                    </a>
-                    <a href="{% url 'accounts:team_list' %}" class="block w-full bg-purple-600 text-white py-2 px-4 rounded text-center text-sm font-medium hover:bg-opacity-90 transition-colors">
-                        <i class="fa-solid fa-users mr-2"></i>Manage Teams
-                    </a>
-        </div>
-</div>
         </div>
         {% endif %}
     </div>
 </div>
 
 <script>
-// Chart data for different time periods
-const chartData = {
-    filtered: [
-        {% for compound in compounds_data %}
-        {
-            name: '{{ compound.compound.name }}',
-            id: '{{ compound.compound.id|stringformat:"s" }}',
-            completed: {{ compound.filtered.completed_tasks }},
-            missed: {{ compound.filtered.missed_tasks }},
-            planned: {{ compound.filtered.planned_tasks }}
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ],
-    today: [
-        {% for compound in compounds_data %}
-        {
-            name: '{{ compound.compound.name }}',
-            id: '{{ compound.compound.id|stringformat:"s" }}',
-            completed: {{ compound.today.completed_tasks }},
-            missed: {{ compound.today.missed_tasks }},
-            planned: {{ compound.today.planned_tasks }}
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ],
-    week: [
-        {% for compound in compounds_data %}
-        {
-            name: '{{ compound.compound.name }}',
-            id: '{{ compound.compound.id|stringformat:"s" }}',
-            completed: {{ compound.week.completed_tasks }},
-            missed: {{ compound.week.missed_tasks }},
-            planned: {{ compound.week.planned_tasks }}
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ],
-    month: [
-        {% for compound in compounds_data %}
-        {
-            name: '{{ compound.compound.name }}',
-            id: '{{ compound.compound.id|stringformat:"s" }}',
-            completed: {{ compound.month.completed_tasks }},
-            missed: {{ compound.month.missed_tasks }},
-            planned: {{ compound.month.planned_tasks }}
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ]
-};
+// Team daily achievement chart
+var teamData = [
+    {% for t in teams_data %}
+    { name: '{{ t.name|escapejs }}', id: '{{ t.id }}', done: {{ t.done }}, in_progress: {{ t.in_progress }}, remaining: {{ t.remaining }}, total: {{ t.total }} }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+var teamChart = null;
+var teamChartType = 'column';
+var TEAM_URL_TPL = "{% url 'accounts:team_view' '00000000-0000-0000-0000-000000000000' %}";
+var TEAM_COLORS = ['#10B981','#3B82F6','#F59E0B','#EF4444','#8B5CF6','#14B8A6','#EC4899','#F97316','#0EA5E9','#84CC16'];
+function gotoTeam(id){ if (id) window.location.href = TEAM_URL_TPL.replace('00000000-0000-0000-0000-000000000000', id); }
 
-// Current active period
-let currentPeriod = 'filtered';
+// Build a Chart.js config for the requested visualization type.
+function buildTeamChartConfig(type) {
+    var labels = teamData.map(function(t){ return t.name; });
+    var onClick = function(evt, elements){
+        if (elements && elements.length) {
+            var t = teamData[elements[0].index];
+            if (t) gotoTeam(t.id);
+        }
+    };
 
-// Function to update chart data
-function updateChart(period) {
-    const data = chartData[period];
-    currentPeriod = period;
-    
-    chart.update({
-        xAxis: {
-            categories: data.map(c => c.name)
-        },
-        series: [{
-            name: 'Completed',
-            data: data.map(c => c.completed),
-            color: '#10B981'
-        }, {
-            name: 'Missed',
-            data: data.map(c => c.missed),
-            color: '#EF4444'
-        }, {
-            name: 'Planned',
-            data: data.map(c => c.planned),
-            color: '#3F5876'
-        }]
+    if (type === 'pie') {
+        return {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Completed',
+                    data: teamData.map(function(t){ return t.done; }),
+                    backgroundColor: labels.map(function(_, i){ return TEAM_COLORS[i % TEAM_COLORS.length]; })
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, onClick: onClick,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#2B2E32' } },
+                    tooltip: { callbacks: { label: function(c){ var t = teamData[c.dataIndex]; return t.name + ': ' + t.done + ' / ' + t.total + ' done'; } } }
+                }
+            }
+        };
+    }
+
+    var isBar = (type === 'column' || type === 'bar');
+    var isArea = (type === 'area');
+    var isDots = (type === 'scatter');
+    var stacked = (type === 'column' || type === 'bar' || type === 'area');
+    var datasets = [
+        { label: 'Completed',   data: teamData.map(function(t){ return t.done; }),        backgroundColor: '#10B981', borderColor: '#10B981', fill: isArea, tension: 0.3 },
+        { label: 'In progress', data: teamData.map(function(t){ return t.in_progress; }), backgroundColor: '#3B82F6', borderColor: '#3B82F6', fill: isArea, tension: 0.3 },
+        { label: 'Remaining',   data: teamData.map(function(t){ return t.remaining; }),   backgroundColor: '#CBD5E1', borderColor: '#94A3B8', fill: isArea, tension: 0.3 }
+    ];
+    if (isDots) {
+        datasets.forEach(function(d){ d.showLine = false; d.pointRadius = 6; d.pointHoverRadius = 9; });
+    }
+    return {
+        type: isBar ? 'bar' : 'line',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false, onClick: onClick,
+            indexAxis: (type === 'bar') ? 'y' : 'x',
+            interaction: { intersect: false, mode: 'index' },
+            scales: {
+                x: { stacked: stacked, ticks: { color: '#2B2E32' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                y: { stacked: stacked, beginAtZero: true, ticks: { color: '#2B2E32', precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+            },
+            plugins: { legend: { labels: { color: '#2B2E32' } } }
+        }
+    };
+}
+
+function setTeamChartType(type) {
+    if (typeof Chart === 'undefined') { console.error('Chart.js not loaded'); return; }
+    var el = document.getElementById('team-chart-canvas');
+    if (!el) return;
+    teamChartType = type;
+    if (teamChart) { teamChart.destroy(); }
+    teamChart = new Chart(el.getContext('2d'), buildTeamChartConfig(type));
+    document.querySelectorAll('.team-type-btn').forEach(function(btn){
+        var on = btn.getAttribute('data-type') === type;
+        btn.classList.toggle('bg-steel-blue', on);
+        btn.classList.toggle('text-white', on);
+        btn.classList.toggle('bg-gray-200', !on);
+        btn.classList.toggle('text-gray-600', !on);
     });
 }
 
-// Initialize Zone Performance Chart
-let chart = Highcharts.chart('compound-chart', {
-    chart: {
-        type: 'column',
-        backgroundColor: 'transparent',
-        events: {
-            click: function(e) {
-                // Handle chart click events
-                if (e.point) {
-                    const compoundId = chartData[currentPeriod][e.point.x].id;
-                    window.location.href = `{% url 'accounts:task_list' %}?compound=${compoundId}`;
-                }
-            }
-        }
-    },
-    title: {
-        text: null
-    },
-    credits: {
-        enabled: false
-    },
-    xAxis: {
-        categories: chartData.filtered.map(c => c.name),
-        labels: {
-            style: {
-                color: '#2B2E32',
-                fontWeight: 'bold'
-            }
-        }
-    },
-    yAxis: {
-        title: {
-            text: 'Tasks',
-            style: {
-                color: '#2B2E32',
-                fontWeight: 'bold'
-            }
-        },
-        labels: {
-            style: {
-                color: '#2B2E32'
-            }
-        }
-    },
-    plotOptions: {
-        column: {
-            borderRadius: 4,
-            dataLabels: {
-                enabled: true,
-                style: {
-                    color: '#2B2E32',
-                    fontWeight: 'bold'
-                }
-            },
-            cursor: 'pointer',
-            point: {
-                events: {
-                    click: function() {
-                        const compoundId = chartData[currentPeriod][this.x].id;
-                        window.location.href = `{% url 'accounts:task_list' %}?compound=${compoundId}`;
-                    }
-                }
-            }
-        }
-    },
-    series: [{
-        name: 'Completed',
-        data: chartData.filtered.map(c => c.completed),
-        color: '#10B981'
-    }, {
-        name: 'Missed',
-        data: chartData.filtered.map(c => c.missed),
-        color: '#EF4444'
-    }, {
-        name: 'Planned',
-        data: chartData.filtered.map(c => c.planned),
-        color: '#3F5876'
-    }],
-    legend: {
-        itemStyle: {
-            color: '#2B2E32',
-            fontWeight: 'bold'
-        }
-    }
-});
-
-// Chart filtering function
-function filterChart(period) {
-    // Update button states
-    document.querySelectorAll('[onclick^="filterChart"]').forEach(btn => {
-        btn.classList.remove('bg-steel-blue', 'text-white');
-        btn.classList.add('bg-gray-300', 'text-gray-600');
-    });
-    
-    const activeBtn = document.querySelector(`[onclick="filterChart('${period}')"]`);
-    activeBtn.classList.remove('bg-gray-300', 'text-gray-600');
-    activeBtn.classList.add('bg-steel-blue', 'text-white');
-    
-    // Update chart with new data
-    updateChart(period);
-    
-    // Update chart title to reflect the period
-    const chartTitle = document.querySelector('#compound-chart').closest('.metallic-card').querySelector('h3');
-    let periodText = period.charAt(0).toUpperCase() + period.slice(1);
-    if (period === 'filtered') {
-        periodText = '{% if show_all_tasks %}ALL TASKS{% else %}TODAY ONLY{% endif %}';
-    }
-    chartTitle.textContent = `ZONE PERFORMANCE - ${periodText}`;
+if (document.getElementById('team-chart-canvas')) {
+    setTeamChartType('column');
 }
 
 // Scan task function for cleaners

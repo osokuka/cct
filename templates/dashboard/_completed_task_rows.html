@@ -1,0 +1,46 @@
+{% for task in rows %}
+<tr class="hover:bg-gray-50 transition-colors" id="row-{{ task.id }}">
+    <td class="py-4 px-6 font-mono text-charcoal-black">{{ task.completed_at|date:"Y-m-d H:i" }}</td>
+    <td class="py-4 px-6 text-xs text-gray-500">
+        {{ task.room.camp.name }} > {{ task.room.compound.name }} > {{ task.room.building.name }} > {{ task.room.floor.name }}
+    </td>
+    <td class="py-4 px-6 font-mono text-steel-blue font-semibold">
+        {{ task.room.room_code }}
+        {% if task.room.space_type == 'dumpster' %}
+        <span class="ml-1 px-1 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-semibold uppercase tracking-wide">Dumpster</span>
+        {% endif %}
+    </td>
+    <td class="py-4 px-6">
+        {{ task.assigned_to_team.name|default:"Scanner" }}
+        <span class="text-xs text-gray-500 block uppercase">{{ task.assigned_to_team.get_team_type_display }}</span>
+    </td>
+    <td class="py-4 px-6">
+        {% if task.assigned_to_user %}
+        {{ task.assigned_to_user.username }}
+        {% else %}
+        <span class="text-gray-500 font-mono text-xs">{% if task.room.space_type == 'dumpster' %}RFID Scan{% else %}Barcode Scan{% endif %}</span>
+        {% endif %}
+    </td>
+    <td class="py-4 px-6 text-right font-mono text-charcoal-black">
+        {% if task.room.space_type == 'dumpster' %}
+        1.0 collection
+        {% else %}
+        {{ task.sla_credit_sqm }} m²
+        {% endif %}
+    </td>
+    <td class="py-4 px-6 text-center">
+        {% if task.task_type != 'regular' %}
+        <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded border border-amber-300 text-xs font-semibold uppercase">Yes</span>
+        {% else %}
+        <span class="text-gray-400">No</span>
+        {% endif %}
+    </td>
+    {% if user_role == 'admin' %}
+    <td class="py-4 px-6 text-center">
+        <button onclick="deleteCompleted('{{ task.id }}', '{{ task.room.room_code }}')" class="w-8 h-8 rounded bg-gray-100 hover:bg-red-600 hover:text-white flex items-center justify-center text-gray-500 transition-colors" title="Delete Log">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+        </button>
+    </td>
+    {% endif %}
+</tr>
+{% endfor %}

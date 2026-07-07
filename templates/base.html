@@ -191,13 +191,6 @@
         </a>
         {% endif %}
 
-        {% if user.profile.role != 'authority' %}
-        <a href="{% url 'dashboard:collection_map' %}" class="px-4 py-3 flex items-center {% if request.resolver_match.url_name == 'collection_map' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
-            <i class="fa-solid fa-map-location-dot mr-3 {% if request.resolver_match.url_name == 'collection_map' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-            <span class="{% if request.resolver_match.url_name == 'collection_map' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Operations Map</span>
-        </a>
-        {% endif %}
-        
         {% if user.is_authenticated %}
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
             <div class="relative">
@@ -216,14 +209,6 @@
                         <i class="fa-solid fa-clock mr-3 text-xs"></i>
                         <span class="text-xs">Shifts</span>
                     </a>
-                    <a href="{% url 'accounts:route_list' %}" class="px-4 py-2 flex items-center {% if 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                        <i class="fa-solid fa-route mr-3 text-xs"></i>
-                        <span class="text-xs">Routes</span>
-                    </a>
-                    <a href="{% url 'accounts:plan_config' %}" class="px-4 py-2 flex items-center {% if 'plan_config' in request.resolver_match.url_name or 'generate_tasks' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                        <i class="fa-solid fa-gears mr-3 text-xs"></i>
-                        <span class="text-xs">Plan Generation</span>
-                    </a>
                                             <a href="{% url 'accounts:task_generation_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_generation' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                             <i class="fa-solid fa-tasks mr-3 text-xs"></i>
                             <span class="text-xs">Task Generation</span>
@@ -231,10 +216,6 @@
                         <a href="{% url 'accounts:task_assignment_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                             <i class="fa-solid fa-route mr-3 text-xs"></i>
                             <span class="text-xs">Task Assignment</span>
-                        </a>
-                        <a href="{% url 'dashboard:tasks_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'tasks_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                            <i class="fa-solid fa-list-check mr-3 text-xs"></i>
-                            <span class="text-xs">Roster Tasks</span>
                         </a>
                         <a href="{% url 'dashboard:completed_tasks_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'completed_tasks_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                             <i class="fa-solid fa-history mr-3 text-xs"></i>
@@ -244,13 +225,13 @@
             </div>
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
             <div class="relative">
-                <div class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleLocationMenu()">
-                    <i class="fa-solid fa-map-marker-alt mr-3 {% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                    <span class="{% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Location Management</span>
+                <div class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleLocationMenu()">
+                    <i class="fa-solid fa-map-marker-alt mr-3 {% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                    <span class="{% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Location Management</span>
                     <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400" id="location-chevron"></i>
                 </div>
                 <!-- Sub-menu -->
-                <div id="location-submenu" class="ml-8 mt-2 space-y-1 {% if 'location' not in request.resolver_match.url_name and 'rooms_table' not in request.resolver_match.url_name %}hidden{% endif %}">
+                <div id="location-submenu" class="ml-8 mt-2 space-y-1 {% if 'location' not in request.resolver_match.url_name and 'rooms_table' not in request.resolver_match.url_name and 'route' not in request.resolver_match.url_name %}hidden{% endif %}">
                     <a href="{% url 'locations:camp_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'camp_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-building mr-3 text-xs"></i>
                         <span class="text-xs">Sites</span>
@@ -262,6 +243,10 @@
                     <a href="{% url 'dashboard:rooms_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'rooms_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-door-open mr-3 text-xs"></i>
                         <span class="text-xs">Service Points & Dumpsters</span>
+                    </a>
+                    <a href="{% url 'accounts:route_list' %}" class="px-4 py-2 flex items-center {% if 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-route mr-3 text-xs"></i>
+                        <span class="text-xs">Routes</span>
                     </a>
                 </div>
             </div>
@@ -347,6 +332,12 @@
                     <i class="fa-solid fa-key mr-3 text-xs"></i>
                     <span class="text-xs">Password Reset</span>
                 </a>
+                {% if user.is_authenticated and user.profile.role in 'admin,manager,operations_manager' %}
+                <a href="{% url 'dashboard:operations_settings' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'operations_settings' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                    <i class="fa-solid fa-money-check-dollar mr-3 text-xs"></i>
+                    <span class="text-xs">Operations Settings</span>
+                </a>
+                {% endif %}
             </div>
         </div>
         <div class="p-4 flex items-center">

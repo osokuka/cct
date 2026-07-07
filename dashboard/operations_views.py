@@ -19,9 +19,9 @@ from django.utils import timezone
 from accounts.views import check_permission
 from accounts.models import Team, Route
 from accounts.task_generation import DailyCleaningTask
-from locations.models import Camp, Room
+from locations.models import Camp, Room, OperationsConfig
 
-from .map_views import GJAKOVA_CENTER, build_map_features, map_counts
+from .map_views import center_from_rooms, build_map_features, map_counts
 
 _OPS_ROLES = ["admin", "manager", "operations_manager"]
 
@@ -59,12 +59,20 @@ def _scoped_camps(request):
     return Camp.objects.filter(is_active=True, id=camp.id) if camp else Camp.objects.none()
 
 
+def _scoped_center(request):
+    """Data-driven map center from the user's scoped Site points."""
+    rooms = Room.objects.filter(
+        is_active=True, camp__in=_scoped_camps(request)
+    ).only("latitude", "longitude")
+    return center_from_rooms(rooms)
+
+
 @login_required
 def operations_dashboard(request):
     if not check_permission(request, _OPS_ROLES):
         return redirect("accounts:login")
     return render(request, "dashboard/operations_dashboard.html", {
-        "center": GJAKOVA_CENTER,
+        "center": _scoped_center(request),
     })
 
 
@@ -73,8 +81,29 @@ def operations_tv(request):
     if not check_permission(request, _OPS_ROLES):
         return redirect("accounts:login")
     return render(request, "dashboard/operations_tv.html", {
-        "center": GJAKOVA_CENTER,
+        "center": _scoped_center(request),
     })
+
+
+@login_required
+def operations_settings(request):
+    """Global operations settings, incl. the optional payment-tracking toggle."""
+    if not check_permission(request, ["admin", "manager", "operations_manager"]):
+        return redirect("accounts:login")
+
+    config = OperationsConfig.get_solo()
+    if request.method == "POST":
+        config.payment_tracking_enabled = request.POST.get("payment_tracking_enabled") == "on"
+        config.save()
+        from django.contrib import messages
+        messages.success(
+            request,
+            "Payment tracking " + ("enabled." if config.payment_tracking_enabled
+                                   else "disabled — all points are collected and billed monthly."),
+        )
+        return redirect("dashboard:operations_settings")
+
+    return render(request, "dashboard/operations_settings.html", {"config": config})
 
 
 @login_required
@@ -220,6 +249,8 @@ def operations_data(request):
         dumpsters.append({
             "id": str(r.id),
             "dumpster_id": r.room_code,
+            "dumpster_type": r.dumpster_type or "household",
+            "dumpster_type_label": r.dumpster_type_label,
             "client_id": client.client_code if client else None,
             "payment_status": client.payment_status if client else "unknown",
             "payment_label": client.get_payment_status_display() if client else "No client / unconfirmed",
@@ -326,7 +357,7 @@ def operations_data(request):
             "team_type_label": t.get_team_type_display(),
             "color": team_color[t.id],
             "shift": t.shift.name if t.shift_id else None,
-            "members": t.members.count(),
+            "members": t.employee_count,
             "total": total,
             "done": s["done"],
             "in_progress": s["in_progress"],
@@ -378,7 +409,7 @@ def operations_data(request):
 
     return JsonResponse({
         "generated_at": timezone.now().isoformat(),
-        "center": GJAKOVA_CENTER,
+        "center": center_from_rooms(rooms),
         "date": sel_date.isoformat(),
         "today": today.isoformat(),
         "is_today": is_today,
@@ -388,6 +419,7 @@ def operations_data(request):
         "plan_day": plan_day,
         "plan_day_label": _WEEKDAYS[plan_day],
         "weekday_labels": _WEEKDAYS,
+        "payment_tracking": OperationsConfig.payment_tracking_on(),
         "dumpsters": dumpsters,
         "public_areas": public_areas,
         "counts": {

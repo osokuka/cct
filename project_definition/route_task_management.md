@@ -14,6 +14,16 @@ Gjakova municipal pivot. See `corporate_language_glossary.md` for terminology.
   dumpster** (`DailyCleaningTask`) for each scheduled day. Tasks are a backend
   artefact — operators interact with routes/streets on the map, not raw tasks.
 
+## Teams (`accounts/models.py::Team`)
+
+A Team records its **leader**, **number of employees** (`employee_count`),
+**vehicle**, **equipment**, and `team_type` (collection / cleaning). Shifts are
+simplified to a single **standard 08:00–17:00 shift per Site**, auto-assigned on
+save (`Shift.get_or_create_default`) — shift selection is not part of the team
+form. Team CRUD lives in `accounts/views.py` (`team_*`) with
+`TeamCreateForm`/`TeamUpdateForm` and the `templates/accounts/team_*.html`
+templates.
+
 ## Data model (`accounts/models.py`)
 
 - `Route`: `team`, `weekday` (0=Mon..6=Sun, nullable = always-on), `streets`

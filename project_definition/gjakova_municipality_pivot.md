@@ -329,12 +329,16 @@ know whether they should service it.
 notes live in `internal_note` and are never exposed.
 
 ### Endpoints & files
+> The standalone "Operations Map" page (`/map/`, `/map/data/`) and its template
+> were removed as redundant — the live map now lives inside the Operations
+> dashboard/TV wall (`dashboard.operations_views`). The map feature builders
+> (`build_map_features`, `map_counts`, `center_from_rooms`) remain in
+> `dashboard/map_views.py` and are consumed there.
+
 | Piece | Location |
 |---|---|
-| Map page | `GET /map/` → `dashboard.map_views.collection_map` |
-| Map data (JSON) | `GET /map/data/` → `dashboard.map_views.collection_map_data` |
-| Template | `templates/dashboard/collection_map.html` (Leaflet) |
-| Nav link | "Operations Map" (admin/manager/cleaner) in `templates/base.html` |
+| Map (live) | Operations dashboard + TV wall (`dashboard.operations_views`) |
+| Feature builders | `dashboard/map_views.py` (`build_map_features`, `map_counts`) |
 | Model | `Room.latitude/longitude/geo_polygon/client`, `CollectionClient` |
 
 ### Payment → collection rule
