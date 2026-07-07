@@ -129,7 +129,7 @@ def operations_data(request):
 
     rooms = list(
         Room.objects.filter(is_active=True, camp__in=camps).select_related(
-            "client", "compound", "building"
+            "client", "compound", "compound__assigned_team", "building"
         )
     )
 
@@ -141,17 +141,12 @@ def operations_data(request):
     team_color = {t.id: _ROUTE_COLORS[i % len(_ROUTE_COLORS)] for i, t in enumerate(teams)}
     team_color_str = {str(k): v for k, v in team_color.items()}
 
-    # Collection is planned per Street per weekday via Routes: a Street (Building)
-    # is serviced by the route's team on the route's weekday.
-    street_team = {}       # building_id -> Team (collection)
-    street_weekday = {}    # building_id -> weekday (0..6)
-    for route in Route.objects.filter(
-        team__camp__in=camps, is_active=True, weekday__isnull=False,
-        team__team_type="collection",
-    ).select_related("team").prefetch_related("streets"):
-        for b in route.streets.all():
-            street_team[b.id] = route.team
-            street_weekday[b.id] = route.weekday
+    # Collection is planned per Zone: a zone is assigned to a team and a collection
+    # weekday on the zone edit form. Every dumpster inherits that day, so a dumpster
+    # is serviced by its zone's team on the zone's weekday.
+    def _zone_team(room):
+        comp = room.compound if room.compound_id else None
+        return comp.assigned_team if comp and comp.assigned_team_id else None
 
     # Cleaning teams cover Zones (compounds); public areas are always shown.
     compound_team = {"collection": {}, "cleaning": {}}
@@ -209,12 +204,12 @@ def operations_data(request):
     for r in rooms:
         if r.space_type != "dumpster" or r.latitude is None or r.longitude is None:
             continue
-        # A dumpster is scheduled on the selected day if its Street belongs to a
-        # collection route running on that weekday.
-        if street_weekday.get(r.building_id) != plan_day:
+        # A dumpster is scheduled on the selected day if its zone's collection day
+        # matches. The responsible team is the zone's assigned team.
+        if r.collection_weekday != plan_day:
             continue
         client = r.client
-        team = street_team.get(r.building_id)
+        team = _zone_team(r)
         can_collect = r.can_collect
 
         if is_today:
@@ -294,7 +289,14 @@ def operations_data(request):
     for r in rooms:
         if r.space_type not in Room.PUBLIC_AREA_TYPES or r.latitude is None or r.longitude is None:
             continue
-        cteam = compound_team["cleaning"].get(r.compound_id)
+        # Public areas follow their zone's assignment. Scheduled ones (zone has a
+        # collection day) show only on that weekday; unscheduled ones show daily.
+        zone = r.compound if r.compound_id else None
+        zone_wd = zone.collection_weekday if zone else None
+        if zone_wd is not None and zone_wd != plan_day:
+            continue
+        cteam = (zone.assigned_team if zone and zone.assigned_team_id
+                 else compound_team["cleaning"].get(r.compound_id))
         if is_today:
             st = room_state.get(r.id)
             status = "collected" if st == "done" else "awaiting"
@@ -323,8 +325,8 @@ def operations_data(request):
     for r in rooms:
         if r.space_type != "dumpster":
             continue
-        team = street_team.get(r.building_id)
-        wd = street_weekday.get(r.building_id)
+        team = _zone_team(r)
+        wd = r.collection_weekday
         if not team or wd is None:
             continue
         weekly.setdefault(team.id, {}).setdefault(wd, 0)

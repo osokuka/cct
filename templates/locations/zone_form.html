@@ -7,13 +7,20 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 <style>
-    #zone-map { height: 460px; border-radius: 0.5rem; z-index: 0; }
+    #zone-map {
+        height: 70vh;
+        min-height: 420px;
+        border-radius: 0.5rem;
+        z-index: 0;
+        resize: vertical;
+        overflow: hidden;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="p-6">
-    <div class="max-w-5xl mx-auto metallic-card rounded-lg border border-gray-300">
+    <div class="max-w-7xl mx-auto metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between">
             <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">{{ title }}</h2>
             <a href="{% url 'locations:compound_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-gray-400 transition-all">
@@ -45,11 +52,22 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.collection_weekday.label }}</label>
-                <div class="sm:max-w-xs">{{ form.collection_weekday }}</div>
-                <p class="text-xs text-gray-500 mt-1">{{ form.collection_weekday.help_text }}</p>
-                {% for e in form.collection_weekday.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <h3 class="text-sm font-bold text-dark-graphite uppercase tracking-wide mb-3"><i class="fa-solid fa-people-carry-box mr-2 text-steel-blue"></i>Collection assignment</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.assigned_team.label }}</label>
+                        {{ form.assigned_team }}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.assigned_team.help_text }}</p>
+                        {% for e in form.assigned_team.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.collection_weekday.label }}</label>
+                        {{ form.collection_weekday }}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.collection_weekday.help_text }}</p>
+                        {% for e in form.collection_weekday.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -98,6 +116,14 @@
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20
     }).addTo(map);
+
+    // Keep the map sized correctly as the panel is dragged/resized or the window changes.
+    var mapEl = document.getElementById('zone-map');
+    if (window.ResizeObserver) {
+        new ResizeObserver(function () { map.invalidateSize(); }).observe(mapEl);
+    }
+    window.addEventListener('resize', function () { map.invalidateSize(); });
+    setTimeout(function () { map.invalidateSize(); }, 200);
 
     var drawn = new L.FeatureGroup();
     map.addLayer(drawn);

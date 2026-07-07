@@ -61,8 +61,7 @@ urlpatterns = [
     
     # Task Assignment URLs
     path('task-assignment/', task_assignment_views.task_assignment_dashboard, name='task_assignment_dashboard'),
-    path('task-assignment/assign-to-route/', task_assignment_views.assign_tasks_to_route, name='assign_tasks_to_route'),
-    path('task-assignment/bulk-assign/', task_assignment_views.bulk_task_assignment, name='bulk_task_assignment'),
+    path('task-assignment/manage/', task_assignment_views.manage_recurring_tasks, name='manage_recurring_tasks'),
     
     # Barcode Generator URLs
     path('barcode-generator/', barcode_views.barcode_generator, name='barcode_generator'),

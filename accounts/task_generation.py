@@ -215,6 +215,110 @@ def generate_tasks_from_routes(camp, start_date: date, end_date: date, logger_=N
     return {'created': created, 'updated': updated}
 
 
+def generate_tasks_for_zone(zone, start_date: date, end_date: date):
+    """Generate tasks for a single zone's dumpsters AND public-area rooms.
+
+    Requires the zone to have both an assigned team and a collection weekday;
+    otherwise nothing is generated. Idempotent.
+    """
+    from locations.models import Room
+
+    team = zone.assigned_team
+    wd = zone.collection_weekday
+    if team is None or wd is None:
+        return {'created': 0, 'updated': 0}
+
+    rooms = list(
+        Room.objects.filter(compound=zone, is_active=True).filter(
+            models.Q(space_type='dumpster')
+            | models.Q(space_type__in=Room.PUBLIC_AREA_TYPES)
+        )
+    )
+    if not rooms:
+        return {'created': 0, 'updated': 0}
+
+    created = updated = 0
+    current = start_date
+    while current <= end_date:
+        if current.weekday() == wd:
+            for room in rooms:
+                if room.service_start_date and current < room.service_start_date:
+                    continue
+                if room.service_end_date and current > room.service_end_date:
+                    continue
+                task, was_created = DailyCleaningTask.objects.get_or_create(
+                    room=room,
+                    task_date=current,
+                    index_in_day=1,
+                    defaults={
+                        'sla_credit_sqm': room.actual_sqm or Decimal('1'),
+                        'task_type': 'regular',
+                        'state': 'planned',
+                        'assigned_to_team': team,
+                        'shift': team.shift,
+                    },
+                )
+                if was_created:
+                    created += 1
+                elif task.assigned_to_team_id != team.id:
+                    task.assigned_to_team = team
+                    task.shift = team.shift
+                    task.save(update_fields=['assigned_to_team', 'shift', 'updated_at'])
+                    updated += 1
+                if room.collection_weekday != wd:
+                    room.collection_weekday = wd
+                    room.save(update_fields=['collection_weekday'])
+        current += timedelta(days=1)
+    return {'created': created, 'updated': updated}
+
+
+def generate_tasks_from_zones(start_date: date, end_date: date, camps=None, logger_=None):
+    """
+    Generate per-dumpster Tasks from Zone assignments for a date range.
+
+    New corporate model: a Zone (Compound) is assigned a Team and a collection
+    weekday on the Zone edit form. Every active dumpster inside that zone becomes
+    a recurring task on the zone's weekday, assigned to the zone's team.
+
+    Orphaned dumpsters — those with no zone, or in a zone without a team or without
+    a collection day — are skipped (never generate tasks). Idempotent.
+    """
+    from locations.models import Compound, Room
+
+    zones = (
+        Compound.objects.filter(
+            is_active=True,
+            assigned_team__isnull=False,
+            collection_weekday__isnull=False,
+        )
+        .select_related('assigned_team', 'assigned_team__shift', 'camp')
+    )
+    if camps is not None:
+        zones = zones.filter(camp__in=camps)
+
+    created = updated = 0
+    for zone in zones:
+        res = generate_tasks_for_zone(zone, start_date, end_date)
+        created += res['created']
+        updated += res['updated']
+
+    # Count orphan dumpsters (for reporting only — never generated).
+    orphans = Room.objects.filter(space_type='dumpster', is_active=True).filter(
+        models.Q(compound__isnull=True)
+        | models.Q(compound__assigned_team__isnull=True)
+        | models.Q(compound__collection_weekday__isnull=True)
+    )
+    if camps is not None:
+        orphans = orphans.filter(camp__in=camps)
+    skipped_orphans = orphans.count()
+
+    if logger_:
+        logger_(f"{created} created, {updated} reassigned, "
+                f"{skipped_orphans} orphan dumpsters skipped "
+                f"({start_date} → {end_date})")
+    return {'created': created, 'updated': updated, 'skipped_orphans': skipped_orphans}
+
+
 class TaskGenerationService:
     """
     Service class for generating daily cleaning tasks based on room requirements.

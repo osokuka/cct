@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from decimal import Decimal
@@ -410,6 +411,12 @@ def zone_create(request):
         form = ZoneForm(request.POST, request=request)
         if form.is_valid():
             zone = form.save()
+            area = zone.compute_area_sqm()
+            if area is not None:
+                zone.area_sqm = area
+                zone.save(update_fields=['area_sqm'])
+            Room.objects.filter(compound=zone, space_type='dumpster').update(
+                collection_weekday=zone.collection_weekday)
             messages.success(request, f'Zone "{zone.name}" created successfully.')
             return redirect('locations:compound_view', compound_id=zone.id)
         messages.error(request, 'Please correct the errors below.')
@@ -511,20 +518,45 @@ def compound_view(request, compound_id):
 
     compound = get_object_or_404(Compound.objects.select_related('camp'), id=compound_id)
 
+    ring = compound.boundary_ring
+
+    def _street_in_zone(geom):
+        """A street belongs to the zone if any part of its geometry falls inside the
+        boundary. With no boundary drawn, we can't filter, so keep everything."""
+        if not ring:
+            return True
+        if not geom:
+            return True  # manually-added streets with no geometry stay with their zone
+        for line in geo._iter_lines(geom):
+            for lng, lat in line:
+                if geo._ring_contains(lat, lng, ring):
+                    return True
+            # Also test segment midpoints to catch streets that only cross the edge.
+            for p1, p2 in zip(line, line[1:]):
+                mlat, mlng = (p1[1] + p2[1]) / 2.0, (p1[0] + p2[0]) / 2.0
+                if geo._ring_contains(mlat, mlng, ring):
+                    return True
+        return False
+
     buildings = Building.objects.filter(compound=compound).order_by('name')
     street_rows = []
     map_streets = []
+    active_in_zone = 0
     for b in buildings:
-        street_rows.append({
-            'building': b,
-            'dumpster_count': b.rooms.filter(space_type='dumpster', is_active=True).count(),
-        })
         geom = None
         if b.geo_polyline:
             try:
                 geom = json.loads(b.geo_polyline)
             except (ValueError, TypeError):
                 geom = None
+        if not _street_in_zone(geom):
+            continue
+        street_rows.append({
+            'building': b,
+            'dumpster_count': b.rooms.filter(space_type='dumpster', is_active=True).count(),
+        })
+        if b.is_active:
+            active_in_zone += 1
         if geom:
             map_streets.append({'name': b.name, 'geometry': geom, 'active': b.is_active})
 
@@ -535,11 +567,33 @@ def compound_view(request, compound_id):
         except (ValueError, TypeError):
             boundary = None
 
+    # Dumpsters in this zone (list + map markers).
+    dumpsters = list(
+        Room.objects.filter(compound=compound, space_type='dumpster')
+        .select_related('building', 'client')
+        .order_by('building__name', 'room_code')
+    )
+    dumpsters_geo = [
+        {
+            'code': d.room_code,
+            'lat': float(d.latitude),
+            'lng': float(d.longitude),
+            'type': d.dumpster_type,
+            'street': d.building.name if d.building else '',
+            'client': d.client.client_code if d.client else '',
+            'active': d.is_active,
+        }
+        for d in dumpsters
+        if d.latitude is not None and d.longitude is not None
+    ]
+
     context = {
         'zone': compound,
         'streets': street_rows,
-        'street_count': buildings.filter(is_active=True).count(),
-        'dumpster_count': Room.objects.filter(compound=compound, space_type='dumpster', is_active=True).count(),
+        'street_count': active_in_zone,
+        'dumpster_count': sum(1 for d in dumpsters if d.is_active),
+        'dumpsters': dumpsters,
+        'dumpsters_geo': dumpsters_geo,
         'map_center': compound.boundary_center,
         'map_streets': map_streets,
         'boundary': boundary,
@@ -558,7 +612,13 @@ def compound_edit(request, compound_id):
     if request.method == 'POST':
         form = ZoneForm(request.POST, instance=compound, request=request)
         if form.is_valid():
-            form.save()
+            zone = form.save()
+            area = zone.compute_area_sqm()
+            if area is not None:
+                zone.area_sqm = area
+                zone.save(update_fields=['area_sqm'])
+            Room.objects.filter(compound=zone, space_type='dumpster').update(
+                collection_weekday=zone.collection_weekday)
             messages.success(request, f'Zone "{compound.name}" updated successfully.')
             return redirect('locations:compound_view', compound_id=compound.id)
         messages.error(request, 'Please correct the errors below.')
@@ -636,6 +696,53 @@ def zone_populate_status(request, compound_id):
     })
 
 
+@login_required
+def zone_measure_area(request, compound_id):
+    """Measure the zone's surface area (m²) from its boundary, save it, and
+    (optionally) generate cleaning/collection tasks for the zone."""
+    if not check_permission(request, ['admin', 'manager']):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    if request.method != 'POST':
+        return redirect('locations:compound_view', compound_id=compound_id)
+
+    compound = get_object_or_404(Compound, id=compound_id)
+    area = compound.compute_area_sqm()
+    if area is None:
+        msg = 'Draw the zone boundary first so the area can be measured.'
+        messages.error(request, msg)
+        return redirect('locations:compound_view', compound_id=compound.id)
+
+    compound.area_sqm = area
+    compound.save(update_fields=['area_sqm'])
+
+    generate = request.POST.get('generate') in ('1', 'true', 'on')
+    result = {'created': 0, 'updated': 0}
+    gen_msg = ''
+    if generate:
+        if compound.assigned_team_id is None or compound.collection_weekday is None:
+            gen_msg = (' Assign a team and a collection day to this zone to '
+                       'generate tasks.')
+        else:
+            from datetime import timedelta as _td
+            from accounts.task_generation import generate_tasks_for_zone
+            try:
+                horizon = int(request.POST.get('horizon_days', 28))
+            except (TypeError, ValueError):
+                horizon = 28
+            horizon = max(1, min(horizon, 90))
+            start = timezone.localdate()
+            result = generate_tasks_for_zone(compound, start, start + _td(days=horizon - 1))
+            gen_msg = (f' Generated {result["created"]} task(s) for '
+                       f'{compound.assigned_team.name} on '
+                       f'{compound.collection_schedule_display}.')
+
+    messages.success(
+        request,
+        f'Area measured: {area:,.0f} m² ({compound.area_hectares} ha).{gen_msg}'
+    )
+    return redirect('locations:compound_view', compound_id=compound.id)
+
+
 # --- Dumpsters (GPS-placed, auto-assigned to zone + nearest street) -----------
 
 def _dumpster_defaults():
@@ -655,6 +762,20 @@ def _dumpster_defaults():
         'service_start_date': today,
         'service_end_date': today + timedelta(days=365),
         'weeks_of_service': 52,
+    }
+
+
+def _dumpster_marker(d):
+    """Compact payload for rendering a dumpster as a map marker."""
+    return {
+        'id': str(d.id),
+        'code': d.room_code,
+        'type': d.dumpster_type or 'household',
+        'type_label': d.dumpster_type_label,
+        'lat': float(d.latitude) if d.latitude is not None else None,
+        'lng': float(d.longitude) if d.longitude is not None else None,
+        'zone': d.compound.name if d.compound_id else '',
+        'street': d.building.name if d.building_id else '',
     }
 
 
@@ -691,6 +812,8 @@ def dumpster_create(request):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
 
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
     if request.method == 'POST':
         form = DumpsterForm(request.POST, request=request)
         if form.is_valid():
@@ -698,8 +821,11 @@ def dumpster_create(request):
             lng = form.cleaned_data['longitude']
             zone = geo.find_zone_for_point(lat, lng)
             if zone is None:
-                form.add_error(None, "This GPS point is not inside any zone boundary. "
-                                     "Pick a point within a drawn zone.")
+                err = ("This GPS point is not inside any zone boundary. "
+                       "Pick a point within a drawn zone.")
+                if is_ajax:
+                    return JsonResponse({'success': False, 'errors': {'__all__': [err]}}, status=400)
+                form.add_error(None, err)
             else:
                 building, dist = geo.nearest_street(zone, lat, lng)
                 if building is None:
@@ -726,13 +852,19 @@ def dumpster_create(request):
                 if not dumpster.room_description:
                     dumpster.room_description = f"Dumpster — {building.name}"
                 dumpster.save()
-                messages.success(
-                    request,
-                    f'Dumpster "{dumpster.room_code}" added to zone "{zone.name}" '
-                    f'(street: {building.name}, schedule: {zone.collection_schedule_display}).'
-                )
+                msg = (f'Dumpster "{dumpster.room_code}" added to zone "{zone.name}" '
+                       f'(street: {building.name}, schedule: {zone.collection_schedule_display}).')
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': msg,
+                        'dumpster': _dumpster_marker(dumpster),
+                    })
+                messages.success(request, msg)
                 return redirect('locations:compound_view', compound_id=zone.id)
         else:
+            if is_ajax:
+                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
             messages.error(request, 'Please correct the errors below.')
     else:
         form = DumpsterForm(request=request)
@@ -745,10 +877,20 @@ def dumpster_create(request):
         if ring:
             zones_payload.append({'id': str(z.id), 'name': z.name, 'site': z.camp.name, 'ring': ring})
 
+    # Existing dumpsters so they show on the map right away.
+    dumpsters_payload = [
+        _dumpster_marker(d)
+        for d in Room.objects.filter(
+            space_type='dumpster', is_active=True,
+            latitude__isnull=False, longitude__isnull=False,
+        ).select_related('compound', 'building')
+    ]
+
     return render(request, 'locations/dumpster_form.html', {
         'form': form,
         'title': 'Add Dumpster',
         'zones': zones_payload,
+        'dumpsters': dumpsters_payload,
         'map_center': _default_map_center(),
     })
 

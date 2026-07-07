@@ -5,12 +5,12 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>#dmp-map { height: 460px; border-radius: 0.5rem; z-index: 0; }</style>
+<style>#dmp-map { height: 70vh; min-height: 420px; border-radius: 0.5rem; z-index: 0; resize: vertical; overflow: hidden; }</style>
 {% endblock %}
 
 {% block content %}
 <div class="p-6">
-    <div class="max-w-5xl mx-auto metallic-card rounded-lg border border-gray-300">
+    <div class="max-w-7xl mx-auto metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between">
             <div>
                 <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">{{ title }}</h2>
@@ -21,13 +21,19 @@
             </a>
         </div>
 
-        <form method="post" class="p-6 space-y-5">
+        <form method="post" id="dumpster-form" class="p-6 space-y-5">
             {% csrf_token %}
+            <div id="form-errors" class="hidden bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm"></div>
             {% if form.non_field_errors %}
             <div class="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm">{{ form.non_field_errors }}</div>
             {% endif %}
 
             <div id="dmp-map"></div>
+
+            <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs">
+                <span class="text-gray-500"><i class="fa-solid fa-dumpster mr-1 text-steel-blue"></i> On map: <strong id="dmp-count">0</strong> dumpsters</span>
+                <span id="added-count" class="text-green-700 font-semibold"></span>
+            </div>
 
             <div id="detect-panel" class="rounded-lg border p-3 text-sm border-gray-200 bg-gray-50">
                 <span class="text-gray-500">Detected zone:</span>
@@ -74,8 +80,8 @@
             </label>
 
             <div class="pt-4 border-t border-gray-200 flex justify-end gap-3">
-                <a href="{% url 'locations:compound_list' %}" class="px-5 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100">Cancel</a>
-                <button type="submit" class="px-5 py-2 rounded bg-steel-blue text-white font-semibold hover:bg-opacity-90">
+                <a href="{% url 'locations:compound_list' %}" class="px-5 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100">Done</a>
+                <button type="submit" id="dmp-submit" class="px-5 py-2 rounded bg-steel-blue text-white font-semibold hover:bg-opacity-90 disabled:opacity-60">
                     <i class="fa-solid fa-dumpster mr-2"></i>Add Dumpster
                 </button>
             </div>
@@ -84,6 +90,7 @@
 </div>
 
 {{ zones|json_script:"zones-data" }}
+{{ dumpsters|json_script:"dumpsters-data" }}
 {% endblock %}
 
 {% block extra_js %}
@@ -92,7 +99,9 @@
 (function () {
     var CENTER = {lat: {{ map_center.lat }}, lng: {{ map_center.lng }}, zoom: {{ map_center.zoom }}};
     var zones = JSON.parse(document.getElementById('zones-data').textContent || '[]');
+    var existing = JSON.parse(document.getElementById('dumpsters-data').textContent || '[]');
     var DETECT_URL = "{% url 'locations:detect_zone' %}";
+    var CSRF = document.querySelector('#dumpster-form [name=csrfmiddlewaretoken]').value;
     var latInput = document.getElementById('id_latitude');
     var lngInput = document.getElementById('id_longitude');
     var panel = document.getElementById('detect-panel');
@@ -106,6 +115,13 @@
         attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20
     }).addTo(map);
 
+    var mapEl = document.getElementById('dmp-map');
+    if (window.ResizeObserver) {
+        new ResizeObserver(function () { map.invalidateSize(); }).observe(mapEl);
+    }
+    window.addEventListener('resize', function () { map.invalidateSize(); });
+    setTimeout(function () { map.invalidateSize(); }, 200);
+
     var allBounds = null;
     zones.forEach(function (z) {
         var latlngs = z.ring.map(function (p) { return [p[1], p[0]]; });
@@ -114,6 +130,34 @@
         allBounds = allBounds ? allBounds.extend(poly.getBounds()) : poly.getBounds();
     });
     if (allBounds && allBounds.isValid()) { map.fitBounds(allBounds, {padding: [20, 20]}); }
+
+    // --- existing dumpsters -------------------------------------------------
+    var dumpsterLayer = L.layerGroup().addTo(map);
+    var placed = 0;
+
+    function dumpsterIcon(type) {
+        var communal = (type === 'communal');
+        var glyph = '<i class="fa-solid fa-dumpster" style="font-size:11px;color:#2B2E32;"></i>';
+        var html = communal
+            ? '<div style="width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid #7C3AED;'
+              + 'display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.4);">' + glyph + '</div>'
+            : '<div style="width:22px;height:22px;border-radius:5px;background:#FCD34D;border:1.5px solid #B45309;'
+              + 'display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.4);">' + glyph + '</div>';
+        return L.divIcon({html: html, className: '', iconSize: communal ? [26, 26] : [22, 22],
+                          iconAnchor: communal ? [13, 13] : [11, 11]});
+    }
+
+    function addDumpster(d) {
+        if (d.lat == null || d.lng == null) { return; }
+        var m = L.marker([d.lat, d.lng], {icon: dumpsterIcon(d.type)}).addTo(dumpsterLayer);
+        m.bindPopup('<strong>' + d.code + '</strong><br>' + (d.type_label || '') +
+            '<br><span style="color:#6b7280">' + (d.zone || '') +
+            (d.street ? ' · ' + d.street : '') + '</span>');
+        placed += 1;
+        document.getElementById('dmp-count').textContent = placed;
+    }
+
+    existing.forEach(addDumpster);
 
     var marker = null;
     function setPanel(cls, msg) {
@@ -164,6 +208,60 @@
 
     // Pre-fill from existing values (validation re-render).
     if (latInput.value && lngInput.value) { fromInputs(); }
+
+    // --- AJAX add (stay on page, drop marker) ------------------------------
+    var form = document.getElementById('dumpster-form');
+    var errBox = document.getElementById('form-errors');
+    var addedEl = document.getElementById('added-count');
+    var addedTotal = 0;
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        errBox.classList.add('hidden'); errBox.textContent = '';
+        if (!latInput.value || !lngInput.value) {
+            errBox.textContent = 'Click the map to place the dumpster first.';
+            errBox.classList.remove('hidden');
+            return;
+        }
+        var btn = document.getElementById('dmp-submit');
+        btn.disabled = true;
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF},
+            body: new FormData(form)
+        })
+        .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, j: j}; }); })
+        .then(function (res) {
+            btn.disabled = false;
+            if (res.ok && res.j.success) {
+                addDumpster(res.j.dumpster);
+                addedTotal += 1;
+                addedEl.textContent = 'Added ' + addedTotal + ' this session';
+                if (marker) { map.removeLayer(marker); marker = null; }
+                latInput.value = ''; lngInput.value = '';
+                var codeEl = document.getElementById('id_room_code'); if (codeEl) { codeEl.value = ''; }
+                var descEl = document.getElementById('id_room_description'); if (descEl) { descEl.value = ''; }
+                setPanel('border-green-200 bg-green-50 text-green-800',
+                    'Saved <strong>' + res.j.dumpster.code + '</strong>. Click the map to add another.');
+                setSchedule('— inherited from the zone —');
+            } else {
+                var errs = res.j.errors || {__all__: ['Could not save.']};
+                var msgs = [];
+                Object.keys(errs).forEach(function (k) {
+                    (errs[k] || []).forEach(function (m) {
+                        msgs.push(typeof m === 'string' ? m : (m.message || JSON.stringify(m)));
+                    });
+                });
+                errBox.innerHTML = msgs.join('<br>');
+                errBox.classList.remove('hidden');
+            }
+        })
+        .catch(function () {
+            btn.disabled = false;
+            errBox.textContent = 'Network error — please try again.';
+            errBox.classList.remove('hidden');
+        });
+    });
 })();
 </script>
 {% endblock %}

@@ -5,7 +5,14 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>#zone-map { height: 480px; border-radius: 0.5rem; z-index: 0; }</style>
+<style>
+    #zone-map { height: 480px; border-radius: 0.5rem; z-index: 0; }
+    .dmp-marker { display:flex; align-items:center; justify-content:center; color:#fff; }
+    .dmp-marker i { font-size: 12px; }
+    .dmp-household { width:22px; height:22px; border-radius:6px; background:#D97706; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+    .dmp-communal { width:28px; height:28px; border-radius:9999px; background:#7C3AED; border:3px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.45); }
+    .dmp-inactive { opacity:.45; filter:grayscale(1); }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -32,10 +39,17 @@
         </div>
 
         <div class="p-6">
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-4 mb-6">
                 <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div class="text-xs text-gray-500 uppercase">Boundary</div>
                     <div class="text-lg font-bold text-dark-graphite">{% if zone.has_boundary %}Set{% else %}Not drawn{% endif %}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="text-xs text-gray-500 uppercase">Area</div>
+                    <div class="text-lg font-bold text-dark-graphite">
+                        {% if zone.area_sqm %}{{ zone.area_sqm|floatformat:0 }} m²{% else %}—{% endif %}
+                    </div>
+                    {% if zone.area_hectares %}<div class="text-xs text-gray-500">{{ zone.area_hectares }} ha</div>{% endif %}
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div class="text-xs text-gray-500 uppercase">Streets</div>
@@ -48,12 +62,44 @@
                 <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div class="text-xs text-gray-500 uppercase">Collection day</div>
                     <div class="text-sm font-semibold text-dark-graphite">{{ zone.collection_schedule_display }}</div>
+                    <div class="text-xs text-gray-500">{% if zone.assigned_team %}{{ zone.assigned_team.name }}{% else %}No team{% endif %}</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div class="text-xs text-gray-500 uppercase">Last OSM sync</div>
                     <div class="text-sm font-semibold text-dark-graphite">{{ zone.osm_last_synced_at|default:"—" }}</div>
                 </div>
             </div>
+
+            {% if can_edit %}
+            <form method="post" action="{% url 'locations:zone_measure_area' zone.id %}"
+                  class="flex flex-wrap items-center gap-3 mb-4 p-4 rounded-lg border border-gray-200 bg-gray-50">
+                {% csrf_token %}
+                <span class="text-sm font-semibold text-dark-graphite uppercase tracking-wide">
+                    <i class="fa-solid fa-ruler-combined mr-2 text-steel-blue"></i>Area &amp; tasks
+                </span>
+                <button type="submit" name="generate" value="0"
+                        class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-gray-400 transition-all disabled:opacity-50"
+                        {% if not zone.has_boundary %}disabled title="Draw the boundary first"{% endif %}>
+                    <i class="fa-solid fa-vector-square mr-2"></i>Measure area (m²)
+                </button>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-600 uppercase">Horizon</label>
+                    <input type="number" name="horizon_days" value="28" min="1" max="90"
+                           class="w-20 px-2 py-1.5 border border-gray-300 rounded text-sm">
+                    <span class="text-xs text-gray-500">days</span>
+                </div>
+                <button type="submit" name="generate" value="1"
+                        class="bg-steel-blue text-white px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-opacity-90 transition-all disabled:opacity-50"
+                        {% if not zone.has_boundary %}disabled{% endif %}>
+                    <i class="fa-solid fa-calendar-plus mr-2"></i>Measure &amp; generate tasks
+                </button>
+                {% if zone.assigned_team_id is None or zone.collection_weekday is None %}
+                <span class="text-xs text-amber-600">Assign a team &amp; collection day (Edit) to generate tasks.</span>
+                {% else %}
+                <span class="text-xs text-gray-500">Tasks → {{ zone.assigned_team.name }} on {{ zone.collection_schedule_display }}.</span>
+                {% endif %}
+            </form>
+            {% endif %}
 
             {% if can_edit %}
             <div class="flex flex-wrap items-center gap-3 mb-4 p-4 rounded-lg border border-gray-200 bg-gray-50">
@@ -110,10 +156,58 @@
             </table>
         </div>
     </div>
+
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between flex-wrap gap-3">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">Dumpsters ({{ dumpster_count }})</h3>
+            <div class="flex items-center gap-4 text-xs text-gray-600">
+                <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 rounded" style="background:#D97706"></span> Household</span>
+                <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full border-2 border-white" style="background:#7C3AED"></span> Communal</span>
+            </div>
+        </div>
+        <div class="p-6 overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-gray-500 uppercase text-xs border-b border-gray-300">
+                        <th class="py-2 pr-4">Dumpster ID</th>
+                        <th class="py-2 pr-4">Type</th>
+                        <th class="py-2 pr-4">Street</th>
+                        <th class="py-2 pr-4">GPS</th>
+                        <th class="py-2 pr-4">Client</th>
+                        <th class="py-2 pr-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in dumpsters %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="py-2 pr-4 font-mono font-semibold text-steel-blue">{{ d.room_code }}</td>
+                        <td class="py-2 pr-4">
+                            {% if d.dumpster_type == 'communal' %}
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-300"><i class="fa-solid fa-dumpster mr-1"></i>Communal</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-300"><i class="fa-solid fa-dumpster mr-1"></i>Household</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 pr-4 text-gray-600">{{ d.building.name }}</td>
+                        <td class="py-2 pr-4 font-mono text-xs text-gray-500">{% if d.latitude and d.longitude %}{{ d.latitude|floatformat:5 }}, {{ d.longitude|floatformat:5 }}{% else %}—{% endif %}</td>
+                        <td class="py-2 pr-4 text-gray-600">{{ d.client.client_code|default:"—" }}</td>
+                        <td class="py-2 pr-4">
+                            {% if d.is_active %}<span class="text-green-700 text-xs">Active</span>
+                            {% else %}<span class="text-gray-400 text-xs">Inactive</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="py-6 text-center text-gray-500">No dumpsters in this zone yet. Use "Add Dumpster" to place one on the map.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 {{ boundary|json_script:"boundary-data" }}
 {{ map_streets|json_script:"streets-data" }}
+{{ dumpsters_geo|json_script:"dumpsters-data" }}
 {% endblock %}
 
 {% block extra_js %}
@@ -123,6 +217,7 @@
     var CENTER = {lat: {{ map_center.lat }}, lng: {{ map_center.lng }}, zoom: {{ map_center.zoom }}};
     var boundary = JSON.parse(document.getElementById('boundary-data').textContent || 'null');
     var streets = JSON.parse(document.getElementById('streets-data').textContent || '[]');
+    var dumpsters = JSON.parse(document.getElementById('dumpsters-data').textContent || '[]');
 
     var map = L.map('zone-map').setView([CENTER.lat, CENTER.lng], CENTER.zoom);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -158,6 +253,29 @@
             pl2.bindPopup(s.name);
             bounds = bounds ? bounds.extend(pl2.getBounds()) : pl2.getBounds();
         }
+    });
+
+    function dumpsterIcon(d) {
+        var communal = d.type === 'communal';
+        var cls = 'dmp-marker ' + (communal ? 'dmp-communal' : 'dmp-household') + (d.active ? '' : ' dmp-inactive');
+        var size = communal ? 28 : 22;
+        return L.divIcon({
+            className: '',
+            html: '<div class="' + cls + '"><i class="fa-solid fa-dumpster"></i></div>',
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
+        });
+    }
+
+    dumpsters.forEach(function (d) {
+        var m = L.marker([d.lat, d.lng], {icon: dumpsterIcon(d)}).addTo(map);
+        var lines = ['<strong>' + d.code + '</strong>',
+                     (d.type === 'communal' ? 'Communal' : 'Household') + ' dumpster'];
+        if (d.street) { lines.push('Street: ' + d.street); }
+        if (d.client) { lines.push('Client: ' + d.client); }
+        if (!d.active) { lines.push('<em>Inactive</em>'); }
+        m.bindPopup(lines.join('<br>'));
+        bounds = bounds ? bounds.extend(m.getLatLng()) : L.latLngBounds(m.getLatLng(), m.getLatLng());
     });
 
     if (bounds && bounds.isValid()) { map.fitBounds(bounds, {padding: [20, 20]}); }

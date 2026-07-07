@@ -59,17 +59,22 @@ class ZoneForm(forms.ModelForm):
 
     class Meta:
         model = Compound
-        fields = ['camp', 'code', 'name', 'collection_weekday', 'geo_polygon', 'is_active']
+        fields = ['camp', 'code', 'name', 'assigned_team', 'collection_weekday', 'geo_polygon', 'is_active']
         widgets = {
             'camp': forms.Select(attrs={'class': INPUT_CLS}),
             'code': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Z1'}),
             'name': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Zona 1 — Qendra'}),
+            'assigned_team': forms.Select(attrs={'class': INPUT_CLS}),
             'geo_polygon': forms.HiddenInput(),
             'is_active': forms.CheckboxInput(attrs={'class': CHECKBOX_CLS}),
         }
         labels = {
             'camp': 'Site', 'code': 'Zone code', 'name': 'Zone name',
-            'collection_weekday': 'Collection day', 'is_active': 'Active',
+            'assigned_team': 'Assigned team', 'collection_weekday': 'Collection day',
+            'is_active': 'Active',
+        }
+        help_texts = {
+            'assigned_team': 'Team responsible for collecting this zone.',
         }
 
     def __init__(self, *args, **kwargs):
@@ -87,11 +92,22 @@ class ZoneForm(forms.ModelForm):
             widget=forms.Select(attrs={'class': INPUT_CLS}),
         )
 
+        # Responsible team (optional). Filter to the zone's site when known.
+        from accounts.models import Team
+        team_qs = Team.objects.select_related('team_leader').order_by('name')
+        if self.instance and self.instance.pk and self.instance.camp_id:
+            team_qs = team_qs.filter(camp_id=self.instance.camp_id)
+        self.fields['assigned_team'].queryset = team_qs
+        self.fields['assigned_team'].required = False
+        self.fields['assigned_team'].empty_label = "— unassigned —"
+
         if self.request and hasattr(self.request.user, 'profile'):
             profile = self.request.user.profile
             if profile.role != 'admin' and profile.camp:
                 self.fields['camp'].queryset = Camp.objects.filter(id=profile.camp.id)
                 self.fields['camp'].initial = profile.camp
+                self.fields['assigned_team'].queryset = Team.objects.filter(
+                    camp=profile.camp).select_related('team_leader').order_by('name')
 
     def clean_geo_polygon(self):
         raw = (self.cleaned_data.get('geo_polygon') or '').strip()

@@ -76,6 +76,34 @@ def _iter_lines(geom):
             yield line
 
 
+def polygon_area_sqm(ring):
+    """Approximate area (m²) of a polygon ring [[lng, lat], ...].
+
+    Projects to a local equirectangular plane centred on the ring's mean latitude
+    (accurate to well under 1% for city-scale zones) and applies the shoelace
+    formula. Returns 0.0 for degenerate rings.
+    """
+    if not ring or len(ring) < 3:
+        return 0.0
+    pts = [(float(p[0]), float(p[1])) for p in ring]
+    # Drop a duplicated closing vertex if present.
+    if pts[0] == pts[-1]:
+        pts = pts[:-1]
+    if len(pts) < 3:
+        return 0.0
+    mean_lat = sum(p[1] for p in pts) / len(pts)
+    mlat = 111130.0
+    mlng = _m_per_deg_lng(mean_lat)
+    xy = [(lng * mlng, lat * mlat) for (lng, lat) in pts]
+    area2 = 0.0
+    n = len(xy)
+    for i in range(n):
+        x1, y1 = xy[i]
+        x2, y2 = xy[(i + 1) % n]
+        area2 += x1 * y2 - x2 * y1
+    return abs(area2) / 2.0
+
+
 def nearest_street(compound, lat, lng):
     """Return (building, distance_m) of the closest street in the zone, or (None, None)."""
     best = None

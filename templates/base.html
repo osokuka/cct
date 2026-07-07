@@ -227,8 +227,8 @@
                             <span class="text-xs">Task Generation</span>
                         </a>
                         <a href="{% url 'accounts:task_assignment_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                            <i class="fa-solid fa-route mr-3 text-xs"></i>
-                            <span class="text-xs">Task Assignment</span>
+                            <i class="fa-solid fa-list-check mr-3 text-xs"></i>
+                            <span class="text-xs">Recurring Tasks</span>
                         </a>
                         <a href="{% url 'dashboard:completed_tasks_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'completed_tasks_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                             <i class="fa-solid fa-history mr-3 text-xs"></i>

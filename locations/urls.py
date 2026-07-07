@@ -23,6 +23,7 @@ urlpatterns = [
     path('compounds/<uuid:compound_id>/delete/', views.zone_delete, name='zone_delete'),
     path('compounds/<uuid:compound_id>/populate/', views.zone_populate, name='zone_populate'),
     path('compounds/<uuid:compound_id>/populate/status/', views.zone_populate_status, name='zone_populate_status'),
+    path('compounds/<uuid:compound_id>/measure-area/', views.zone_measure_area, name='zone_measure_area'),
     path('compounds/<uuid:compound_id>/breakdown/', views.compound_breakdown, name='compound_breakdown'),
 
     # Streets / segments (auto-populated from OSM; edit kept for manual tweaks)

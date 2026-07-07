@@ -181,6 +181,11 @@ class Compound(models.Model):
         null=True, blank=True, choices=COLLECTION_WEEKDAY_CHOICES,
         help_text="Weekday this zone is collected (0=Mon..6=Sun). New dumpsters inherit this."
     )
+    assigned_team = models.ForeignKey(
+        'accounts.Team', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='assigned_zones',
+        help_text="Team responsible for collecting this zone."
+    )
 
     # Zone boundary drawn on a map (GeoJSON Polygon, WGS84). Streets are
     # auto-populated from OpenStreetMap within this boundary.
@@ -203,7 +208,13 @@ class Compound(models.Model):
     osm_street_count = models.IntegerField(
         default=0, help_text="Streets created on the last OSM population run"
     )
-    
+
+    # Cleanable surface area (m²) measured from the drawn boundary polygon.
+    area_sqm = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Surface area (m²) computed from the zone boundary"
+    )
+
     # Additional SQM quota for urgent cleaning requests
     monthly_urgent_sqm_quota = models.DecimalField(
         max_digits=10, 
@@ -288,6 +299,22 @@ class Compound(models.Model):
     @property
     def street_count(self) -> int:
         return self.buildings.filter(is_active=True).count()
+
+    def compute_area_sqm(self):
+        """Geodesic-approx area (m²) of the drawn boundary, or None if no boundary."""
+        from . import geo
+        from decimal import Decimal
+        ring = self.boundary_ring
+        if not ring:
+            return None
+        value = geo.polygon_area_sqm(ring)
+        return Decimal(str(round(value, 2)))
+
+    @property
+    def area_hectares(self):
+        if self.area_sqm:
+            return round(float(self.area_sqm) / 10000.0, 2)
+        return None
     
     @property
     def has_urgent_sqm_quota(self):
