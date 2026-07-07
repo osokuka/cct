@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}Building Details - {{ building.name }}{% endblock %}
+{% block title %}Street Details - {{ building.name }}{% endblock %}
 
-{% block page_title %}BUILDING DETAILS{% endblock %}
+{% block page_title %}STREET DETAILS{% endblock %}
 {% block page_subtitle %}{{ building.name }} - {{ building.compound.name }}{% endblock %}
 
 {% block content %}
 <div class="p-6">
-    <!-- Building Header -->
+    <!-- Street Header -->
     <div class="metallic-card rounded-lg border border-gray-300 p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-4">
@@ -17,7 +17,7 @@
                 <div>
                     <h3 class="text-2xl font-bold text-dark-graphite">{{ building.name }}</h3>
                     <p class="text-lg text-gray-600">Code: {{ building.code }}</p>
-                    <p class="text-sm text-gray-500">Compound: {{ building.compound.name }}</p>
+                    <p class="text-sm text-gray-500">Zone: {{ building.compound.name }}</p>
                 </div>
             </div>
             <div class="text-right">
@@ -45,7 +45,7 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-steel-blue mb-2">{{ total_rooms }}</div>
-            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Rooms</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Service Points</div>
         </div>
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-warning-orange mb-2">{{ total_sqm }} m²</div>
@@ -53,29 +53,29 @@
         </div>
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-green-600 mb-2">{{ active_rooms }}</div>
-            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Rooms</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Service Points</div>
         </div>
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-purple-600 mb-2">{{ floors.count }}</div>
-            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Floors</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Street Segments</div>
         </div>
     </div>
 
-    <!-- Floors Section -->
+    <!-- Street Segments Section -->
     <div class="metallic-card rounded-lg border border-gray-300 mb-6">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
             <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
                 <i class="fa-solid fa-layer-group mr-2 text-green-600"></i>
-                Floors in this Building
+                Street Segments in this Street
             </h3>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Street Segment</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Code</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Service Points</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -129,21 +129,21 @@
         </div>
     </div>
 
-    <!-- Rooms Section -->
+    <!-- Service Points Section -->
     <div class="metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
             <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
                 <i class="fa-solid fa-door-open mr-2 text-warning-orange"></i>
-                Rooms in this Building
+                Service Points in this Street
             </h3>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Room Code</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Service Point Code</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Description</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Street Segment</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">SQM</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
@@ -193,7 +193,7 @@
     <div class="mt-6">
         <a href="{% url 'locations:compound_list' %}" class="inline-flex items-center px-6 py-3 bg-industrial-gray text-dark-graphite rounded-lg font-semibold uppercase tracking-wide metallic-shine transition-all hover:bg-gray-600">
             <i class="fa-solid fa-arrow-left mr-2"></i>
-            Back to Compounds
+            Back to Zones
         </a>
     </div>
 </div>

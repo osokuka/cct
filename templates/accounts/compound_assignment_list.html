@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Compound Assignment Management{% endblock %}
-{% block page_title %}COMPOUND ASSIGNMENT MANAGEMENT{% endblock %}
+{% block title %}Zone Assignment Management{% endblock %}
+{% block page_title %}ZONE ASSIGNMENT MANAGEMENT{% endblock %}
 {% block page_subtitle %}Manage compound assignments for authority users{% endblock %}
 
 {% block content %}
@@ -10,7 +10,7 @@
     <div class="metallic-card rounded-lg p-6 border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-200 mb-6">
             <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-dark-graphite">Compound Assignments</h3>
+                <h3 class="text-lg font-semibold text-dark-graphite">Zone Assignments</h3>
                 <a href="{% url 'accounts:compound_assignment_create' %}" class="btn btn-primary">
                     <i class="fa-solid fa-plus"></i> Add New Assignment
                 </a>
@@ -22,8 +22,8 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compound</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Camp</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zone</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Date</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>

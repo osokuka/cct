@@ -172,15 +172,15 @@
             </div>
         </div>
 
-        <!-- Room Information Card -->
+        <!-- Service Point Information Card -->
         <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div class="px-4 py-3 border-b border-gray-200">
-                <h3 class="text-sm font-semibold text-charcoal-black">Room Info</h3>
+                <h3 class="text-sm font-semibold text-charcoal-black">Service Point Info</h3>
             </div>
             <div class="p-4">
                 <div class="space-y-3">
                     <div>
-                        <span class="text-xs font-medium text-gray-500">Room Code</span>
+                        <span class="text-xs font-medium text-gray-500">Service Point Code</span>
                         <div class="mt-1 text-xs text-charcoal-black font-semibold">{{ task.room.room_code }}</div>
                     </div>
                     
@@ -190,17 +190,17 @@
                     </div>
                     
                     <div>
-                        <span class="text-xs font-medium text-gray-500">Building</span>
+                        <span class="text-xs font-medium text-gray-500">Street</span>
                         <div class="mt-1 text-xs text-charcoal-black">{{ task.room.building.name|truncatechars:20 }}</div>
                     </div>
                     
                     <div>
-                        <span class="text-xs font-medium text-gray-500">Compound</span>
+                        <span class="text-xs font-medium text-gray-500">Zone</span>
                         <div class="mt-1 text-xs text-charcoal-black">{{ task.room.compound.name|truncatechars:20 }}</div>
                     </div>
                     
                     <div>
-                        <span class="text-xs font-medium text-gray-500">Camp</span>
+                        <span class="text-xs font-medium text-gray-500">Site</span>
                         <div class="mt-1 text-xs text-charcoal-black">{{ task.room.camp.name|truncatechars:20 }}</div>
                     </div>
                 </div>

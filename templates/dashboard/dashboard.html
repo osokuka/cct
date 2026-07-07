@@ -229,12 +229,12 @@ Real-time Task Monitoring & Team Performance
 </div>
             {% endif %}
 
-            <!-- Compound Performance Chart - Hidden for cleaners -->
+            <!-- Zone Performance Chart - Hidden for cleaners -->
             {% if user.profile.role != 'cleaner' %}
             <div class="metallic-card rounded-lg p-6 border border-gray-300">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">COMPOUND PERFORMANCE</h3>
+                        <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ZONE PERFORMANCE</h3>
                         <p class="text-sm text-gray-600">Task completion by compound</p>
                 </div>
                 <div class="flex space-x-2">
@@ -298,7 +298,7 @@ Real-time Task Monitoring & Team Performance
                                 </div>
                             </div>
                             <div class="text-xs text-gray-500 mt-1">
-                                Compounds: {% for compound in route.compounds.all %}{{ compound.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                Zones: {% for compound in route.compounds.all %}{{ compound.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
                             </div>
                         </div>
                         {% empty %}
@@ -353,9 +353,9 @@ Real-time Task Monitoring & Team Performance
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-gray-300">
-                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ROOM</th>
-                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">COMPOUND</th>
-                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">BUILDING</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">SERVICE POINT</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ZONE</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">STREET</th>
                                 <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">TEAM</th>
                                 <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">STATUS</th>
                                 <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">Credit / Count</th>
@@ -430,9 +430,9 @@ Real-time Task Monitoring & Team Performance
                         <thead>
                             <tr class="border-b border-gray-300">
                                 <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">SCAN</th>
-                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ROOM</th>
-                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">COMPOUND</th>
-                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">BUILDING</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">SERVICE POINT</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ZONE</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">STREET</th>
                                 <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">STATUS</th>
                                 <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">Credit / Count</th>
                                 <th class="text-left py-3 px-4 font-semibold text-dark-graphite uppercase tracking-wide">ACTIONS</th>
@@ -503,7 +503,7 @@ Real-time Task Monitoring & Team Performance
                                     {{ task.room.room_code }} - {{ task.room.room_description|truncatechars:30 }}
                         </div>
                                 <div class="text-xs text-gray-500">
-                                    Compound: {{ task.room.compound.name }} | 
+                                    Zone: {{ task.room.compound.name }} | 
                                     {% if task.assigned_to_team %}Team: {{ task.assigned_to_team.name }}{% else %}Unassigned{% endif %}
                     </div>
                 </div>
@@ -691,7 +691,7 @@ function updateChart(period) {
     });
 }
 
-// Initialize Compound Performance Chart
+// Initialize Zone Performance Chart
 let chart = Highcharts.chart('compound-chart', {
     chart: {
         type: 'column',
@@ -798,7 +798,7 @@ function filterChart(period) {
     if (period === 'filtered') {
         periodText = '{% if show_all_tasks %}ALL TASKS{% else %}TODAY ONLY{% endif %}';
     }
-    chartTitle.textContent = `COMPOUND PERFORMANCE - ${periodText}`;
+    chartTitle.textContent = `ZONE PERFORMANCE - ${periodText}`;
 }
 
 // Scan task function for cleaners

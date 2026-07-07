@@ -6,8 +6,8 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.db import models
-from .models import UserProfile, Team, Shift, Route, CompoundAssignment
-from locations.models import Camp, Compound
+from .models import UserProfile, Team, Shift, Route, RouteStreet, CompoundAssignment, PlanGenerationConfig
+from locations.models import Camp, Compound, Building
 
 
 class UserCreateForm(UserCreationForm):
@@ -317,105 +317,79 @@ class ShiftUpdateForm(forms.ModelForm):
 
 
 class RouteCreateForm(forms.ModelForm):
-    """Form for creating routes with conflict checking."""
-    
+    """Build a team's daily route: Team + weekday + ordered streets."""
+
+    streets = forms.ModelMultipleChoiceField(
+        queryset=Building.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"size": 14, "class": "route-streets"}),
+        help_text="Streets serviced on this route (order = selection order)",
+    )
+
     class Meta:
         model = Route
-        fields = ['team', 'compounds', 'priority', 'is_active']
-        widgets = {
-            'compounds': forms.CheckboxSelectMultiple(),
-        }
-    
+        fields = ['team', 'weekday', 'priority', 'is_active']
+
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        
+
+        team_qs = Team.objects.filter(is_active=True)
+        street_qs = Building.objects.select_related('compound').all()
         if self.request and hasattr(self.request.user, 'profile'):
-            # Filter by user's camp if not admin
             if self.request.user.profile.role != 'admin':
                 camp = self.request.user.profile.camp
                 if camp:
-                    self.fields['team'].queryset = Team.objects.filter(camp=camp, is_active=True)
-                    self.fields['compounds'].queryset = Compound.objects.filter(camp=camp, is_active=True)
-    
+                    team_qs = team_qs.filter(camp=camp)
+                    street_qs = street_qs.filter(compound__camp=camp)
+        self.fields['team'].queryset = team_qs
+        self.fields['streets'].queryset = street_qs.order_by('compound__name', 'name')
+
+        if self.instance and self.instance.pk:
+            self.fields['streets'].initial = self.instance.streets.all()
+
     def clean(self):
-        cleaned_data = super().clean()
-        team = cleaned_data.get('team')
-        compounds = cleaned_data.get('compounds')
-        
-        if team and compounds:
-            from .route_utils import check_route_conflicts
-            
-            # Check for conflicts (no shift parameter needed)
-            conflict_result = check_route_conflicts(team, None, compounds)
-            
-            if conflict_result['has_conflicts']:
-                conflict_messages = []
-                for conflict in conflict_result['conflicts']:
-                    conflict_messages.append(
-                        f"Team '{conflict['conflicting_team']}' is already assigned to "
-                        f"{conflict['compound']}."
-                    )
-                
-                # Add suggestions
-                if conflict_result['suggestions']:
-                    conflict_messages.append("\nSuggestions:")
-                    conflict_messages.extend(conflict_result['suggestions'])
-                
-                raise forms.ValidationError('\n'.join(conflict_messages))
-        
-        return cleaned_data
+        cleaned = super().clean()
+        team = cleaned.get('team')
+        weekday = cleaned.get('weekday')
+        if team is not None and weekday is not None:
+            qs = Route.objects.filter(team=team, weekday=weekday)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(
+                    "This team already has a route for that weekday. Edit the existing one instead."
+                )
+        return cleaned
+
+    def save(self, commit=True):
+        route = super().save(commit=commit)
+        if commit:
+            self._save_streets(route)
+        return route
+
+    def _save_streets(self, route):
+        buildings = list(self.cleaned_data.get('streets') or [])
+        RouteStreet.objects.filter(route=route).delete()
+        for i, b in enumerate(buildings):
+            RouteStreet.objects.create(route=route, building=b, order=i)
+        route.compounds.set({b.compound_id for b in buildings})
 
 
-class RouteUpdateForm(forms.ModelForm):
-    """Form for updating routes with conflict checking."""
-    
+class RouteUpdateForm(RouteCreateForm):
+    """Same builder, used for editing an existing route."""
+    pass
+
+
+class PlanGenerationConfigForm(forms.ModelForm):
+    """Management setting for automatic route-task generation cadence."""
+
     class Meta:
-        model = Route
-        fields = ['team', 'compounds', 'priority', 'is_active']
+        model = PlanGenerationConfig
+        fields = ['cadence', 'anchor_date', 'is_active']
         widgets = {
-            'compounds': forms.CheckboxSelectMultiple(),
+            'anchor_date': forms.DateInput(attrs={'type': 'date'}),
         }
-    
-    def __init__(self, *args, **kwargs):
-        self.request = kwargs.pop('request', None)
-        super().__init__(*args, **kwargs)
-        
-        if self.request and hasattr(self.request.user, 'profile'):
-            # Filter by user's camp if not admin
-            if self.request.user.profile.role != 'admin':
-                camp = self.request.user.profile.camp
-                if camp:
-                    self.fields['team'].queryset = Team.objects.filter(camp=camp, is_active=True)
-                    self.fields['compounds'].queryset = Compound.objects.filter(camp=camp, is_active=True)
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        team = cleaned_data.get('team')
-        compounds = cleaned_data.get('compounds')
-        
-        if team and compounds:
-            from .route_utils import check_route_conflicts
-            
-            # Check for conflicts, excluding current route
-            conflict_result = check_route_conflicts(team, None, compounds, exclude_route=self.instance)
-            
-            if conflict_result['has_conflicts']:
-                conflict_messages = []
-                for conflict in conflict_result['conflicts']:
-                    conflict_messages.append(
-                        f"Team '{conflict['conflicting_team']}' is already assigned to "
-                        f"{conflict['compound']}."
-                    )
-                
-                # Add suggestions
-                if conflict_result['suggestions']:
-                    conflict_messages.append("\nSuggestions:")
-                    conflict_messages.extend(conflict_result['suggestions'])
-                
-                raise forms.ValidationError('\n'.join(conflict_messages))
-        
-        return cleaned_data
 
 
 class CompoundAssignmentForm(forms.ModelForm):

@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Edit Camp - {{ camp.name }}{% endblock %}
+{% block title %}Edit Site - {{ camp.name }}{% endblock %}
 
 {% block content %}
 <div class="p-6">
     <!-- Header Section -->
     <div class="metallic-card rounded-lg border border-gray-300 mb-6">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
-            <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">EDIT CAMP</h2>
+            <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">EDIT SITE</h2>
             <p class="text-gray-600 mt-1 text-sm">Update camp information and settings</p>
         </div>
         <div class="p-6">
@@ -24,7 +24,7 @@
                 </div>
                 <div class="mt-4 sm:mt-0">
                     <a href="{% url 'locations:camp_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase tracking-wide metallic-shine hover:bg-gray-400 transition-all">
-                        <i class="fa-solid fa-arrow-left mr-2"></i>Back to Camps
+                        <i class="fa-solid fa-arrow-left mr-2"></i>Back to Sites
                     </a>
                 </div>
             </div>
@@ -34,7 +34,7 @@
     <!-- Edit Form -->
     <div class="metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
-            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">CAMP SETTINGS</h3>
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">SITE SETTINGS</h3>
         </div>
         
         <form method="post" class="p-6 space-y-6">
@@ -57,7 +57,7 @@
             <!-- Basic Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Camp Code *</label>
+                    <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Site Code *</label>
                     {{ form.code }}
                     {% if form.code.errors %}
                         <div class="text-red-600 text-sm mt-1">{{ form.code.errors.0 }}</div>
@@ -65,7 +65,7 @@
                 </div>
                 
                 <div>
-                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Camp Name *</label>
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-2">Site Name *</label>
                     {{ form.name }}
                     {% if form.name.errors %}
                         <div class="text-red-600 text-sm mt-1">{{ form.name.errors.0 }}</div>
@@ -160,7 +160,7 @@
             <!-- Form Actions -->
             <div class="px-6 py-4 border-t border-gray-300 flex items-center justify-end space-x-3">
                 <a href="{% url 'locations:camp_list' %}" class="bg-industrial-gray text-dark-graphite px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine">Cancel</a>
-                <button type="submit" class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-blue-700">Update Camp</button>
+                <button type="submit" class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-blue-700">Update Site</button>
             </div>
         </form>
     </div>

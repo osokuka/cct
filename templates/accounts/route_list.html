@@ -1,153 +1,95 @@
 {% extends 'base.html' %}
 
-{% block title %}Route Management - NATO Camp Cleaning Tracker{% endblock %}
+{% block title %}Route Management - Gjakova Cleaning Tracker{% endblock %}
 
 {% block page_title %}ROUTE MANAGEMENT{% endblock %}
-{% block page_subtitle %}Team Assignment & Compound Coverage{% endblock %}
+{% block page_subtitle %}Daily routes: Team, weekday & streets{% endblock %}
 
 {% block content %}
-<!-- Route Statistics Cards -->
 <div class="px-6 py-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <!-- Total Routes Card -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center hover:shadow-lg transition-shadow">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center">
             <div class="w-12 h-12 bg-steel-blue rounded-full flex items-center justify-center mx-auto mb-3">
                 <i class="fa-solid fa-route text-white text-xl"></i>
             </div>
             <div class="text-3xl font-bold text-steel-blue heading-font mb-1">{{ active_routes_count }}</div>
-            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Total Routes</div>
-            <div class="text-xs text-gray-500 mt-1">All assignments</div>
-        </div>
-
-        <!-- Active Routes Card -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center hover:shadow-lg transition-shadow">
-            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fa-solid fa-check-circle text-white text-xl"></i>
-            </div>
-            <div class="text-3xl font-bold text-green-600 heading-font mb-1">{{ active_routes_count }}</div>
             <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Active Routes</div>
-            <div class="text-xs text-gray-500 mt-1">Currently assigned</div>
         </div>
-
-        <!-- Teams with Routes Card -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center hover:shadow-lg transition-shadow">
+        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center">
             <div class="w-12 h-12 bg-warning-orange rounded-full flex items-center justify-center mx-auto mb-3">
                 <i class="fa-solid fa-users text-white text-xl"></i>
             </div>
             <div class="text-3xl font-bold text-warning-orange heading-font mb-1">{{ teams_with_routes_count }}</div>
             <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Teams Assigned</div>
-            <div class="text-xs text-gray-500 mt-1">Have active routes</div>
         </div>
-
-        <!-- Compounds Covered Card -->
-        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center hover:shadow-lg transition-shadow">
+        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center">
             <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fa-solid fa-map-marker-alt text-white text-xl"></i>
+                <i class="fa-solid fa-road text-white text-xl"></i>
             </div>
-            <div class="text-3xl font-bold text-purple-600 heading-font mb-1">{{ compounds_covered_count }}</div>
-            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Compounds Covered</div>
-            <div class="text-xs text-gray-500 mt-1">Have active routes</div>
+            <div class="text-3xl font-bold text-purple-600 heading-font mb-1">{{ streets_covered_count }}</div>
+            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Streets Scheduled</div>
         </div>
     </div>
 </div>
 
-<!-- Routes Table -->
-<div id="routes-table" class="px-6 pb-6">
+<div class="px-6 pb-6">
     <div class="metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
             <div class="flex items-center justify-between">
-                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ROUTE ASSIGNMENTS</h3>
-                <a href="{% url 'accounts:route_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Create Route</span>
-                </a>
+                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">DAILY ROUTES</h3>
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'accounts:plan_config' %}" class="bg-dark-graphite text-white px-4 py-2 rounded uppercase text-sm tracking-wide flex items-center gap-2 hover:bg-black">
+                        <i class="fa-solid fa-gears"></i> <span>Plan Settings</span>
+                    </a>
+                    <a href="{% url 'accounts:route_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> <span>Create Route</span>
+                    </a>
+                </div>
             </div>
         </div>
-        
+
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-steel-blue text-white">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Team</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Shift</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Compound</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Weekday</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Streets</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Dumpsters</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Priority</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    {% for team_data in teams_with_routes %}
-                    <tr class="hover:bg-blue-50 cursor-pointer transition-colors duration-200" onclick="window.location.href='{% url 'accounts:team_view' team_data.team.id %}'" title="Click to view team details">
+                    {% for row in route_rows %}
+                    <tr class="hover:bg-blue-50 transition-colors">
                         <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded bg-steel-blue flex items-center justify-center mr-3">
-                                    <i class="fa-solid fa-users text-white text-sm"></i>
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-dark-graphite">{{ team_data.team.name }}</div>
-                                    <div class="text-xs text-gray-500">{{ team_data.team.camp.name }}</div>
-                                    <div class="text-xs text-gray-400">{{ team_data.route_count }} route{{ team_data.route_count|pluralize }}</div>
-                                </div>
-                            </div>
+                            <div class="text-sm font-medium text-dark-graphite">{{ row.route.team.name }}</div>
+                            <div class="text-xs text-gray-500">{{ row.route.team.camp.name }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <div class="w-8 h-8 rounded bg-warning-orange flex items-center justify-center mr-2">
-                                    <i class="fa-solid fa-clock text-white text-xs"></i>
-                                </div>
-                                <div>
-                                    {% if team_data.team.shift %}
-                                        <div class="text-sm font-medium text-dark-graphite">{{ team_data.team.shift.name }}</div>
-                                        <div class="text-xs text-gray-500">{{ team_data.team.shift.start_time }} - {{ team_data.team.shift.end_time }}</div>
-                                    {% else %}
-                                        <div class="text-sm font-medium text-gray-400">No Shift Assigned</div>
-                                        <div class="text-xs text-gray-400">-</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="space-y-1">
-                                {% for compound in team_data.compounds %}
-                                <div class="flex items-center">
-                                    <div class="w-8 h-8 rounded bg-purple-500 flex items-center justify-center mr-2">
-                                        <i class="fa-solid fa-building text-white text-xs"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm font-medium text-dark-graphite">{{ compound.name }}</div>
-                                        <div class="text-xs text-gray-500">{{ compound.camp.name }}</div>
-                                    </div>
-                                </div>
-                                {% empty %}
-                                <div class="text-sm text-gray-400">No compounds assigned</div>
-                                {% endfor %}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if team_data.total_priority >= 8 %}bg-red-100 text-red-800{% elif team_data.total_priority >= 5 %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
-                                    <i class="fa-solid fa-flag mr-1"></i>
-                                    {{ team_data.total_priority }}
-                                </span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if team_data.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                <i class="fa-solid fa-{% if team_data.is_active %}check-circle{% else %}times-circle{% endif %} mr-1"></i>
-                                {% if team_data.is_active %}Active{% else %}Inactive{% endif %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <i class="fa-solid fa-calendar-day mr-1"></i> {{ row.weekday_label }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ team_data.team.created_at|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 text-sm text-dark-graphite">{{ row.street_count }}</td>
+                        <td class="px-6 py-4 text-sm text-dark-graphite">{{ row.dumpster_count }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fa-solid fa-flag mr-1"></i> {{ row.route.priority }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if row.route.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                <i class="fa-solid fa-{% if row.route.is_active %}check-circle{% else %}times-circle{% endif %} mr-1"></i>
+                                {% if row.route.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center space-x-2">
-                                <a href="{% url 'accounts:team_view' team_data.team.id %}" class="text-steel-blue hover:text-blue-800 transition-colors" title="View Team">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
-                                <a href="{% url 'accounts:team_update' team_data.team.id %}" class="text-warning-orange hover:text-orange-800 transition-colors" title="Edit Team">
-                                    <i class="fa-solid fa-edit"></i>
-                                </a>
+                                <a href="{% url 'accounts:route_view' row.route.id %}" class="text-steel-blue hover:text-blue-800" title="View Route"><i class="fa-solid fa-eye"></i></a>
+                                <a href="{% url 'accounts:route_update' row.route.id %}" class="text-warning-orange hover:text-orange-800" title="Edit Route"><i class="fa-solid fa-edit"></i></a>
                             </div>
                         </td>
                     </tr>
@@ -156,11 +98,10 @@
                         <td colspan="7" class="px-6 py-12 text-center">
                             <div class="flex flex-col items-center">
                                 <i class="fa-solid fa-route text-gray-400 text-4xl mb-4"></i>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Teams with Routes Found</h3>
-                                <p class="text-gray-500 mb-4">Get started by creating your first team and route assignment.</p>
-                                <a href="{% url 'accounts:team_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
-                                    <i class="fa-solid fa-plus"></i>
-                                    <span>Create First Team</span>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No routes yet</h3>
+                                <p class="text-gray-500 mb-4">Create a daily route by assigning a team, a weekday and its streets.</p>
+                                <a href="{% url 'accounts:route_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center gap-2">
+                                    <i class="fa-solid fa-plus"></i> <span>Create Route</span>
                                 </a>
                             </div>
                         </td>

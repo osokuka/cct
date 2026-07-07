@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Create Room{% endblock %}
-{% block page_title %}CREATE ROOM{% endblock %}
+{% block title %}Create Service Point{% endblock %}
+{% block page_title %}CREATE SERVICE POINT{% endblock %}
 {% block page_subtitle %}Add a new room with detailed cleaning requirements{% endblock %}
 
 {% block extra_css %}
@@ -23,10 +23,10 @@
     <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold text-dark-graphite">
-                Create New Room
+                Create New Service Point
             </h2>
             <a href="{% url 'locations:location_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide btn-industrial">
-                <i class="fa-solid fa-arrow-left mr-2"></i>Back to Rooms
+                <i class="fa-solid fa-arrow-left mr-2"></i>Back to Service Points
             </a>
         </div>
 
@@ -55,10 +55,10 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                             <label for="{{ form.camp.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-building mr-1"></i>Camp <span class="text-red-500">*</span>
+                                <i class="fa-solid fa-building mr-1"></i>Site <span class="text-red-500">*</span>
                             </label>
                             <select name="{{ form.camp.name }}" id="{{ form.camp.id_for_label }}" class="form-control w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200" onchange="updateCompounds()">
-                                <option value="">Select Camp</option>
+                                <option value="">Select Site</option>
                                 {% for camp in form.camp.field.queryset %}
                                 <option value="{{ camp.id }}" {% if form.camp.value == camp.id %}selected{% endif %}>
                                     {{ camp.name }}
@@ -71,10 +71,10 @@
                         </div>
                         <div>
                             <label for="{{ form.compound.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-map-marker-alt mr-1"></i>Compound <span class="text-red-500">*</span>
+                                <i class="fa-solid fa-map-marker-alt mr-1"></i>Zone <span class="text-red-500">*</span>
                             </label>
                             <select name="{{ form.compound.name }}" id="{{ form.compound.id_for_label }}" class="form-control w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200" onchange="updateBuildings()" disabled>
-                                <option value="">Select Compound</option>
+                                <option value="">Select Zone</option>
                             </select>
                             {% if form.compound.errors %}
                                 <p class="text-red-500 text-xs italic mt-1">{{ form.compound.errors.0 }}</p>
@@ -82,11 +82,11 @@
                         </div>
                         <div>
                             <label for="{{ form.building.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-building mr-1"></i>Building <span class="text-red-500">*</span>
+                                <i class="fa-solid fa-building mr-1"></i>Street <span class="text-red-500">*</span>
                             </label>
                             <div class="flex space-x-2">
                                 <select name="{{ form.building.name }}" id="{{ form.building.id_for_label }}" class="form-control w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200 flex-1" onchange="updateFloors()" disabled>
-                                    <option value="">Select Building</option>
+                                    <option value="">Select Street</option>
                                 </select>
                                 <button type="button" onclick="openModal('buildingCreateModal')" class="px-3 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide text-sm metallic-shine transition-all">
                                     <i class="fa-solid fa-plus"></i>
@@ -98,11 +98,11 @@
                         </div>
                         <div>
                             <label for="{{ form.floor.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-layer-group mr-1"></i>Floor <span class="text-red-500">*</span>
+                                <i class="fa-solid fa-layer-group mr-1"></i>Street Segment <span class="text-red-500">*</span>
                             </label>
                             <div class="flex space-x-2">
                                 <select name="{{ form.floor.name }}" id="{{ form.floor.id_for_label }}" class="form-control w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent transition-all duration-200 flex-1" disabled>
-                                    <option value="">Select Floor</option>
+                                    <option value="">Select Street Segment</option>
                                 </select>
                                 <button type="button" onclick="openModal('floorCreateModal')" class="px-3 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide text-sm metallic-shine transition-all">
                                     <i class="fa-solid fa-plus"></i>
@@ -116,19 +116,19 @@
                 </div>
             </div>
             
-            <!-- Room Details -->
+            <!-- Service Point Details -->
             <div class="metallic-card rounded-lg border border-gray-300">
                 <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
                     <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
                         <i class="fa-solid fa-door-open mr-3 text-green-600"></i>
-                        Room Details
+                        Service Point Details
                     </h4>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label for="{{ form.room_code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-tag mr-1"></i>Room Code <span class="text-red-500">*</span>
+                                <i class="fa-solid fa-tag mr-1"></i>Service Point Code <span class="text-red-500">*</span>
                             </label>
                             {{ form.room_code }}
                             {% if form.room_code.errors %}
@@ -155,7 +155,7 @@
                         </div>
                     </div>
                     
-                    <!-- Building Code - Hidden field, populated automatically -->
+                    <!-- Street Code - Hidden field, populated automatically -->
                     <input type="hidden" name="{{ form.building_code.name }}" id="{{ form.building_code.id_for_label }}" value="">
                 </div>
             </div>
@@ -190,7 +190,7 @@
                         </div>
                         <div>
                             <label for="{{ form.quantity_of_rooms.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-hashtag mr-1"></i>Quantity of Rooms
+                                <i class="fa-solid fa-hashtag mr-1"></i>Quantity of Service Points
                             </label>
                             {{ form.quantity_of_rooms }}
                             {% if form.quantity_of_rooms.errors %}
@@ -361,7 +361,7 @@
                     <div class="flex items-center">
                         {{ form.is_active }}
                         <label for="{{ form.is_active.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
-                            Active Room
+                            Active Service Point
                         </label>
                     </div>
                     {% if form.is_active.errors %}
@@ -384,7 +384,7 @@
                     <i class="fa-solid fa-times mr-2"></i>CANCEL
                 </a>
                 <button type="submit" class="px-6 py-3 bg-steel-blue text-white rounded-lg font-semibold uppercase tracking-wide metallic-shine transition-all">
-                    <i class="fa-solid fa-plus mr-2"></i>CREATE ROOM
+                    <i class="fa-solid fa-plus mr-2"></i>CREATE SERVICE POINT
                 </button>
             </div>
         </form>
@@ -401,15 +401,15 @@ function updateCompounds() {
     const selectedCampId = campSelect.value;
     
     // Reset dependent dropdowns
-    buildingSelect.innerHTML = '<option value="">Select Building</option>';
-    floorSelect.innerHTML = '<option value="">Select Floor</option>';
+    buildingSelect.innerHTML = '<option value="">Select Street</option>';
+    floorSelect.innerHTML = '<option value="">Select Street Segment</option>';
     
     if (selectedCampId) {
         // Load compounds via AJAX
         fetch(`{% url 'locations:ajax_load_compounds' %}?camp_id=${selectedCampId}`)
             .then(response => response.json())
             .then(data => {
-                compoundSelect.innerHTML = '<option value="">Select Compound</option>';
+                compoundSelect.innerHTML = '<option value="">Select Zone</option>';
                 data.forEach(compound => {
                     const option = document.createElement('option');
                     option.value = compound.id;
@@ -424,7 +424,7 @@ function updateCompounds() {
             });
     } else {
         // Reset compound selection
-        compoundSelect.innerHTML = '<option value="">Select Compound</option>';
+        compoundSelect.innerHTML = '<option value="">Select Zone</option>';
         compoundSelect.disabled = true;
     }
 }
@@ -438,7 +438,7 @@ function updateBuildings() {
     const selectedCompoundId = compoundSelect.value;
     
     // Reset dependent dropdown and building code
-    floorSelect.innerHTML = '<option value="">Select Floor</option>';
+    floorSelect.innerHTML = '<option value="">Select Street Segment</option>';
     buildingCodeField.value = '';
     
     if (selectedCompoundId) {
@@ -446,7 +446,7 @@ function updateBuildings() {
         fetch(`{% url 'locations:ajax_load_buildings' %}?compound_id=${selectedCompoundId}`)
             .then(response => response.json())
             .then(data => {
-                buildingSelect.innerHTML = '<option value="">Select Building</option>';
+                buildingSelect.innerHTML = '<option value="">Select Street</option>';
                 data.forEach(building => {
                     const option = document.createElement('option');
                     option.value = building.id;
@@ -462,7 +462,7 @@ function updateBuildings() {
             });
     } else {
         // Reset building selection
-        buildingSelect.innerHTML = '<option value="">Select Building</option>';
+        buildingSelect.innerHTML = '<option value="">Select Street</option>';
         buildingSelect.disabled = true;
     }
 }
@@ -497,7 +497,7 @@ function updateFloors() {
         fetch(`{% url 'locations:ajax_load_floors' %}?building_id=${selectedBuildingId}`)
             .then(response => response.json())
             .then(data => {
-                floorSelect.innerHTML = '<option value="">Select Floor</option>';
+                floorSelect.innerHTML = '<option value="">Select Street Segment</option>';
                 data.forEach(floor => {
                     const option = document.createElement('option');
                     option.value = floor.id;
@@ -512,7 +512,7 @@ function updateFloors() {
             });
     } else {
         // Reset floor selection
-        floorSelect.innerHTML = '<option value="">Select Floor</option>';
+        floorSelect.innerHTML = '<option value="">Select Street Segment</option>';
         floorSelect.disabled = true;
     }
 }
@@ -574,12 +574,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- Building Create Modal -->
+<!-- Street Create Modal -->
 <div id="buildingCreateModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Add New Building</h3>
+                <h3 class="text-lg font-medium text-gray-900">Add New Street</h3>
                 <button onclick="closeModal('buildingCreateModal')" class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-times"></i>
                 </button>
@@ -588,9 +588,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 {% csrf_token %}
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Compound *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Zone *</label>
                         <select name="compound" id="buildingCompoundSelect" class="form-control w-full" required>
-                            <option value="">Select Compound</option>
+                            <option value="">Select Zone</option>
                             {% for compound in compounds %}
                             <option value="{{ compound.id }}">{{ compound.name }}</option>
                             {% endfor %}
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fa-solid fa-times mr-2"></i>CANCEL
                     </button>
                     <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                        <i class="fa-solid fa-building mr-2"></i>CREATE BUILDING
+                        <i class="fa-solid fa-building mr-2"></i>CREATE STREET
                     </button>
                 </div>
             </form>
@@ -622,12 +622,12 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- Floor Create Modal -->
+<!-- Street Segment Create Modal -->
 <div id="floorCreateModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Add New Floor</h3>
+                <h3 class="text-lg font-medium text-gray-900">Add New Street Segment</h3>
                 <button onclick="closeModal('floorCreateModal')" class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-times"></i>
                 </button>
@@ -636,9 +636,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 {% csrf_token %}
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Building *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Street *</label>
                         <select name="building" id="floorBuildingSelect" class="form-control w-full" required>
-                            <option value="">Select Building</option>
+                            <option value="">Select Street</option>
                             {% for building in buildings %}
                             <option value="{{ building.id }}">{{ building.name }}</option>
                             {% endfor %}
@@ -662,7 +662,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fa-solid fa-times mr-2"></i>CANCEL
                     </button>
                     <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                        <i class="fa-solid fa-layer-group mr-2"></i>CREATE FLOOR
+                        <i class="fa-solid fa-layer-group mr-2"></i>CREATE STREET SEGMENT
                     </button>
                 </div>
             </form>
@@ -690,7 +690,7 @@ window.onclick = function(event) {
     });
 }
 
-// Building creation form submission
+// Street creation form submission
 document.getElementById('buildingCreateForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -733,7 +733,7 @@ document.getElementById('buildingCreateForm').addEventListener('submit', functio
     });
 });
 
-// Floor creation form submission
+// Street Segment creation form submission
 document.getElementById('floorCreateForm').addEventListener('submit', function(e) {
     e.preventDefault();
     

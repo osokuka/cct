@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Admin Dashboard - NATO Camp Cleaning Tracker{% endblock %}
+{% block title %}Admin Dashboard - Gjakova Cleaning Tracker{% endblock %}
 
 {% block page_title %}Admin Dashboard{% endblock %}
 {% block page_subtitle %}System Overview{% endblock %}
@@ -39,7 +39,7 @@
 
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Rooms Cleaned Today -->
+        <!-- Service Points Cleaned Today -->
         <div class="metallic-card p-6 rounded-lg">
             <div class="flex items-center">
                 <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
@@ -47,7 +47,7 @@
                 </div>
                 <div>
                     <div class="text-2xl font-bold text-dark-graphite">{{ rooms_cleaned_today }}</div>
-                    <div class="text-sm text-gray-600">Rooms Cleaned Today</div>
+                    <div class="text-sm text-gray-600">Service Points Cleaned Today</div>
                 </div>
             </div>
         </div>
@@ -78,7 +78,7 @@
             </div>
         </div>
 
-        <!-- Total Rooms -->
+        <!-- Total Service Points -->
         <div class="metallic-card p-6 rounded-lg">
             <div class="flex items-center">
                 <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
@@ -86,7 +86,7 @@
                 </div>
                 <div>
                     <div class="text-2xl font-bold text-dark-graphite">{{ total_rooms }}</div>
-                    <div class="text-sm text-gray-600">Total Rooms</div>
+                    <div class="text-sm text-gray-600">Total Service Points</div>
                 </div>
             </div>
         </div>
@@ -101,7 +101,7 @@
             </h3>
             <div class="flex items-center space-x-4">
                 <select id="roster-camp-select" class="form-select text-sm">
-                    <option value="">Select Camp</option>
+                    <option value="">Select Site</option>
                     {% for camp in camps %}
                         <option value="{{ camp.id }}">{{ camp.name }} ({{ camp.code }})</option>
                     {% endfor %}
@@ -153,21 +153,21 @@
                 <div class="flex items-center justify-between py-2 border-b border-gray-200">
                     <div class="flex items-center">
                         <i class="fa-solid fa-campground text-steel-blue mr-3"></i>
-                        <span class="text-gray-700">Total Camps</span>
+                        <span class="text-gray-700">Total Sites</span>
                     </div>
                     <span class="font-bold text-dark-graphite">{{ total_camps }}</span>
                 </div>
                 <div class="flex items-center justify-between py-2 border-b border-gray-200">
                     <div class="flex items-center">
                         <i class="fa-solid fa-building text-steel-blue mr-3"></i>
-                        <span class="text-gray-700">Total Compounds</span>
+                        <span class="text-gray-700">Total Zones</span>
                     </div>
                     <span class="font-bold text-dark-graphite">{{ total_compounds }}</span>
                 </div>
                 <div class="flex items-center justify-between py-2 border-b border-gray-200">
                     <div class="flex items-center">
                         <i class="fa-solid fa-door-open text-steel-blue mr-3"></i>
-                        <span class="text-gray-700">Total Rooms</span>
+                        <span class="text-gray-700">Total Service Points</span>
                     </div>
                     <span class="font-bold text-dark-graphite">{{ total_rooms }}</span>
                 </div>
@@ -181,10 +181,10 @@
             </div>
         </div>
 
-        <!-- Top Buildings by Activity -->
+        <!-- Top Streets by Activity -->
         <div class="metallic-card p-6 rounded-lg">
             <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase tracking-wider mb-4">
-                Top Buildings Today
+                Top Streets Today
             </h3>
             {% if top_buildings %}
                 <div class="space-y-3">

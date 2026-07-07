@@ -13,11 +13,12 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 import time
 
-from .models import UserProfile, Team, Shift, Route, CompoundAssignment
+from .models import UserProfile, Team, Shift, Route, CompoundAssignment, PlanGenerationConfig
 from .task_generation import DailyCleaningTask
 from .forms import (
     UserCreateForm, UserUpdateForm, TeamCreateForm, TeamUpdateForm,
-    ShiftCreateForm, ShiftUpdateForm, RouteCreateForm, RouteUpdateForm, CompoundAssignmentForm
+    ShiftCreateForm, ShiftUpdateForm, RouteCreateForm, RouteUpdateForm, CompoundAssignmentForm,
+    PlanGenerationConfigForm,
 )
 from locations.models import Camp, Compound
 from audit.models import AuditLog
@@ -865,66 +866,30 @@ def route_list(request):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    routes = Route.objects.select_related('team', 'team__camp').prefetch_related('compounds__camp').all()
-    
+    routes = Route.objects.select_related('team', 'team__camp').prefetch_related('streets').all()
+
     # Filter by camp if manager
     user_role = get_user_role(request)
     if user_role == 'manager' and hasattr(request.user, 'profile'):
         camp = request.user.profile.camp
         if camp:
             routes = routes.filter(team__camp=camp)
-    
-    # Group routes by team and combine their compounds
-    team_data = {}
-    for route in routes:
-        team = route.team
-        if team.id not in team_data:
-            team_data[team.id] = {
-                'team': team,
-                'compounds': set(),
-                'routes': [],
-                'total_priority': 0,
-                'is_active': False
-            }
-        
-        # Add compounds from this route
-        team_data[team.id]['compounds'].update(route.compounds.all())
-        team_data[team.id]['routes'].append(route)
-        team_data[team.id]['total_priority'] += route.priority
-        if route.is_active:
-            team_data[team.id]['is_active'] = True
-    
-    # Convert to list and sort by team name
-    teams_with_routes = []
-    for team_id, data in team_data.items():
-        teams_with_routes.append({
-            'team': data['team'],
-            'compounds': list(data['compounds']),
-            'routes': data['routes'],
-            'total_priority': data['total_priority'],
-            'is_active': data['is_active'],
-            'route_count': len(data['routes'])
-        })
-    
-    teams_with_routes.sort(key=lambda x: x['team'].name)
-    
-    # Calculate statistics
-    active_routes_count = routes.filter(is_active=True).count()
-    teams_with_routes_count = len(teams_with_routes)
-    # Count unique compounds across all active routes
-    active_routes = routes.filter(is_active=True)
-    compound_ids = set()
-    for route in active_routes:
-        compound_ids.update(route.compounds.values_list('id', flat=True))
-    compounds_covered_count = len(compound_ids)
-    
+
+    routes = routes.order_by('team__name', 'weekday')
+    route_rows = [{
+        'route': r,
+        'weekday_label': r.get_weekday_display() if r.weekday is not None else 'Always-on',
+        'street_count': r.street_count,
+        'dumpster_count': r.dumpster_count,
+    } for r in routes]
+
     context = {
-        'teams_with_routes': teams_with_routes,
-        'active_routes_count': active_routes_count,
-        'teams_with_routes_count': teams_with_routes_count,
-        'compounds_covered_count': compounds_covered_count,
+        'route_rows': route_rows,
+        'active_routes_count': routes.filter(is_active=True).count(),
+        'teams_with_routes_count': routes.values('team').distinct().count(),
+        'streets_covered_count': sum(row['street_count'] for row in route_rows),
     }
-    
+
     return render(request, 'accounts/route_list.html', context)
 
 
@@ -1134,6 +1099,73 @@ def route_activate(request, route_id):
     
     context = {'route': route, 'action': 'activate'}
     return render(request, 'accounts/route_confirm_delete.html', context)
+
+
+@login_required
+def plan_config(request):
+    """Management: choose the automatic task-generation cadence and generate now."""
+    if not check_permission(request, ['admin', 'manager', 'operations_manager']):
+        return redirect('accounts:login')
+
+    # Resolve the Site (Camp) in scope.
+    camp = None
+    if hasattr(request.user, 'profile') and request.user.profile.camp:
+        camp = request.user.profile.camp
+    if camp is None:
+        camp = Camp.objects.filter(is_active=True).first()
+    if camp is None:
+        messages.error(request, 'No active Site found.')
+        return redirect('accounts:route_list')
+
+    config, _ = PlanGenerationConfig.objects.get_or_create(camp=camp)
+
+    if request.method == 'POST':
+        form = PlanGenerationConfigForm(request.POST, instance=config)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Plan generation settings saved.')
+            return redirect('accounts:plan_config')
+    else:
+        form = PlanGenerationConfigForm(instance=config)
+
+    context = {'form': form, 'config': config, 'camp': camp}
+    return render(request, 'accounts/plan_config.html', context)
+
+
+@login_required
+def generate_tasks_now(request):
+    """Management action: generate upcoming route tasks immediately."""
+    if not check_permission(request, ['admin', 'manager', 'operations_manager']):
+        return redirect('accounts:login')
+    if request.method != 'POST':
+        return redirect('accounts:plan_config')
+
+    from datetime import timedelta
+    from .task_generation import generate_tasks_from_routes
+
+    camp = None
+    if hasattr(request.user, 'profile') and request.user.profile.camp:
+        camp = request.user.profile.camp
+    if camp is None:
+        camp = Camp.objects.filter(is_active=True).first()
+
+    config, _ = PlanGenerationConfig.objects.get_or_create(camp=camp)
+    start = timezone.localdate()
+    end = start + timedelta(days=config.horizon_days - 1)
+    result = generate_tasks_from_routes(camp, start, end)
+    config.last_generated_on = start
+    config.save(update_fields=['last_generated_on', 'updated_at'])
+
+    log_audit_event(
+        request, 'ROUTE_TASKS_GENERATED', object_ref=f'Camp:{camp.id}',
+        details={'created': result['created'], 'updated': result['updated'],
+                 'range': f'{start} → {end}'}
+    )
+    messages.success(
+        request,
+        f"Generated {result['created']} tasks ({start} → {end})."
+    )
+    return redirect('accounts:plan_config')
 
 
 # Compound Assignment Views

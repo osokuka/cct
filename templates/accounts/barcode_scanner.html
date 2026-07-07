@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Barcode Scanner - NATO Camp Cleaning Tracker{% endblock %}
+{% block title %}Barcode Scanner - Gjakova Cleaning Tracker{% endblock %}
 
 {% block page_title %}BARCODE SCANNER{% endblock %}
 {% block page_subtitle %}Scan room barcodes to complete tasks{% endblock %}
@@ -12,7 +12,7 @@
         <div class="text-center mb-6">
             <div class="mb-4">
                 <i class="fa-solid fa-qrcode text-6xl text-steel-blue mb-4"></i>
-                <h3 class="heading-font font-bold text-xl text-dark-graphite uppercase mb-2">SCAN ROOM BARCODE</h3>
+                <h3 class="heading-font font-bold text-xl text-dark-graphite uppercase mb-2">SCAN SERVICE POINT BARCODE</h3>
                 <p class="text-gray-600">Position the room barcode within the camera view or enter manually</p>
             </div>
             
@@ -807,9 +807,9 @@ class BarcodeScanner {
                         </button>
                     </div>
                     
-                    <!-- Room Info -->
+                    <!-- Service Point Info -->
                     <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                        <div class="text-sm font-medium text-gray-700 mb-2">Room Information</div>
+                        <div class="text-sm font-medium text-gray-700 mb-2">Service Point Information</div>
                         <div class="text-lg font-bold text-gray-900">${room.code}</div>
                         <div class="text-sm text-gray-600">${room.building} - ${room.floor}</div>
                         <div class="text-sm text-gray-600">${room.compound}</div>

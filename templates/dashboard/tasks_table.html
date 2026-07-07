@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Daily Tasks Board — NATO Camp Cleaning & Garbage Collection{% endblock %}
+{% block title %}Daily Tasks Board — Gjakova Cleaning & Garbage Collection{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
@@ -87,9 +87,9 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Compound</label>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Zone</label>
                 <select name="compound_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
-                    <option value="">All Compounds</option>
+                    <option value="">All Zones</option>
                     {% for comp in compounds %}
                     <option value="{{ comp.id }}" {% if filters.compound == comp.id|stringformat:"s" %}selected{% endif %}>{{ comp.name }}</option>
                     {% endfor %}

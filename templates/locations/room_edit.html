@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Edit Room{% endblock %}
-{% block page_title %}EDIT ROOM{% endblock %}
+{% block title %}Edit Service Point{% endblock %}
+{% block page_title %}EDIT SERVICE POINT{% endblock %}
 {% block page_subtitle %}Update room information and cleaning requirements{% endblock %}
 
 {% block extra_css %}
@@ -23,10 +23,10 @@
     <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold text-dark-graphite">
-                Edit Room: {{ form.instance.room_code }}
+                Edit Service Point: {{ form.instance.room_code }}
             </h2>
             <a href="{% url 'locations:location_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide btn-industrial">
-                <i class="fa-solid fa-arrow-left mr-2"></i>Back to Rooms
+                <i class="fa-solid fa-arrow-left mr-2"></i>Back to Service Points
             </a>
         </div>
 
@@ -55,7 +55,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-building mr-1"></i>Camp
+                                <i class="fa-solid fa-building mr-1"></i>Site
                             </label>
                             <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
                                 {{ room.camp.name }}
@@ -63,7 +63,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-map-marker-alt mr-1"></i>Compound
+                                <i class="fa-solid fa-map-marker-alt mr-1"></i>Zone
                             </label>
                             <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
                                 {{ room.compound.name }}
@@ -71,7 +71,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-building mr-1"></i>Building
+                                <i class="fa-solid fa-building mr-1"></i>Street
                             </label>
                             <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
                                 {{ room.building.name }}
@@ -79,7 +79,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-layer-group mr-1"></i>Floor
+                                <i class="fa-solid fa-layer-group mr-1"></i>Street Segment
                             </label>
                             <div class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
                                 {{ room.floor.name }}
@@ -95,19 +95,19 @@
                 </div>
             </div>
             
-            <!-- Room Details -->
+            <!-- Service Point Details -->
             <div class="metallic-card rounded-lg border border-gray-300">
                 <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
                     <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
                         <i class="fa-solid fa-door-open mr-3 text-green-600"></i>
-                        Room Details
+                        Service Point Details
                     </h4>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                             <label for="{{ form.room_code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-tag mr-1"></i>Room Code <span class="text-red-500">*</span>
+                                <i class="fa-solid fa-tag mr-1"></i>Service Point Code <span class="text-red-500">*</span>
                             </label>
                             {{ form.room_code }}
                             {% if form.room_code.errors %}
@@ -125,7 +125,7 @@
                         </div>
                         <div>
                             <label for="{{ form.building_code.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-building mr-1"></i>Building Code <span class="text-red-500">*</span>
+                                <i class="fa-solid fa-building mr-1"></i>Street Code <span class="text-red-500">*</span>
                             </label>
                             {{ form.building_code }}
                             {% if form.building_code.errors %}
@@ -175,7 +175,7 @@
                         </div>
                         <div>
                             <label for="{{ form.quantity_of_rooms.id_for_label }}" class="block text-sm font-medium text-dark-graphite uppercase tracking-wide mb-3">
-                                <i class="fa-solid fa-hashtag mr-1"></i>Quantity of Rooms
+                                <i class="fa-solid fa-hashtag mr-1"></i>Quantity of Service Points
                             </label>
                             {{ form.quantity_of_rooms }}
                             {% if form.quantity_of_rooms.errors %}
@@ -314,7 +314,7 @@
                     <div class="flex items-center">
                         {{ form.is_active }}
                         <label for="{{ form.is_active.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
-                            Active Room
+                            Active Service Point
                         </label>
                     </div>
                     {% if form.is_active.errors %}
@@ -337,7 +337,7 @@
                     <i class="fa-solid fa-times mr-2"></i>CANCEL
                 </a>
                 <button type="submit" class="px-6 py-3 bg-steel-blue text-white rounded-lg font-semibold uppercase tracking-wide metallic-shine transition-all">
-                    <i class="fa-solid fa-save mr-2"></i>UPDATE ROOM
+                    <i class="fa-solid fa-save mr-2"></i>UPDATE SERVICE POINT
                 </button>
             </div>
         </form>

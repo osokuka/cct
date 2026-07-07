@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Compound Details - {{ compound.name }}{% endblock %}
+{% block title %}Zone Details - {{ compound.name }}{% endblock %}
 
-{% block page_title %}COMPOUND DETAILS{% endblock %}
+{% block page_title %}ZONE DETAILS{% endblock %}
 {% block page_subtitle %}{{ compound.name }} - {{ compound.camp.name }}{% endblock %}
 
 {% block extra_css %}
@@ -43,7 +43,7 @@
                 <div>
                     <h2 class="text-2xl font-bold text-dark-graphite">{{ compound.name }}</h2>
                     <p class="text-lg text-gray-600">Code: {{ compound.code }}</p>
-                    <p class="text-sm text-gray-500">Camp: {{ compound.camp.name }}</p>
+                    <p class="text-sm text-gray-500">Site: {{ compound.camp.name }}</p>
                 </div>
             </div>
             <div class="flex items-center space-x-2 mt-4 sm:mt-0">
@@ -53,7 +53,7 @@
                 </a>
                 {% endif %}
                 <a href="{% url 'locations:compound_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide text-sm metallic-shine transition-all">
-                    <i class="fa-solid fa-arrow-left mr-1"></i>Back to Compounds
+                    <i class="fa-solid fa-arrow-left mr-1"></i>Back to Zones
                 </a>
             </div>
         </div>
@@ -83,11 +83,11 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-steel-blue mb-2">{{ total_buildings }}</div>
-            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Buildings</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Streets</div>
         </div>
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-steel-blue mb-2">{{ total_rooms }}</div>
-            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Rooms</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Service Points</div>
         </div>
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-warning-orange mb-2">{{ total_sqm }} m²</div>
@@ -95,7 +95,7 @@
         </div>
         <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
             <div class="text-3xl font-bold text-green-600 mb-2">{{ active_rooms }}</div>
-            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Rooms</div>
+            <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Service Points</div>
         </div>
     </div>
 
@@ -143,12 +143,12 @@
     </div>
     {% endif %}
 
-    <!-- Buildings Breakdown -->
+    <!-- Streets Breakdown -->
     <div class="metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
             <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
                 <i class="fa-solid fa-building mr-2 text-warning-orange"></i>
-                Buildings Breakdown
+                Streets Breakdown
             </h3>
         </div>
         
@@ -157,9 +157,9 @@
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Street</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Code</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Service Points</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total SQM</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -173,11 +173,11 @@
                         <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ building.total_sqm }} m²</td>
                         <td class="px-6 py-4 text-sm text-gray-700 font-medium" onclick="event.stopPropagation()">
                             {% if user.profile.role == 'admin' %}
-                            <a href="{% url 'locations:building_edit' building.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit Building">
+                            <a href="{% url 'locations:building_edit' building.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit Street">
                                 <i class="fa-solid fa-edit"></i>
                             </a>
                             {% else %}
-                            <a href="{% url 'locations:building_view' building.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="View Building">
+                            <a href="{% url 'locations:building_view' building.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="View Street">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
                             {% endif %}

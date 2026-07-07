@@ -138,13 +138,13 @@
             </div>
         </div>
 
-        <!-- Compound Assignments Card -->
+        <!-- Zone Assignments Card -->
         {% if compound_assignments %}
             <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-6">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
                         <i class="fa-solid fa-building mr-2"></i>
-                        Compound Assignments
+                        Zone Assignments
                     </h2>
                 </div>
                 <div class="p-6">
@@ -173,20 +173,20 @@
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
                         <i class="fa-solid fa-building mr-2"></i>
-                        Compound Assignments
+                        Zone Assignments
                     </h2>
                 </div>
                 <div class="p-6">
                     <div class="text-center py-8">
                         <i class="fa-solid fa-building text-gray-300 text-4xl mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">No Compound Assignments</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No Zone Assignments</h3>
                         <p class="text-gray-600 mb-4">
                             This user is not assigned to any compounds yet.
                         </p>
                         <a href="{% url 'accounts:user_update' user_obj.pk %}" 
                            class="inline-flex items-center px-4 py-2 bg-steel-blue text-white rounded font-medium hover:bg-steel-blue-dark transition-all duration-200">
                             <i class="fa-solid fa-plus mr-2"></i>
-                            Assign Compounds
+                            Assign Zones
                         </a>
                     </div>
                 </div>

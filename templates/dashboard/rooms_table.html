@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Space & Dumpster Registry — NATO Camp Cleaning & Collection{% endblock %}
+{% block title %}Space & Dumpster Registry — Gjakova Cleaning & Collection{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
@@ -43,9 +43,9 @@
             </div>
             
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Camp</label>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Site</label>
                 <select name="camp_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
-                    <option value="">All Camps</option>
+                    <option value="">All Sites</option>
                     {% for camp in camps %}
                     <option value="{{ camp.id }}" {% if filters.camp == camp.id|stringformat:"s" %}selected{% endif %}>{{ camp.name }}</option>
                     {% endfor %}
@@ -53,9 +53,9 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Compound</label>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Zone</label>
                 <select name="compound_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
-                    <option value="">All Compounds</option>
+                    <option value="">All Zones</option>
                     {% for comp in compounds %}
                     <option value="{{ comp.id }}" {% if filters.compound == comp.id|stringformat:"s" %}selected{% endif %}>{{ comp.name }}</option>
                     {% endfor %}
@@ -65,7 +65,7 @@
             <div>
                 <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Building/Sector</label>
                 <select name="building_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
-                    <option value="">All Buildings</option>
+                    <option value="">All Streets</option>
                     {% for bldg in buildings %}
                     <option value="{{ bldg.id }}" {% if filters.building == bldg.id|stringformat:"s" %}selected{% endif %}>{{ bldg.name }}</option>
                     {% endfor %}
@@ -76,7 +76,7 @@
                 <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Space Type</label>
                 <select name="space_type_filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-steel-blue transition-all duration-200" onchange="this.form.submit()">
                     <option value="">All Types</option>
-                    <option value="room" {% if filters.space_type == 'room' %}selected{% endif %}>Room</option>
+                    <option value="room" {% if filters.space_type == 'room' %}selected{% endif %}>Service Point</option>
                     <option value="office" {% if filters.space_type == 'office' %}selected{% endif %}>Office</option>
                     <option value="corridor" {% if filters.space_type == 'corridor' %}selected{% endif %}>Corridor</option>
                     <option value="toilet" {% if filters.space_type == 'toilet' %}selected{% endif %}>Toilet</option>
@@ -241,11 +241,11 @@
                 <div class="col-span-2">
                     <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Space Type</label>
                     <select name="space_type" id="edit-room-type" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-steel-blue focus:outline-none" onchange="toggleSqmInput(this.value)">
-                        <option value="room">Room</option>
+                        <option value="room">Service Point</option>
                         <option value="office">Office</option>
-                        <option value="meeting_room">Meeting Room</option>
+                        <option value="meeting_room">Meeting Service Point</option>
                         <option value="corridor">Corridor</option>
-                        <option value="laundry_room">Laundry Room</option>
+                        <option value="laundry_room">Laundry Service Point</option>
                         <option value="toilet">Toilet</option>
                         <option value="balcony">Balcony</option>
                         <option value="front_yard">Front Yard</option>

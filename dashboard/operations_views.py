@@ -112,7 +112,19 @@ def operations_data(request):
     team_color = {t.id: _ROUTE_COLORS[i % len(_ROUTE_COLORS)] for i, t in enumerate(teams)}
     team_color_str = {str(k): v for k, v in team_color.items()}
 
-    # compound -> team, split by stream (one route per team).
+    # Collection is planned per Street per weekday via Routes: a Street (Building)
+    # is serviced by the route's team on the route's weekday.
+    street_team = {}       # building_id -> Team (collection)
+    street_weekday = {}    # building_id -> weekday (0..6)
+    for route in Route.objects.filter(
+        team__camp__in=camps, is_active=True, weekday__isnull=False,
+        team__team_type="collection",
+    ).select_related("team").prefetch_related("streets"):
+        for b in route.streets.all():
+            street_team[b.id] = route.team
+            street_weekday[b.id] = route.weekday
+
+    # Cleaning teams cover Zones (compounds); public areas are always shown.
     compound_team = {"collection": {}, "cleaning": {}}
     for route in Route.objects.filter(
         team__camp__in=camps, is_active=True
@@ -168,11 +180,12 @@ def operations_data(request):
     for r in rooms:
         if r.space_type != "dumpster" or r.latitude is None or r.longitude is None:
             continue
-        # Only the selected day's scheduled collection (keeps the map to that day).
-        if r.collection_weekday != plan_day:
+        # A dumpster is scheduled on the selected day if its Street belongs to a
+        # collection route running on that weekday.
+        if street_weekday.get(r.building_id) != plan_day:
             continue
         client = r.client
-        team = compound_team["collection"].get(r.compound_id)
+        team = street_team.get(r.building_id)
         can_collect = r.can_collect
 
         if is_today:
@@ -277,13 +290,14 @@ def operations_data(request):
     # -- weekly plan (per team, dumpsters per weekday) --------------------
     weekly = {}   # team_id -> {weekday: count}
     for r in rooms:
-        if r.space_type != "dumpster" or r.collection_weekday is None:
+        if r.space_type != "dumpster":
             continue
-        team = compound_team["collection"].get(r.compound_id)
-        if not team:
+        team = street_team.get(r.building_id)
+        wd = street_weekday.get(r.building_id)
+        if not team or wd is None:
             continue
-        weekly.setdefault(team.id, {}).setdefault(r.collection_weekday, 0)
-        weekly[team.id][r.collection_weekday] += 1
+        weekly.setdefault(team.id, {}).setdefault(wd, 0)
+        weekly[team.id][wd] += 1
 
     teams_payload = []
     for t in teams:

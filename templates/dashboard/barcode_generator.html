@@ -72,40 +72,40 @@
         <p class="text-gray-600 mt-2">Generate and manage barcodes for room identification</p>
     </div>
 
-    <!-- Room Selection -->
+    <!-- Service Point Selection -->
     <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-8">
         <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
                 <i class="fa-solid fa-list mr-2"></i>
-                Room Selection
+                Service Point Selection
             </h2>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Camp</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Site</label>
                     <select id="camp-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
-                        <option value="">All Camps</option>
+                        <option value="">All Sites</option>
                         {% for camp in camps %}
                         <option value="{{ camp.id }}">{{ camp.name }} ({{ camp.code }})</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Compound</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Zone</label>
                     <select id="compound-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
-                        <option value="">All Compounds</option>
+                        <option value="">All Zones</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Building</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Street</label>
                     <select id="building-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
-                        <option value="">All Buildings</option>
+                        <option value="">All Streets</option>
                     </select>
                 </div>
             </div>
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Search Rooms</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search Service Points</label>
                 <input type="text" id="room-search" placeholder="Search by room name or code..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent">
             </div>
             <div class="flex space-x-4 mb-6">
@@ -125,18 +125,18 @@
         </div>
     </div>
 
-    <!-- Room List -->
+    <!-- Service Point List -->
     <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-8">
         <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="heading-font font-bold text-xl text-dark-graphite uppercase tracking-wider">
                 <i class="fa-solid fa-door-open mr-2"></i>
-                Rooms
+                Service Points
             </h2>
         </div>
         <div class="p-6">
             {% csrf_token %}
             <div id="rooms-container" class="space-y-2 max-h-96 overflow-y-auto">
-                <!-- Rooms will be loaded here -->
+                <!-- Service Points will be loaded here -->
             </div>
         </div>
     </div>
@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadBuildings(this.value);
     });
 
-    // Room selection handlers
+    // Service Point selection handlers
     document.getElementById('select-all-btn').addEventListener('click', function() {
         document.querySelectorAll('.room-checkbox').forEach(checkbox => {
             checkbox.checked = true;
@@ -375,7 +375,7 @@ function loadRooms() {
 
 function loadCompounds(campId) {
     const select = document.getElementById('compound-filter');
-    select.innerHTML = '<option value="">All Compounds</option>';
+    select.innerHTML = '<option value="">All Zones</option>';
     
     if (!campId) return;
 
@@ -396,7 +396,7 @@ function loadCompounds(campId) {
 
 function loadBuildings(compoundId) {
     const select = document.getElementById('building-filter');
-    select.innerHTML = '<option value="">All Buildings</option>';
+    select.innerHTML = '<option value="">All Streets</option>';
     
     if (!compoundId) return;
 
@@ -551,7 +551,7 @@ function displayPreview(barcodeData, roomCode) {
     
     previewContent.innerHTML = `
         <div class="text-center">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Preview for Room: ${roomCode}</h3>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Preview for Service Point: ${roomCode}</h3>
             <div class="inline-block p-4 bg-white border border-gray-300 rounded-lg">
                 <img src="data:image/png;base64,${barcodeData}" alt="Barcode Preview" class="max-w-full h-auto">
             </div>
@@ -593,7 +593,7 @@ function displayResults(result) {
                     ${result.error_details.map(error => `
                         <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
                             <div class="text-red-800">
-                                Room ${error.room_code}: ${error.error}
+                                Service Point ${error.room_code}: ${error.error}
                             </div>
                         </div>
                     `).join('')}
@@ -696,7 +696,7 @@ function showBarcodePreview(roomCode, barcodeData) {
                 </div>
                 <div class="mt-2 text-sm text-gray-600">
                     <div>Size: 7cm × 4cm (70mm × 40mm)</div>
-                    <div>Room Code: ${roomCode}</div>
+                    <div>Service Point Code: ${roomCode}</div>
                 </div>
             </div>
             <div class="mt-4 space-x-2">

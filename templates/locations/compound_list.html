@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Compound Management - NATO Camp Cleaning Tracker{% endblock %}
+{% block title %}Zone Management - Gjakova Cleaning Tracker{% endblock %}
 
-{% block page_title %}COMPOUND MANAGEMENT{% endblock %}
+{% block page_title %}ZONE MANAGEMENT{% endblock %}
 {% block page_subtitle %}Manage all compounds and their information{% endblock %}
 
 {% block extra_css %}
@@ -36,16 +36,16 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div class="flex flex-wrap gap-3">
                 <button onclick="openModal('compoundModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                    <i class="fa-solid fa-map-marker-alt mr-2"></i>ADD COMPOUND
+                    <i class="fa-solid fa-map-marker-alt mr-2"></i>ADD ZONE
                 </button>
                 <button onclick="openModal('buildingModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                    <i class="fa-solid fa-building mr-2"></i>ADD BUILDING
+                    <i class="fa-solid fa-building mr-2"></i>ADD STREET
                 </button>
                 <button onclick="openModal('floorModal')" class="px-6 py-3 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                    <i class="fa-solid fa-layer-group mr-2"></i>ADD FLOOR
+                    <i class="fa-solid fa-layer-group mr-2"></i>ADD STREET SEGMENT
                 </button>
                 <a href="{% url 'locations:room_create' %}" class="px-6 py-3 bg-warning-orange text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                    <i class="fa-solid fa-door-open mr-2"></i>ADD ROOM
+                    <i class="fa-solid fa-door-open mr-2"></i>ADD SERVICE POINT
                 </a>
             </div>
         </div>
@@ -55,7 +55,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                 <h3 class="text-lg font-semibold text-dark-graphite uppercase tracking-wide">Filter & Search</h3>
                 <div class="text-sm text-gray-600">
-                    Total Compounds: <span class="font-semibold text-steel-blue">{{ compounds.count }}</span>
+                    Total Zones: <span class="font-semibold text-steel-blue">{{ compounds.count }}</span>
                 </div>
             </div>
             
@@ -67,9 +67,9 @@
                            placeholder="Search compounds, codes, camps...">
                 </div>
                 <div>
-                    <label for="camp_filter" class="block text-sm font-medium text-gray-700 mb-1">Camp</label>
+                    <label for="camp_filter" class="block text-sm font-medium text-gray-700 mb-1">Site</label>
                     <select class="form-control w-full" id="camp_filter" name="camp_filter">
-                        <option value="">All Camps</option>
+                        <option value="">All Sites</option>
                         {% for camp in camps %}
                         <option value="{{ camp.id }}" {% if camp_filter == camp.id|stringformat:"s" %}selected{% endif %}>
                             {{ camp.name }}
@@ -97,18 +97,18 @@
         </div>
     </div>
 
-    <!-- Compound Details Section -->
+    <!-- Zone Details Section -->
     <div id="compoundInfo" class="space-y-6 mb-6" style="display: none;">
-        <!-- Compound information will be populated here -->
+        <!-- Zone information will be populated here -->
     </div>
     <div id="compoundBreakdown" class="mt-6 mb-6" style="display: none;">
-        <!-- Buildings and floors breakdown will be populated here -->
+        <!-- Streets and floors breakdown will be populated here -->
     </div>
 
-    <!-- Compounds Table -->
+    <!-- Zones Table -->
     <div class="metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-dark-graphite">All Compounds</h3>
+            <h3 class="text-lg font-semibold text-dark-graphite">All Zones</h3>
         </div>
         
         <!-- Desktop Table View (XL screens) -->
@@ -118,7 +118,7 @@
                     <tr>
                         <th class="w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
                         <th class="w-48 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Camp</th>
+                        <th class="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
                         <th class="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urgent SQM Quota</th>
                         <th class="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -194,7 +194,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Camp</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -286,7 +286,7 @@
                         </div>
                         
                         <div class="text-xs text-gray-500 truncate">
-                            <span class="font-medium">Camp:</span> {{ compound.camp.name }}
+                            <span class="font-medium">Site:</span> {{ compound.camp.name }}
                         </div>
                     </div>
                     
@@ -320,12 +320,12 @@
 </div>
 
 <!-- Modals -->
-<!-- Compound Modal -->
+<!-- Zone Modal -->
 <div id="compoundModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Add New Compound</h3>
+                <h3 class="text-lg font-medium text-gray-900">Add New Zone</h3>
                 <button onclick="closeModal('compoundModal')" class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-times"></i>
                 </button>
@@ -334,9 +334,9 @@
                 {% csrf_token %}
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Camp *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Site *</label>
                         <select name="camp" class="form-control w-full" required>
-                            <option value="">Select Camp</option>
+                            <option value="">Select Site</option>
                             {% for camp in camps %}
                             <option value="{{ camp.id }}">{{ camp.name }}</option>
                             {% endfor %}
@@ -381,7 +381,7 @@
                         <i class="fa-solid fa-times mr-2"></i>CANCEL
                     </button>
                     <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                        <i class="fa-solid fa-map-marker-alt mr-2"></i>CREATE COMPOUND
+                        <i class="fa-solid fa-map-marker-alt mr-2"></i>CREATE ZONE
                     </button>
                 </div>
             </form>
@@ -389,12 +389,12 @@
     </div>
 </div>
 
-<!-- Building Modal -->
+<!-- Street Modal -->
 <div id="buildingModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Add New Building</h3>
+                <h3 class="text-lg font-medium text-gray-900">Add New Street</h3>
                 <button onclick="closeModal('buildingModal')" class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-times"></i>
                 </button>
@@ -403,9 +403,9 @@
                 {% csrf_token %}
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Compound *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Zone *</label>
                         <select name="compound" class="form-control w-full" required>
-                            <option value="">Select Compound</option>
+                            <option value="">Select Zone</option>
                             {% for compound in compounds %}
                             <option value="{{ compound.id }}">{{ compound.name }}</option>
                             {% endfor %}
@@ -429,7 +429,7 @@
                         <i class="fa-solid fa-times mr-2"></i>CANCEL
                     </button>
                     <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                        <i class="fa-solid fa-building mr-2"></i>CREATE BUILDING
+                        <i class="fa-solid fa-building mr-2"></i>CREATE STREET
                     </button>
                 </div>
             </form>
@@ -437,12 +437,12 @@
     </div>
 </div>
 
-<!-- Floor Modal -->
+<!-- Street Segment Modal -->
 <div id="floorModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Add New Floor</h3>
+                <h3 class="text-lg font-medium text-gray-900">Add New Street Segment</h3>
                 <button onclick="closeModal('floorModal')" class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-times"></i>
                 </button>
@@ -451,9 +451,9 @@
                 {% csrf_token %}
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Building *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Street *</label>
                         <select name="building" class="form-control w-full" required>
-                            <option value="">Select Building</option>
+                            <option value="">Select Street</option>
                             {% for building in buildings %}
                             <option value="{{ building.id }}">{{ building.name }}</option>
                             {% endfor %}
@@ -477,7 +477,7 @@
                         <i class="fa-solid fa-times mr-2"></i>CANCEL
                     </button>
                     <button type="submit" class="px-6 py-2 bg-steel-blue text-white rounded font-semibold uppercase tracking-wide metallic-shine transition-all">
-                        <i class="fa-solid fa-layer-group mr-2"></i>CREATE FLOOR
+                        <i class="fa-solid fa-layer-group mr-2"></i>CREATE STREET SEGMENT
                     </button>
                 </div>
             </form>
@@ -505,7 +505,7 @@ window.onclick = function(event) {
     });
 }
 
-// Compound row click handlers
+// Zone row click handlers
 document.addEventListener('DOMContentLoaded', function() {
     const compoundRows = document.querySelectorAll('.compound-row');
     
@@ -587,7 +587,7 @@ function displayCompoundDetails(data) {
     const compoundInfo = document.getElementById('compoundInfo');
     compoundInfo.innerHTML = `
         <div class="space-y-6">
-            <!-- Compound Header -->
+            <!-- Zone Header -->
             <div class="metallic-card rounded-lg border border-gray-300 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center space-x-4">
@@ -628,11 +628,11 @@ function displayCompoundDetails(data) {
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
                     <div class="text-3xl font-bold text-steel-blue mb-2">${statistics.total_buildings}</div>
-                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Buildings</div>
+                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Streets</div>
                 </div>
                 <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
                     <div class="text-3xl font-bold text-steel-blue mb-2">${statistics.total_rooms}</div>
-                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Rooms</div>
+                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Service Points</div>
                 </div>
                 <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
                     <div class="text-3xl font-bold text-warning-orange mb-2">${statistics.total_sqm} m²</div>
@@ -640,7 +640,7 @@ function displayCompoundDetails(data) {
                 </div>
                 <div class="metallic-card rounded-lg border border-gray-300 p-6 text-center">
                     <div class="text-3xl font-bold text-green-600 mb-2">${statistics.active_rooms}</div>
-                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Rooms</div>
+                    <div class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Service Points</div>
                 </div>
             </div>
 
@@ -652,7 +652,7 @@ function displayCompoundDetails(data) {
                 </h4>
                 <div class="space-y-3">
                     <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span class="font-medium text-gray-700">Camp:</span>
+                        <span class="font-medium text-gray-700">Site:</span>
                         <span class="text-dark-graphite font-semibold">${compound.camp}</span>
                     </div>
                     <div class="flex justify-between items-center py-2">
@@ -668,20 +668,20 @@ function displayCompoundDetails(data) {
     const compoundBreakdown = document.getElementById('compoundBreakdown');
     compoundBreakdown.innerHTML = `
         <div class="space-y-6">
-            <!-- Buildings Breakdown -->
+            <!-- Streets Breakdown -->
             <div class="metallic-card rounded-lg border border-gray-300">
                 <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
                     <h3 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
                         <i class="fa-solid fa-building mr-2 text-warning-orange"></i>
-                        Buildings Breakdown
+                        Streets Breakdown
                     </h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rooms</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Street</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Service Points</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total SQM</th>
                             </tr>
                         </thead>

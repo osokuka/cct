@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}View Room{% endblock %}
-{% block page_title %}ROOM DETAILS{% endblock %}
+{% block title %}View Service Point{% endblock %}
+{% block page_title %}SERVICE POINT DETAILS{% endblock %}
 {% block page_subtitle %}View room information and cleaning requirements{% endblock %}
 
 {% block extra_css %}
@@ -25,14 +25,14 @@
     <div class="metallic-card rounded-lg p-6 border border-gray-300 mb-6">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold text-dark-graphite">
-                Room: {{ room.room_code }}
+                Service Point: {{ room.room_code }}
             </h2>
             <div class="flex space-x-3">
                 <a href="{% url 'locations:room_update' room.id %}" class="px-4 py-2 bg-steel-blue text-white rounded hover:bg-steel-blue/90 font-medium uppercase tracking-wide btn-industrial">
-                    <i class="fa-solid fa-edit mr-2"></i>EDIT ROOM
+                    <i class="fa-solid fa-edit mr-2"></i>EDIT SERVICE POINT
                 </a>
                 <a href="{% url 'locations:location_list' %}" class="px-4 py-2 border border-industrial-silver text-dark-graphite rounded hover:bg-industrial-silver/10 font-medium uppercase tracking-wide btn-industrial">
-                    <i class="fa-solid fa-arrow-left mr-2"></i>Back to Rooms
+                    <i class="fa-solid fa-arrow-left mr-2"></i>Back to Service Points
                 </a>
             </div>
         </div>
@@ -49,25 +49,25 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
                         <div class="info-label mb-2">
-                            <i class="fa-solid fa-building mr-1"></i>Camp
+                            <i class="fa-solid fa-building mr-1"></i>Site
                         </div>
                         <div class="info-value">{{ room.floor.building.compound.camp.name }}</div>
                     </div>
                     <div>
                         <div class="info-label mb-2">
-                            <i class="fa-solid fa-map-marker-alt mr-1"></i>Compound
+                            <i class="fa-solid fa-map-marker-alt mr-1"></i>Zone
                         </div>
                         <div class="info-value">{{ room.floor.building.compound.name }}</div>
                     </div>
                     <div>
                         <div class="info-label mb-2">
-                            <i class="fa-solid fa-building mr-1"></i>Building
+                            <i class="fa-solid fa-building mr-1"></i>Street
                         </div>
                         <div class="info-value">{{ room.floor.building.name }}</div>
                     </div>
                     <div>
                         <div class="info-label mb-2">
-                            <i class="fa-solid fa-layer-group mr-1"></i>Floor
+                            <i class="fa-solid fa-layer-group mr-1"></i>Street Segment
                         </div>
                         <div class="info-value">{{ room.floor.name }}</div>
                     </div>
@@ -75,19 +75,19 @@
             </div>
         </div>
 
-        <!-- Room Details -->
+        <!-- Service Point Details -->
         <div class="metallic-card rounded-lg border border-gray-300 mb-6">
             <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
                 <h4 class="text-lg font-bold text-dark-graphite uppercase tracking-wider flex items-center">
                     <i class="fa-solid fa-door-open mr-3 text-green-600"></i>
-                    Room Details
+                    Service Point Details
                 </h4>
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <div class="info-label mb-2">
-                            <i class="fa-solid fa-tag mr-1"></i>Room Code
+                            <i class="fa-solid fa-tag mr-1"></i>Service Point Code
                         </div>
                         <div class="info-value text-xl">{{ room.room_code }}</div>
                     </div>
@@ -125,7 +125,7 @@
                     </div>
                     <div>
                         <div class="info-label mb-2">
-                            <i class="fa-solid fa-hashtag mr-1"></i>Quantity of Rooms
+                            <i class="fa-solid fa-hashtag mr-1"></i>Quantity of Service Points
                         </div>
                         <div class="info-value text-xl">{{ room.quantity_of_rooms|default:"1" }}</div>
                     </div>
@@ -230,7 +230,7 @@
             <div class="p-6">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <div class="info-label mr-4">Room Status:</div>
+                        <div class="info-label mr-4">Service Point Status:</div>
                         <div class="flex items-center">
                             {% if room.is_active %}
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">

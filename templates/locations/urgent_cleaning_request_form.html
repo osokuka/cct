@@ -37,10 +37,10 @@
             <form method="POST" class="space-y-6">
                 {% csrf_token %}
                 
-                <!-- Compound Selection -->
+                <!-- Zone Selection -->
                 <div>
                     <label for="{{ form.compound.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Compound <span class="text-red-500">*</span>
+                        Zone <span class="text-red-500">*</span>
                     </label>
                     {{ form.compound }}
                     {% if form.compound.errors %}
@@ -52,10 +52,10 @@
                     {% endif %}
                 </div>
 
-                <!-- Room Selection -->
+                <!-- Service Point Selection -->
                 <div>
                     <label for="{{ form.room.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Room (Optional - for SQM calculation)
+                        Service Point (Optional - for SQM calculation)
                     </label>
                     {{ form.room }}
                     {% if form.room.errors %}
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Room filtering function
+// Service Point filtering function
 function filterRooms() {
     const compoundSelect = document.getElementById('id_compound');
     const roomSelect = document.getElementById('id_room');

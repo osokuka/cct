@@ -299,44 +299,44 @@
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-number">{{ camps_count }}</div>
-            <div class="stat-label">Camps</div>
+            <div class="stat-label">Sites</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ compounds_count }}</div>
-            <div class="stat-label">Compounds</div>
+            <div class="stat-label">Zones</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ buildings_count }}</div>
-            <div class="stat-label">Buildings</div>
+            <div class="stat-label">Streets</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ floors_count }}</div>
-            <div class="stat-label">Floors</div>
+            <div class="stat-label">Street Segments</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ rooms_count }}</div>
-            <div class="stat-label">Rooms</div>
+            <div class="stat-label">Service Points</div>
         </div>
     </div>
 
     <!-- Tabs -->
     <div class="location-tabs">
-        <button class="location-tab active" data-tab="camps">Camps</button>
-        <button class="location-tab" data-tab="compounds">Compounds</button>
-        <button class="location-tab" data-tab="buildings">Buildings</button>
-        <button class="location-tab" data-tab="floors">Floors</button>
-        <button class="location-tab" data-tab="rooms">Rooms</button>
+        <button class="location-tab active" data-tab="camps">Sites</button>
+        <button class="location-tab" data-tab="compounds">Zones</button>
+        <button class="location-tab" data-tab="buildings">Streets</button>
+        <button class="location-tab" data-tab="floors">Street Segments</button>
+        <button class="location-tab" data-tab="rooms">Service Points</button>
     </div>
 
-    <!-- Camps Tab -->
+    <!-- Sites Tab -->
     <div id="camps-tab" class="tab-content">
         <div class="data-table">
             <div class="table-header">
-                <h3 class="text-lg font-semibold">Camps</h3>
+                <h3 class="text-lg font-semibold">Sites</h3>
                 <div class="search-box">
                     <input type="text" id="camps-search" class="search-input" placeholder="Search camps...">
                     <button class="btn-sm btn-primary" onclick="openModal('camp')">
-                        <i class="fas fa-plus mr-1"></i>Add Camp
+                        <i class="fas fa-plus mr-1"></i>Add Site
                     </button>
                 </div>
             </div>
@@ -349,7 +349,7 @@
                             <th>Country</th>
                             <th>Timezone</th>
                             <th>Status</th>
-                            <th>Compounds</th>
+                            <th>Zones</th>
                             <th>Created</th>
                             <th>Actions</th>
                         </tr>
@@ -363,18 +363,18 @@
         </div>
     </div>
 
-    <!-- Compounds Tab -->
+    <!-- Zones Tab -->
     <div id="compounds-tab" class="tab-content" style="display: none;">
         <div class="data-table">
             <div class="table-header">
-                <h3 class="text-lg font-semibold">Compounds</h3>
+                <h3 class="text-lg font-semibold">Zones</h3>
                 <div class="search-box">
                     <select id="compounds-camp-filter" class="form-select" style="width: 200px;">
-                        <option value="">All Camps</option>
+                        <option value="">All Sites</option>
                     </select>
                     <input type="text" id="compounds-search" class="search-input" placeholder="Search compounds...">
                     <button class="btn-sm btn-primary" onclick="openModal('compound')">
-                        <i class="fas fa-plus mr-1"></i>Add Compound
+                        <i class="fas fa-plus mr-1"></i>Add Zone
                     </button>
                 </div>
             </div>
@@ -384,9 +384,9 @@
                         <tr>
                             <th>Name</th>
                             <th>Code</th>
-                            <th>Camp</th>
+                            <th>Site</th>
                             <th>Status</th>
-                            <th>Buildings</th>
+                            <th>Streets</th>
                             <th>Created</th>
                             <th>Actions</th>
                         </tr>
@@ -400,18 +400,18 @@
         </div>
     </div>
 
-    <!-- Buildings Tab -->
+    <!-- Streets Tab -->
     <div id="buildings-tab" class="tab-content" style="display: none;">
         <div class="data-table">
             <div class="table-header">
-                <h3 class="text-lg font-semibold">Buildings</h3>
+                <h3 class="text-lg font-semibold">Streets</h3>
                 <div class="search-box">
                     <select id="buildings-compound-filter" class="form-select" style="width: 200px;">
-                        <option value="">All Compounds</option>
+                        <option value="">All Zones</option>
                     </select>
                     <input type="text" id="buildings-search" class="search-input" placeholder="Search buildings...">
                     <button class="btn-sm btn-primary" onclick="openModal('building')">
-                        <i class="fas fa-plus mr-1"></i>Add Building
+                        <i class="fas fa-plus mr-1"></i>Add Street
                     </button>
                 </div>
             </div>
@@ -421,10 +421,10 @@
                         <tr>
                             <th>Name</th>
                             <th>Code</th>
-                            <th>Compound</th>
-                            <th>Camp</th>
+                            <th>Zone</th>
+                            <th>Site</th>
                             <th>Status</th>
-                            <th>Floors</th>
+                            <th>Street Segments</th>
                             <th>Created</th>
                             <th>Actions</th>
                         </tr>
@@ -438,18 +438,18 @@
         </div>
     </div>
 
-    <!-- Floors Tab -->
+    <!-- Street Segments Tab -->
     <div id="floors-tab" class="tab-content" style="display: none;">
         <div class="data-table">
             <div class="table-header">
-                <h3 class="text-lg font-semibold">Floors</h3>
+                <h3 class="text-lg font-semibold">Street Segments</h3>
                 <div class="search-box">
                     <select id="floors-building-filter" class="form-select" style="width: 200px;">
-                        <option value="">All Buildings</option>
+                        <option value="">All Streets</option>
                     </select>
                     <input type="text" id="floors-search" class="search-input" placeholder="Search floors...">
                     <button class="btn-sm btn-primary" onclick="openModal('floor')">
-                        <i class="fas fa-plus mr-1"></i>Add Floor
+                        <i class="fas fa-plus mr-1"></i>Add Street Segment
                     </button>
                 </div>
             </div>
@@ -459,11 +459,11 @@
                         <tr>
                             <th>Name</th>
                             <th>Level</th>
-                            <th>Building</th>
-                            <th>Compound</th>
-                            <th>Camp</th>
+                            <th>Street</th>
+                            <th>Zone</th>
+                            <th>Site</th>
                             <th>Status</th>
-                            <th>Rooms</th>
+                            <th>Service Points</th>
                             <th>Created</th>
                             <th>Actions</th>
                         </tr>
@@ -477,18 +477,18 @@
         </div>
     </div>
 
-    <!-- Rooms Tab -->
+    <!-- Service Points Tab -->
     <div id="rooms-tab" class="tab-content" style="display: none;">
         <div class="data-table">
             <div class="table-header">
-                <h3 class="text-lg font-semibold">Rooms</h3>
+                <h3 class="text-lg font-semibold">Service Points</h3>
                 <div class="search-box">
                     <select id="rooms-floor-filter" class="form-select" style="width: 200px;">
-                        <option value="">All Floors</option>
+                        <option value="">All Street Segments</option>
                     </select>
                     <input type="text" id="rooms-search" class="search-input" placeholder="Search rooms...">
                     <button class="btn-sm btn-primary" onclick="openModal('room')">
-                        <i class="fas fa-plus mr-1"></i>Add Room
+                        <i class="fas fa-plus mr-1"></i>Add Service Point
                     </button>
                 </div>
             </div>
@@ -499,10 +499,10 @@
                             <th>Name</th>
                             <th>Code</th>
                             <th>SQM</th>
-                            <th>Floor</th>
-                            <th>Building</th>
-                            <th>Compound</th>
-                            <th>Camp</th>
+                            <th>Street Segment</th>
+                            <th>Street</th>
+                            <th>Zone</th>
+                            <th>Site</th>
                             <th>Status</th>
                             <th>Frequency</th>
                             <th>Created</th>
@@ -533,7 +533,7 @@
                 <input type="hidden" id="location-id" name="id">
                 <input type="hidden" id="location-type" name="type">
                 
-                <!-- Camp Fields -->
+                <!-- Site Fields -->
                 <div id="camp-fields" class="location-fields" style="display: none;">
                     <div class="form-group">
                         <label class="form-label" for="camp-name">Name *</label>
@@ -567,12 +567,12 @@
                     </div>
                 </div>
 
-                <!-- Compound Fields -->
+                <!-- Zone Fields -->
                 <div id="compound-fields" class="location-fields" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label" for="compound-camp">Camp *</label>
+                        <label class="form-label" for="compound-camp">Site *</label>
                         <select id="compound-camp" name="camp_id" class="form-select" required>
-                            <option value="">Select Camp</option>
+                            <option value="">Select Site</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -594,12 +594,12 @@
                     </div>
                 </div>
 
-                <!-- Building Fields -->
+                <!-- Street Fields -->
                 <div id="building-fields" class="location-fields" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label" for="building-compound">Compound *</label>
+                        <label class="form-label" for="building-compound">Zone *</label>
                         <select id="building-compound" name="compound_id" class="form-select" required>
-                            <option value="">Select Compound</option>
+                            <option value="">Select Zone</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -621,12 +621,12 @@
                     </div>
                 </div>
 
-                <!-- Floor Fields -->
+                <!-- Street Segment Fields -->
                 <div id="floor-fields" class="location-fields" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label" for="floor-building">Building *</label>
+                        <label class="form-label" for="floor-building">Street *</label>
                         <select id="floor-building" name="building_id" class="form-select" required>
-                            <option value="">Select Building</option>
+                            <option value="">Select Street</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -648,12 +648,12 @@
                     </div>
                 </div>
 
-                <!-- Room Fields -->
+                <!-- Service Point Fields -->
                 <div id="room-fields" class="location-fields" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label" for="room-floor">Floor *</label>
+                        <label class="form-label" for="room-floor">Street Segment *</label>
                         <select id="room-floor" name="floor_id" class="form-select" required>
-                            <option value="">Select Floor</option>
+                            <option value="">Select Street Segment</option>
                         </select>
                     </div>
                     <div class="form-group">

@@ -20,8 +20,8 @@
                     </h5>
                     <p class="text-blue-800 mb-3">This import accepts CSV files in the exact format provided by the client:</p>
                     <ul class="text-blue-800 space-y-1">
-                        <li><strong>BLDG Location</strong> - Building location description</li>
-                        <li><strong>m²</strong> - Room area in square meters</li>
+                        <li><strong>BLDG Location</strong> - Street location description</li>
+                        <li><strong>m²</strong> - Service Point area in square meters</li>
                         <li><strong>Qty of rooms</strong> - Quantity of rooms</li>
                         <li><strong>Actual Sqm (m2)</strong> - Effective area for SLA</li>
                         <li><strong>Frequency Per Day</strong> - Daily cleaning frequency</li>
@@ -40,7 +40,7 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
-                            <label for="campSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Camp</label>
+                            <label for="campSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Site</label>
                             <select id="campSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                                 <option value="">Choose a camp...</option>
                                 {% for camp in camps %}
@@ -49,7 +49,7 @@
                             </select>
                         </div>
                         <div>
-                            <label for="compoundSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Compound</label>
+                            <label for="compoundSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Zone</label>
                             <select id="compoundSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                                 <option value="">Choose a compound...</option>
                                 {% for compound in compounds %}
@@ -176,11 +176,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Summary
             html += '<h6 class="text-lg font-medium text-gray-900 mb-3">Summary:</h6>';
             html += '<ul class="space-y-1 text-gray-700">';
-            html += `<li><strong>Camp:</strong> ${result.summary.camp}</li>`;
-            html += `<li><strong>Compound:</strong> ${result.summary.compound}</li>`;
-            html += `<li><strong>Buildings:</strong> ${result.summary.buildings}</li>`;
-            html += `<li><strong>Floors:</strong> ${result.summary.floors}</li>`;
-            html += `<li><strong>Rooms:</strong> ${result.summary.rooms}</li>`;
+            html += `<li><strong>Site:</strong> ${result.summary.camp}</li>`;
+            html += `<li><strong>Zone:</strong> ${result.summary.compound}</li>`;
+            html += `<li><strong>Streets:</strong> ${result.summary.buildings}</li>`;
+            html += `<li><strong>Street Segments:</strong> ${result.summary.floors}</li>`;
+            html += `<li><strong>Service Points:</strong> ${result.summary.rooms}</li>`;
             html += `<li><strong>Total Rows:</strong> ${result.summary.total_rows}</li>`;
             html += '</ul>';
 
@@ -224,8 +224,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             html += '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"><strong>Import Applied Successfully</strong></div>';
-            html += `<p class="text-gray-700 mb-2"><strong>Camp:</strong> ${result.camp}</p>`;
-            html += `<p class="text-gray-700 mb-2"><strong>Compound:</strong> ${result.compound}</p>`;
+            html += `<p class="text-gray-700 mb-2"><strong>Site:</strong> ${result.camp}</p>`;
+            html += `<p class="text-gray-700 mb-2"><strong>Zone:</strong> ${result.compound}</p>`;
             html += `<p class="text-gray-700 mb-2"><strong>Created:</strong> ${result.created_count} items</p>`;
             html += `<p class="text-gray-700 mb-4"><strong>Updated:</strong> ${result.updated_count} items</p>`;
             

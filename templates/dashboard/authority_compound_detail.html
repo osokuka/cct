@@ -38,7 +38,7 @@
                     </a>
                     <div>
                         <h1 class="text-3xl font-bold text-white">{{ compound.name }}</h1>
-                        <p class="text-slate-400 mt-1">{{ compound.camp.name }} • Compound Details</p>
+                        <p class="text-slate-400 mt-1">{{ compound.camp.name }} • Zone Details</p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -58,7 +58,7 @@
         <!-- Filter Toggle -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold text-white">Building Tasks</h2>
+                <h2 class="text-xl font-semibold text-white">Street Tasks</h2>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-slate-400">
                         {% if show_all_tasks %}Showing all tasks{% else %}Showing today's tasks{% endif %}
@@ -72,7 +72,7 @@
         </div>
 
         {% if tasks_by_building %}
-        <!-- Buildings and Tasks -->
+        <!-- Streets and Tasks -->
         <div class="space-y-8">
             {% for building, tasks in tasks_by_building.items %}
             <div class="building-card rounded-xl p-6">
@@ -106,7 +106,7 @@
                                 <div>
                                     <p class="text-white font-medium">{{ task.room.name }}</p>
                                     <p class="text-slate-400 text-sm">
-                                        Floor {{ task.room.floor.number }} • 
+                                        Street Segment {{ task.room.floor.number }} • 
                                         {% if task.assigned_to_team %}{{ task.assigned_to_team.name }}{% else %}Unassigned{% endif %}
                                     </p>
                                 </div>

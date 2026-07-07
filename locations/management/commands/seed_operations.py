@@ -130,25 +130,58 @@ class Command(BaseCommand):
     # -- routes ------------------------------------------------------------
 
     def _seed_routes(self, camp, teams):
+        """Build one daily Route per (collection team, weekday) from its streets,
+        plus an always-on cleaning route per public zone, and a plan config."""
+        from accounts.models import RouteStreet, PlanGenerationConfig
+        from locations.models import Building
+
         def compound(code):
             return Compound.objects.filter(camp=camp, code=code).first()
 
-        mapping = {
-            "Grumbullimi Zona 1": ["Z1"],
-            "Grumbullimi Zona 2": ["Z2"],
-            "Grumbullimi Zona 3": ["Z3"],
-            "Pastrimi Veri": ["PUBN"],
-            "Pastrimi Jug": ["PUBS"],
+        # Re-seed deterministically.
+        Route.objects.filter(team__camp=camp).delete()
+
+        collection_map = {
+            "Grumbullimi Zona 1": "Z1",
+            "Grumbullimi Zona 2": "Z2",
+            "Grumbullimi Zona 3": "Z3",
         }
-        for team_name, codes in mapping.items():
+        for team_name, zcode in collection_map.items():
             team = teams.get(team_name)
-            if not team:
+            zone = compound(zcode)
+            if not team or not zone:
                 continue
-            comps = [compound(c) for c in codes if compound(c)]
-            route = Route.objects.filter(team=team).first()
-            if not route:
-                route = Route.objects.create(team=team, is_active=True)
-            route.compounds.set(comps)
+            for building in Building.objects.filter(compound=zone):
+                wd = (
+                    Room.objects.filter(
+                        building=building, space_type="dumpster",
+                        collection_weekday__isnull=False,
+                    ).values_list("collection_weekday", flat=True).first()
+                )
+                if wd is None:
+                    continue
+                route, _ = Route.objects.get_or_create(
+                    team=team, weekday=wd, defaults={"is_active": True}
+                )
+                route.compounds.add(zone)
+                RouteStreet.objects.get_or_create(
+                    route=route, building=building, defaults={"order": 0}
+                )
+
+        cleaning_map = {"Pastrimi Veri": "PUBN", "Pastrimi Jug": "PUBS"}
+        for team_name, zcode in cleaning_map.items():
+            team = teams.get(team_name)
+            zone = compound(zcode)
+            if not team or not zone:
+                continue
+            route, _ = Route.objects.get_or_create(
+                team=team, weekday=None, defaults={"is_active": True}
+            )
+            route.compounds.set([zone])
+
+        PlanGenerationConfig.objects.get_or_create(
+            camp=camp, defaults={"cadence": "weekly"}
+        )
 
     # -- tasks -------------------------------------------------------------
 

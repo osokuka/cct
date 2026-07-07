@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Compound Progress Tracking{% endblock %}
+{% block title %}Zone Progress Tracking{% endblock %}
 
-{% block page_title %}Compound Progress Tracking{% endblock %}
+{% block page_title %}Zone Progress Tracking{% endblock %}
 {% block page_subtitle %}SLA-based cleaning progress for assigned compounds{% endblock %}
 
 {% block content %}
@@ -36,7 +36,7 @@
         <div class="flex items-center">
             <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3"></i>
             <div>
-                <h3 class="text-lg font-medium text-yellow-800">No Compound Assignments</h3>
+                <h3 class="text-lg font-medium text-yellow-800">No Zone Assignments</h3>
                 <p class="text-yellow-700 mt-1">You haven't been assigned to any compounds yet. Please contact your administrator.</p>
             </div>
         </div>
@@ -50,7 +50,7 @@
                     <i class="fas fa-building text-blue-600 text-2xl"></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Assigned Compounds</p>
+                    <p class="text-sm font-medium text-gray-500">Assigned Zones</p>
                     <p class="text-2xl font-semibold text-gray-900">{{ total_compounds }}</p>
                 </div>
             </div>
@@ -81,11 +81,11 @@
         </div>
     </div>
 
-    <!-- Compound Progress Cards -->
+    <!-- Zone Progress Cards -->
     <div class="space-y-6">
         {% for compound_data in compound_progress_data %}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Compound Header -->
+            <!-- Zone Header -->
             <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
@@ -111,7 +111,7 @@
                 </div>
             </div>
 
-            <!-- Compound Content -->
+            <!-- Zone Content -->
             <div class="p-6">
                 <!-- Task Statistics -->
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
@@ -140,7 +140,7 @@
                 <!-- SQM Statistics -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div class="bg-gray-50 rounded-lg p-4">
-                        <p class="text-sm text-gray-500">Total Rooms</p>
+                        <p class="text-sm text-gray-500">Total Service Points</p>
                         <p class="text-xl font-semibold text-gray-900">{{ compound_data.total_rooms }}</p>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4">

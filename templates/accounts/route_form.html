@@ -1,146 +1,80 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if route %}Edit Route{% else %}Create Route{% endif %} - NATO Camp Cleaning Tracker{% endblock %}
+{% block title %}{% if route %}Edit Route{% else %}Create Route{% endif %} - Gjakova Cleaning Tracker{% endblock %}
 
 {% block page_title %}{% if route %}EDIT ROUTE{% else %}CREATE ROUTE{% endif %}{% endblock %}
-{% block page_subtitle %}{% if route %}Modify Route Assignment{% else %}Assign Team to Compound & Shift{% endif %}{% endblock %}
+{% block page_subtitle %}Assign a Team a daily route of Streets{% endblock %}
 
 {% block content %}
 <div class="px-6 py-4">
     <div class="metallic-card rounded-lg border border-gray-300">
         <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
             <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">
-                {% if route %}EDIT ROUTE ASSIGNMENT{% else %}CREATE ROUTE ASSIGNMENT{% endif %}
+                {% if route %}EDIT DAILY ROUTE{% else %}CREATE DAILY ROUTE{% endif %}
             </h3>
         </div>
-        
+
         <div class="p-6">
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 mb-4">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
             <form method="post" class="space-y-6">
                 {% csrf_token %}
-                
-                <!-- Route Assignment Fields -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Team Selection -->
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="space-y-2">
                         <label for="{{ form.team.id_for_label }}" class="block text-sm font-medium text-dark-graphite">
-                            <i class="fa-solid fa-users mr-2 text-steel-blue"></i>
-                            Team
+                            <i class="fa-solid fa-users mr-2 text-steel-blue"></i> Team
                         </label>
                         {{ form.team }}
-                        {% if form.team.errors %}
-                            <div class="text-red-600 text-sm mt-1">
-                                {% for error in form.team.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        <p class="text-xs text-gray-500">Select the team to assign to this route</p>
+                        {% for error in form.team.errors %}<div class="text-red-600 text-sm">{{ error }}</div>{% endfor %}
                     </div>
 
-                    <!-- Shift Selection -->
                     <div class="space-y-2">
-                        <label for="{{ form.shift.id_for_label }}" class="block text-sm font-medium text-dark-graphite">
-                            <i class="fa-solid fa-clock mr-2 text-warning-orange"></i>
-                            Shift
+                        <label for="{{ form.weekday.id_for_label }}" class="block text-sm font-medium text-dark-graphite">
+                            <i class="fa-solid fa-calendar-day mr-2 text-warning-orange"></i> Weekday
                         </label>
-                        {{ form.shift }}
-                        {% if form.shift.errors %}
-                            <div class="text-red-600 text-sm mt-1">
-                                {% for error in form.shift.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        <p class="text-xs text-gray-500">Select the shift for this route</p>
+                        {{ form.weekday }}
+                        {% for error in form.weekday.errors %}<div class="text-red-600 text-sm">{{ error }}</div>{% endfor %}
+                        <p class="text-xs text-gray-500">One route per team per weekday. Leave blank for an always-on cleaning route.</p>
                     </div>
-                </div>
 
-                <!-- Compound Selection -->
-                <div class="space-y-2">
-                    <label for="{{ form.compounds.id_for_label }}" class="block text-sm font-medium text-dark-graphite">
-                        <i class="fa-solid fa-building mr-2 text-purple-600"></i>
-                        Compounds
-                    </label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-4">
-                        {% for choice in form.compounds %}
-                        <div class="flex items-center space-x-2">
-                            {{ choice.tag }}
-                            <label for="{{ choice.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
-                                {{ choice.choice_label }}
-                            </label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% if form.compounds.errors %}
-                        <div class="text-red-600 text-sm mt-1">
-                            {% for error in form.compounds.errors %}
-                                <div>{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    <p class="text-xs text-gray-500">Select one or more compounds to assign to this route</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Priority Selection -->
                     <div class="space-y-2">
                         <label for="{{ form.priority.id_for_label }}" class="block text-sm font-medium text-dark-graphite">
-                            <i class="fa-solid fa-flag mr-2 text-red-600"></i>
-                            Priority
+                            <i class="fa-solid fa-flag mr-2 text-red-600"></i> Priority
                         </label>
                         {{ form.priority }}
-                        {% if form.priority.errors %}
-                            <div class="text-red-600 text-sm mt-1">
-                                {% for error in form.priority.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        <p class="text-xs text-gray-500">Higher numbers = higher priority (1-10)</p>
+                        {% for error in form.priority.errors %}<div class="text-red-600 text-sm">{{ error }}</div>{% endfor %}
                     </div>
                 </div>
 
-                <!-- Status Toggle -->
+                <div class="space-y-2">
+                    <label for="{{ form.streets.id_for_label }}" class="block text-sm font-medium text-dark-graphite">
+                        <i class="fa-solid fa-road mr-2 text-purple-600"></i> Streets
+                    </label>
+                    {{ form.streets }}
+                    {% for error in form.streets.errors %}<div class="text-red-600 text-sm">{{ error }}</div>{% endfor %}
+                    <p class="text-xs text-gray-500">Ctrl/Cmd-click to select multiple streets. Their dumpsters become this route's tasks; the zone is derived automatically.</p>
+                </div>
+
                 <div class="space-y-2">
                     <label class="flex items-center space-x-3">
                         {{ form.is_active }}
                         <span class="text-sm font-medium text-dark-graphite">
-                            <i class="fa-solid fa-toggle-on mr-2 text-green-600"></i>
-                            Active Route
+                            <i class="fa-solid fa-toggle-on mr-2 text-green-600"></i> Active Route
                         </span>
                     </label>
-                    {% if form.is_active.errors %}
-                        <div class="text-red-600 text-sm mt-1">
-                            {% for error in form.is_active.errors %}
-                                <div>{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    <p class="text-xs text-gray-500">Inactive routes won't be used for task assignment</p>
+                    <p class="text-xs text-gray-500">Inactive routes are ignored by the map and task generation.</p>
                 </div>
 
-                <!-- Route Assignment Rules Info -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 class="text-sm font-semibold text-blue-900 mb-2">
-                        <i class="fa-solid fa-info-circle mr-2"></i>
-                        Route Assignment Rules
-                    </h4>
-                    <ul class="text-xs text-blue-800 space-y-1">
-                        <li>• Each team can only have one route per shift per compound</li>
-                        <li>• Teams and shifts must belong to the same camp</li>
-                        <li>• Higher priority routes are assigned tasks first</li>
-                        <li>• Only active routes are used for task assignment</li>
-                    </ul>
-                </div>
-
-                <!-- Form Actions -->
                 <div class="flex items-center justify-between pt-6 border-t border-gray-200">
-                    <a href="{% url 'accounts:route_list' %}" class="bg-gray-500 text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
-                        <i class="fa-solid fa-arrow-left"></i>
-                        <span>Cancel</span>
+                    <a href="{% url 'accounts:route_list' %}" class="bg-gray-500 text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
+                        <i class="fa-solid fa-arrow-left"></i> <span>Cancel</span>
                     </a>
-                    
-                    <button type="submit" class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2 hover:shadow-lg transition-all">
+                    <button type="submit" class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center space-x-2">
                         <i class="fa-solid fa-{% if route %}save{% else %}plus{% endif %}"></i>
                         <span>{% if route %}Update Route{% else %}Create Route{% endif %}</span>
                     </button>
@@ -153,22 +87,16 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add custom styling to form fields
-    const selectFields = document.querySelectorAll('select');
-    selectFields.forEach(select => {
-        select.classList.add('w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-2', 'focus:ring-steel-blue', 'focus:border-steel-blue');
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('select:not([multiple])').forEach(function (s) {
+        s.classList.add('w-full','px-3','py-2','border','border-gray-300','rounded-md','shadow-sm','focus:outline-none','focus:ring-2','focus:ring-steel-blue');
     });
-    
-    const numberField = document.querySelector('input[type="number"]');
-    if (numberField) {
-        numberField.classList.add('w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-2', 'focus:ring-steel-blue', 'focus:border-steel-blue');
-    }
-    
-    const checkboxField = document.querySelector('input[type="checkbox"]');
-    if (checkboxField) {
-        checkboxField.classList.add('h-4', 'w-4', 'text-steel-blue', 'focus:ring-steel-blue', 'border-gray-300', 'rounded');
-    }
+    var multi = document.querySelector('select[multiple]');
+    if (multi) multi.classList.add('w-full','px-3','py-2','border','border-gray-300','rounded-md','shadow-sm');
+    var num = document.querySelector('input[type="number"]');
+    if (num) num.classList.add('w-full','px-3','py-2','border','border-gray-300','rounded-md','shadow-sm');
+    var chk = document.querySelector('input[type="checkbox"]');
+    if (chk) chk.classList.add('h-4','w-4','text-steel-blue','border-gray-300','rounded');
 });
 </script>
 {% endblock %}

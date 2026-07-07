@@ -34,16 +34,16 @@
 <!-- Main Content -->
 <div class="p-6">
 
-    <!-- Camp Selection and Controls -->
+    <!-- Site Selection and Controls -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
         <h3 class="text-lg font-semibold text-charcoal-black mb-4">Assignment Controls</h3>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Camp Selection -->
+            <!-- Site Selection -->
             <div>
-                <label for="camp-select" class="block text-sm font-medium text-gray-700 mb-2">Select Camp</label>
+                <label for="camp-select" class="block text-sm font-medium text-gray-700 mb-2">Select Site</label>
                 <select id="camp-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent">
-                    <option value="">All Camps</option>
+                    <option value="">All Sites</option>
                     {% for camp in camps %}
                         <option value="{{ camp.id }}" {% if selected_camp and selected_camp.id == camp.id %}selected{% endif %}>
                             {{ camp.name }} ({{ camp.code }})
@@ -91,7 +91,7 @@
                     </div>
                 </div>
                 <div class="text-sm text-gray-600">
-                    <p><strong>Compounds:</strong> {{ route.compounds|length }}</p>
+                    <p><strong>Zones:</strong> {{ route.compounds|length }}</p>
                     <p><strong>Coverage:</strong> 
                         {% for compound in route.compounds %}
                             {{ compound.name }}{% if not forloop.last %}, {% endif %}
@@ -104,20 +104,20 @@
     </div>
     {% endif %}
 
-    <!-- Unassigned Tasks Grouped by Compound -->
+    <!-- Unassigned Tasks Grouped by Zone -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 class="text-lg font-semibold text-charcoal-black">Unassigned Tasks by Compound</h3>
+            <h3 class="text-lg font-semibold text-charcoal-black">Unassigned Tasks by Zone</h3>
             <p class="text-sm text-gray-600 mt-1">Select tasks to assign to routes, grouped by compound for easier management</p>
         </div>
         
         {% if tasks_by_compound %}
-        <!-- Compound Summary -->
+        <!-- Zone Summary -->
         <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="text-center">
                     <p class="text-2xl font-bold text-charcoal-black">{{ tasks_by_compound|length }}</p>
-                    <p class="text-sm text-gray-600">Compounds with Tasks</p>
+                    <p class="text-sm text-gray-600">Zones with Tasks</p>
                 </div>
                 <div class="text-center">
                     <p class="text-2xl font-bold text-blue-600">{{ unassigned_count }}</p>
@@ -133,7 +133,7 @@
         <div class="divide-y divide-gray-200">
             {% for compound, compound_data in tasks_by_compound.items %}
             <div class="p-6">
-                <!-- Compound Summary Card -->
+                <!-- Zone Summary Card -->
                 <div class="bg-white border border-gray-200 rounded-lg p-6">
                     <div class="flex items-center justify-between mb-6">
                         <div class="flex items-center space-x-4">
@@ -142,7 +142,7 @@
                             </div>
                             <div>
                                 <h4 class="text-xl font-semibold text-gray-900">{{ compound.name }}</h4>
-                                <p class="text-sm text-gray-600">Compound Summary</p>
+                                <p class="text-sm text-gray-600">Zone Summary</p>
                             </div>
                         </div>
                         <div class="flex items-center space-x-4">
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Continue with other functionality that doesn't depend on these elements
     }
     
-    // Camp selection
+    // Site selection
     if (campSelect) {
         campSelect.addEventListener('change', function() {
             const campId = this.value;
@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Compound task select all functionality
+    // Zone task select all functionality
     document.querySelectorAll('.compound-task-select-all').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const compoundId = this.dataset.compound;
@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
         routeSelect.addEventListener('change', updateAssignButton);
     }
     
-    // Compound route selection change (using event delegation)
+    // Zone route selection change (using event delegation)
     document.addEventListener('change', function(event) {
         if (event.target.classList.contains('compound-route-select')) {
             const compoundId = event.target.dataset.compound;
@@ -637,7 +637,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Compound assignment buttons (for unassigned tasks) - using event delegation
+    // Zone assignment buttons (for unassigned tasks) - using event delegation
     document.addEventListener('click', function(event) {
         if (event.target.classList.contains('compound-assign-btn') || event.target.closest('.compound-assign-btn')) {
             const button = event.target.classList.contains('compound-assign-btn') ? event.target : event.target.closest('.compound-assign-btn');

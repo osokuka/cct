@@ -45,8 +45,8 @@ class Camp(models.Model):
 
     class Meta:
         ordering = ['name']
-        verbose_name = "Camp"
-        verbose_name_plural = "Camps"
+        verbose_name = "Site"
+        verbose_name_plural = "Sites"
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -89,8 +89,8 @@ class Compound(models.Model):
     class Meta:
         ordering = ['name']
         unique_together = ['camp', 'code']
-        verbose_name = "Compound"
-        verbose_name_plural = "Compounds"
+        verbose_name = "Zone"
+        verbose_name_plural = "Zones"
 
     def __str__(self):
         return f"{self.name} ({self.code}) - {self.camp.name}"
@@ -167,8 +167,8 @@ class Building(models.Model):
     class Meta:
         ordering = ['name']
         unique_together = ['compound', 'code']
-        verbose_name = "Building"
-        verbose_name_plural = "Buildings"
+        verbose_name = "Street"
+        verbose_name_plural = "Streets"
 
     def __str__(self):
         return f"{self.name} ({self.code}) - {self.compound.name}"
@@ -194,8 +194,8 @@ class Floor(models.Model):
     class Meta:
         ordering = ['name']
         unique_together = ['building', 'code']
-        verbose_name = "Floor"
-        verbose_name_plural = "Floors"
+        verbose_name = "Street Segment"
+        verbose_name_plural = "Street Segments"
 
     def __str__(self):
         return f"{self.name} ({self.code}) - {self.building.name}"
@@ -359,8 +359,8 @@ class Room(models.Model):
     class Meta:
         ordering = ['room_code']
         unique_together = ['floor', 'room_code']
-        verbose_name = "Room"
-        verbose_name_plural = "Rooms"
+        verbose_name = "Service Point"
+        verbose_name_plural = "Service Points"
 
     def __str__(self):
         return f"{self.room_code} - {self.room_description or 'No description'}"

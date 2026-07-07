@@ -45,6 +45,10 @@ urlpatterns = [
     path('routes/<uuid:route_id>/update/', views.route_update, name='route_update'),
     path('routes/<uuid:route_id>/deactivate/', views.route_deactivate, name='route_deactivate'),
     path('routes/<uuid:route_id>/activate/', views.route_activate, name='route_activate'),
+
+    # Plan generation (cadence + manual run)
+    path('plan-config/', views.plan_config, name='plan_config'),
+    path('plan-config/generate/', views.generate_tasks_now, name='generate_tasks_now'),
     
     # Task Generation URLs
     path('task-generation/', task_views.task_generation_dashboard, name='task_generation_dashboard'),

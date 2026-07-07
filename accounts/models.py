@@ -5,8 +5,16 @@ Account models for the NATO Camp Cleaning Tracker.
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from datetime import timedelta
 import uuid
+
+
+WEEKDAY_CHOICES = [
+    (0, 'Monday'), (1, 'Tuesday'), (2, 'Wednesday'), (3, 'Thursday'),
+    (4, 'Friday'), (5, 'Saturday'), (6, 'Sunday'),
+]
 
 
 class UserProfile(models.Model):
@@ -15,7 +23,7 @@ class UserProfile(models.Model):
     """
     ROLE_CHOICES = [
         ('admin', 'Admin'),
-        ('manager', 'Manager'),
+        ('manager', 'Field Manager'),
         ('operations_manager', 'Operations Manager'),
         ('cleaner', 'Cleaner'),
         ('authority', 'Authority'),
@@ -207,56 +215,118 @@ class Shift(models.Model):
 
 class Route(models.Model):
     """
-    Routes assign teams to compounds.
-    One team can handle multiple compounds.
-    Business Rule: A team cannot be assigned to the same compound multiple times.
-    Different teams can be assigned to the same compound.
+    A team's daily route: a set of streets a team services on a given weekday.
+
+    Corporate model: a Team gets one Route per weekday. Each Route contains N
+    Streets (``locations.Building``) and their geolocated Service Points
+    (dumpsters). Per-dumpster Tasks are generated in the backend from these
+    routes for reporting and tracking.
+
+    ``compounds`` (Zones) is retained for backward compatibility and is derived
+    from the streets' zones.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='routes')
-    compounds = models.ManyToManyField('locations.Compound', related_name='routes', help_text="Compounds assigned to this route")
+    name = models.CharField(max_length=120, blank=True, help_text="Optional route label")
+    weekday = models.IntegerField(
+        null=True, blank=True,
+        choices=WEEKDAY_CHOICES,
+        validators=[MinValueValidator(0), MaxValueValidator(6)],
+        help_text="Weekday this route runs (0=Mon..6=Sun)"
+    )
+    streets = models.ManyToManyField(
+        'locations.Building', through='RouteStreet',
+        related_name='routes', blank=True,
+        help_text="Streets serviced on this route"
+    )
+    compounds = models.ManyToManyField('locations.Compound', related_name='routes', blank=True, help_text="Zones assigned to this route (derived from streets)")
     priority = models.IntegerField(default=1, help_text="Route priority (higher number = higher priority)")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['team']
+        unique_together = ['team', 'weekday']
         verbose_name = "Route"
         verbose_name_plural = "Routes"
-        ordering = ['-priority', 'team__name']
+        ordering = ['team__name', 'weekday']
 
     def __str__(self):
-        compound_names = ", ".join([c.name for c in self.compounds.all()])
-        return f"{self.team.name} → {compound_names} ({self.team.shift.name})"
+        day = self.get_weekday_display() if self.weekday is not None else "Unscheduled"
+        return f"{self.team.name} — {day} route"
 
-    def clean(self):
-        """
-        Validate that the same team is not assigned to the same compound multiple times.
-        Allow different teams to be assigned to the same compound.
-        """
-        from django.core.exceptions import ValidationError
-        
-        if not self.pk:  # Only check for new routes
-            return
-            
-        # Get all compounds for this route
-        route_compounds = self.compounds.all()
-        
-        # Check if this team is already assigned to any of these compounds
-        for compound in route_compounds:
-            existing_routes = Route.objects.filter(
-                team=self.team,
-                compounds=compound,
-                is_active=True
-            ).exclude(pk=self.pk)
-            
-            if existing_routes.exists():
-                raise ValidationError(
-                    f"Team '{self.team.name}' is already assigned to {compound.name}. "
-                    f"A team can only be assigned to each compound once."
-                )
+    @property
+    def street_count(self):
+        return self.streets.count()
 
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
+    @property
+    def dumpster_count(self):
+        from locations.models import Room
+        return Room.objects.filter(
+            building__in=self.streets.all(), space_type='dumpster', is_active=True
+        ).count()
+
+
+class RouteStreet(models.Model):
+    """Ordered membership of a Street (Building) within a Route."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name='route_streets')
+    building = models.ForeignKey('locations.Building', on_delete=models.CASCADE, related_name='route_memberships')
+    order = models.IntegerField(default=0, help_text="Order of this street within the route")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['route', 'building']
+        ordering = ['route', 'order']
+        verbose_name = "Route Street"
+        verbose_name_plural = "Route Streets"
+
+    def __str__(self):
+        return f"{self.route} · {self.building.name} (#{self.order})"
+
+
+class PlanGenerationConfig(models.Model):
+    """
+    Per-Site configuration for automatic route-task generation.
+
+    A scheduled job runs every Sunday 00:01 and generates the upcoming
+    per-dumpster tasks from each team's routes. Management chooses the cadence.
+    """
+    CADENCE_CHOICES = [
+        ('weekly', 'Every week'),
+        ('biweekly', 'Every second week'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    camp = models.OneToOneField('locations.Camp', on_delete=models.CASCADE, related_name='plan_config')
+    cadence = models.CharField(max_length=20, choices=CADENCE_CHOICES, default='weekly')
+    anchor_date = models.DateField(
+        help_text="Reference Monday used to compute bi-weekly parity",
+        default=timezone.localdate,
+    )
+    last_generated_on = models.DateField(null=True, blank=True, help_text="Last date tasks were generated")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Plan Generation Config"
+        verbose_name_plural = "Plan Generation Configs"
+
+    def __str__(self):
+        return f"{self.camp.name} — {self.get_cadence_display()}"
+
+    @property
+    def horizon_days(self):
+        return 14 if self.cadence == 'biweekly' else 7
+
+    def is_generation_week(self, ref_date=None):
+        """Whether the week of ref_date is a generation week for this cadence."""
+        ref_date = ref_date or timezone.localdate()
+        if self.cadence == 'weekly':
+            return True
+        # bi-weekly: generate on even-numbered weeks relative to anchor
+        week_start = ref_date - timedelta(days=ref_date.weekday())
+        anchor_start = self.anchor_date - timedelta(days=self.anchor_date.weekday())
+        weeks = (week_start - anchor_start).days // 7
+        return weeks % 2 == 0

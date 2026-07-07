@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}NATO Camp Cleaning Tracker{% endblock %}</title>
+    <title>{% block title %}Gjakova Cleaning Tracker{% endblock %}</title>
     
     <!-- Tailwind CSS with fallback -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -218,7 +218,11 @@
                     </a>
                     <a href="{% url 'accounts:route_list' %}" class="px-4 py-2 flex items-center {% if 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-route mr-3 text-xs"></i>
-                        <span class="text-xs">Route Assignment</span>
+                        <span class="text-xs">Routes</span>
+                    </a>
+                    <a href="{% url 'accounts:plan_config' %}" class="px-4 py-2 flex items-center {% if 'plan_config' in request.resolver_match.url_name or 'generate_tasks' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-gears mr-3 text-xs"></i>
+                        <span class="text-xs">Plan Generation</span>
                     </a>
                                             <a href="{% url 'accounts:task_generation_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_generation' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                             <i class="fa-solid fa-tasks mr-3 text-xs"></i>
@@ -249,15 +253,15 @@
                 <div id="location-submenu" class="ml-8 mt-2 space-y-1 {% if 'location' not in request.resolver_match.url_name and 'rooms_table' not in request.resolver_match.url_name %}hidden{% endif %}">
                     <a href="{% url 'locations:camp_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'camp_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-building mr-3 text-xs"></i>
-                        <span class="text-xs">Camps</span>
+                        <span class="text-xs">Sites</span>
                     </a>
                     <a href="{% url 'locations:compound_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'compound_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-map-marker-alt mr-3 text-xs"></i>
-                        <span class="text-xs">Compounds</span>
+                        <span class="text-xs">Zones</span>
                     </a>
                     <a href="{% url 'dashboard:rooms_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'rooms_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-door-open mr-3 text-xs"></i>
-                        <span class="text-xs">Spaces & Dumpsters</span>
+                        <span class="text-xs">Service Points & Dumpsters</span>
                     </a>
                 </div>
             </div>

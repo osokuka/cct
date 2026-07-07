@@ -33,12 +33,19 @@ RUN adduser --disabled-password --gecos '' cronuser \
 # Create directories
 RUN mkdir -p /app/staticfiles /app/media /var/log
 
-# Create cron job script
+# Create cron job scripts
 RUN echo '#!/bin/bash\ncd /app\npython manage.py daily_task_maintenance' > /app/run_maintenance.sh
 RUN chmod +x /app/run_maintenance.sh
+RUN echo '#!/bin/bash\ncd /app\npython manage.py generate_route_tasks' > /app/run_generate_tasks.sh
+RUN chmod +x /app/run_generate_tasks.sh
 
-# Add cron job (runs daily at 11:59 PM) - run as root
-RUN echo '59 23 * * * /app/run_maintenance.sh >> /var/log/cron.log 2>&1' | crontab -
+# Cron jobs:
+#  - daily maintenance at 23:59
+#  - weekly/bi-weekly route task generation every Sunday at 00:01
+RUN printf '%s\n' \
+    '59 23 * * * /app/run_maintenance.sh >> /var/log/cron.log 2>&1' \
+    '1 0 * * 0 /app/run_generate_tasks.sh >> /var/log/cron.log 2>&1' \
+    | crontab -
 
 # Create log file and set permissions
 RUN touch /var/log/cron.log && chown cronuser:cronuser /var/log/cron.log

@@ -88,7 +88,7 @@
                     
                     <div>
                         <label for="{{ form.camp.id_for_label }}" class="block text-sm font-medium text-dark-graphite mb-2">
-                            Assigned Camp
+                            Assigned Site
                         </label>
                         {{ form.camp|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steel-blue focus:border-transparent" }}
                         {% if form.camp.errors %}
@@ -123,11 +123,11 @@
                 </div>
             </div>
 
-            <!-- Compound Assignment Section (for Authority users) -->
+            <!-- Zone Assignment Section (for Authority users) -->
             <div id="compound-section" class="metallic-card rounded-lg p-6 border border-gray-300" style="display: none;">
                 <div class="flex items-center mb-6">
                     <i class="fa-solid fa-building text-steel-blue mr-3"></i>
-                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">COMPOUND ASSIGNMENTS</h3>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ZONE ASSIGNMENTS</h3>
                 </div>
                 
                 <div class="mb-4">

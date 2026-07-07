@@ -149,6 +149,72 @@ class DailyCleaningTask(models.Model):
         return now > cutoff_datetime
 
 
+def generate_tasks_from_routes(camp, start_date: date, end_date: date, logger_=None):
+    """
+    Generate per-dumpster Tasks from each team's daily Routes for a date range.
+
+    Corporate model: a Route = Team + weekday + a set of Streets. For every date
+    in [start_date, end_date], for each route whose weekday matches, we create one
+    Task per active dumpster on each of the route's streets, assigned to the
+    route's team. Idempotent (get_or_create on room+date+index).
+    """
+    from .models import Route
+    from locations.models import Room
+
+    routes = (
+        Route.objects.filter(team__camp=camp, is_active=True, weekday__isnull=False)
+        .select_related('team', 'team__shift')
+        .prefetch_related('streets')
+    )
+    by_weekday = {}
+    for route in routes:
+        by_weekday.setdefault(route.weekday, []).append(route)
+
+    created = updated = 0
+    current = start_date
+    while current <= end_date:
+        for route in by_weekday.get(current.weekday(), []):
+            rooms = Room.objects.filter(
+                building__in=route.streets.all(),
+                space_type='dumpster',
+                is_active=True,
+            )
+            for room in rooms:
+                # Respect the room's service window when present.
+                if room.service_start_date and current < room.service_start_date:
+                    continue
+                if room.service_end_date and current > room.service_end_date:
+                    continue
+                task, was_created = DailyCleaningTask.objects.get_or_create(
+                    room=room,
+                    task_date=current,
+                    index_in_day=1,
+                    defaults={
+                        'sla_credit_sqm': room.actual_sqm or Decimal('1'),
+                        'task_type': 'regular',
+                        'state': 'planned',
+                        'assigned_to_team': route.team,
+                        'shift': route.team.shift,
+                    },
+                )
+                if was_created:
+                    created += 1
+                elif task.assigned_to_team_id != route.team_id:
+                    task.assigned_to_team = route.team
+                    task.shift = route.team.shift
+                    task.save(update_fields=['assigned_to_team', 'shift', 'updated_at'])
+                    updated += 1
+                if room.collection_weekday != current.weekday():
+                    room.collection_weekday = current.weekday()
+                    room.save(update_fields=['collection_weekday'])
+        current += timedelta(days=1)
+
+    if logger_:
+        logger_(f"{camp.name}: {created} tasks created, {updated} reassigned "
+                f"({start_date} → {end_date})")
+    return {'created': created, 'updated': updated}
+
+
 class TaskGenerationService:
     """
     Service class for generating daily cleaning tasks based on room requirements.

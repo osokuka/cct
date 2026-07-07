@@ -72,7 +72,7 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Assigned Camp</label>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Assigned Site</label>
                         <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-dark-graphite">
                             {{ viewed_user.profile.camp.name|default:"Not assigned" }}
                         </div>
@@ -106,12 +106,12 @@
                 </div>
             </div>
 
-            <!-- Compound Assignment Section (for Authority users) -->
+            <!-- Zone Assignment Section (for Authority users) -->
             {% if viewed_user.profile.role == 'authority' and viewed_user.compound_assignments.exists %}
             <div class="metallic-card rounded-lg p-6 border border-gray-300">
                 <div class="flex items-center mb-6">
                     <i class="fa-solid fa-building text-steel-blue mr-3"></i>
-                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">COMPOUND ASSIGNMENTS</h3>
+                    <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">ZONE ASSIGNMENTS</h3>
                 </div>
                 
                 <div class="mb-4">

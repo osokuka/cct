@@ -101,20 +101,20 @@
 
         <!-- Sidebar -->
         <div class="space-y-6">
-            <!-- Compound Information -->
+            <!-- Zone Information -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Compound Information</h2>
+                <h2 class="text-xl font-semibold text-dark-graphite mb-4">Zone Information</h2>
                 <div class="space-y-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Compound</label>
+                        <label class="block text-sm font-medium text-gray-700">Zone</label>
                         <p class="text-dark-graphite">{{ request_obj.compound.name }}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Camp</label>
+                        <label class="block text-sm font-medium text-gray-700">Site</label>
                         <p class="text-dark-graphite">{{ request_obj.compound.camp.name }}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Total Rooms</label>
+                        <label class="block text-sm font-medium text-gray-700">Total Service Points</label>
                         <p class="text-dark-graphite">{{ request_obj.compound.rooms.count }}</p>
                     </div>
                 </div>

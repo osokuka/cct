@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Plan Generation - Gjakova Cleaning Tracker{% endblock %}
+
+{% block page_title %}PLAN GENERATION{% endblock %}
+{% block page_subtitle %}Automatic task generation cadence for {{ camp.name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-4 max-w-3xl">
+    <div class="metallic-card rounded-lg border border-gray-300 mb-6">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">CADENCE SETTINGS</h3>
+        </div>
+        <div class="p-6">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-900">
+                <i class="fa-solid fa-circle-info mr-2"></i>
+                Tasks are generated automatically every <strong>Sunday at 00:01</strong> from each team's
+                routes — one task per dumpster. Choose whether to generate a single week or two weeks ahead.
+            </div>
+
+            <form method="post" class="space-y-5">
+                {% csrf_token %}
+                <div class="space-y-2">
+                    <label for="{{ form.cadence.id_for_label }}" class="block text-sm font-medium text-dark-graphite">Cadence</label>
+                    {{ form.cadence }}
+                    {% for e in form.cadence.errors %}<div class="text-red-600 text-sm">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="space-y-2">
+                    <label for="{{ form.anchor_date.id_for_label }}" class="block text-sm font-medium text-dark-graphite">Anchor date</label>
+                    {{ form.anchor_date }}
+                    <p class="text-xs text-gray-500">Reference week used to compute bi-weekly parity.</p>
+                    {% for e in form.anchor_date.errors %}<div class="text-red-600 text-sm">{{ e }}</div>{% endfor %}
+                </div>
+                <label class="flex items-center space-x-3">
+                    {{ form.is_active }}
+                    <span class="text-sm font-medium text-dark-graphite">Automatic generation enabled</span>
+                </label>
+
+                <div class="pt-4 border-t border-gray-200">
+                    <button type="submit" class="bg-steel-blue text-white px-6 py-2 rounded uppercase text-sm tracking-wide metallic-shine">
+                        <i class="fa-solid fa-save mr-2"></i> Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">MANUAL GENERATION</h3>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-gray-600 mb-2">
+                Cadence: <strong>{{ config.get_cadence_display }}</strong> ·
+                Horizon: <strong>{{ config.horizon_days }} days</strong> ·
+                Last generated: <strong>{{ config.last_generated_on|default:"never" }}</strong>
+            </p>
+            <form method="post" action="{% url 'accounts:generate_tasks_now' %}">
+                {% csrf_token %}
+                <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded uppercase text-sm tracking-wide hover:bg-green-700">
+                    <i class="fa-solid fa-bolt mr-2"></i> Generate tasks now
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

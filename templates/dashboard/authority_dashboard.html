@@ -79,7 +79,7 @@
             <div class="w-24 h-24 bg-industrial-silver rounded-full flex items-center justify-center mx-auto mb-6">
                 <i class="fa-solid fa-building text-4xl text-dark-graphite"></i>
             </div>
-            <h2 class="text-2xl font-bold text-dark-graphite mb-4">NO COMPOUND ASSIGNMENTS</h2>
+            <h2 class="text-2xl font-bold text-dark-graphite mb-4">NO ZONE ASSIGNMENTS</h2>
             <p class="text-steel-blue mb-6">You haven't been assigned to any compounds yet.</p>
             <p class="text-sm text-steel-blue">Contact your administrator to get compound assignments.</p>
         </div>
@@ -88,10 +88,10 @@
         <!-- Filter Controls -->
         <div class="mb-8">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-semibold text-dark-graphite">COMPOUND OVERVIEW</h2>
+                <h2 class="text-xl font-semibold text-dark-graphite">ZONE OVERVIEW</h2>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-steel-blue">
-                        Compound Overview & Analytics
+                        Zone Overview & Analytics
                     </span>
                     <a href="{% url 'dashboard:authority_all_tasks' %}" 
                        class="px-4 py-2 bg-industrial-silver hover:bg-gray-400 text-dark-graphite rounded-lg text-sm font-medium transition-colors">
@@ -101,12 +101,12 @@
             </div>
         </div>
 
-            <!-- Compound Filter -->
+            <!-- Zone Filter -->
             <div class="bg-white border border-industrial-silver rounded-xl p-4 mb-6">
                 <div class="flex items-center space-x-4">
-                    <label class="text-sm font-medium text-dark-graphite">FILTER BY COMPOUND:</label>
+                    <label class="text-sm font-medium text-dark-graphite">FILTER BY ZONE:</label>
                     <select id="compoundFilter" class="px-4 py-2 border border-industrial-silver rounded-lg text-dark-graphite bg-white focus:ring-2 focus:ring-steel-blue focus:border-transparent">
-                        <option value="all">All Compounds</option>
+                        <option value="all">All Zones</option>
                         {% for compound, stats in tasks_by_compound.items %}
                         <option value="{{ compound.id }}">{{ compound.name }} ({{ compound.camp.name }})</option>
                         {% endfor %}
@@ -119,12 +119,12 @@
             </div>
 
 
-        <!-- Compound Information Cards - Stacked Vertically -->
+        <!-- Zone Information Cards - Stacked Vertically -->
         <div class="space-y-8">
             {% for compound, stats in tasks_by_compound.items %}
             <div class="compound-card rounded-2xl p-6 hover:shadow-lg transition-all duration-200" 
                  data-compound-id="{{ compound.id }}">
-                <!-- Compound Header -->
+                <!-- Zone Header -->
                 <div class="flex items-center justify-between mb-6">
                     <div>
                         <h3 class="text-2xl font-bold text-dark-graphite">{{ compound.name }}</h3>
@@ -133,7 +133,7 @@
                     <div class="flex items-center space-x-4">
                     <div class="text-right">
                         <div class="text-3xl font-bold text-steel-blue">{{ stats.total_rooms }}</div>
-                        <div class="text-sm text-steel-blue">ROOMS</div>
+                        <div class="text-sm text-steel-blue">SERVICE POINTS</div>
                         </div>
                         <!-- Report Buttons -->
                         {% if user.profile.role in 'authority,admin,manager' %}
@@ -361,7 +361,7 @@ window.testCompoundFilter = function() {
 function initializeCompoundFilter() {
     // Wait a bit more to ensure everything is loaded
     setTimeout(function() {
-    // Compound filtering functionality
+    // Zone filtering functionality
     const compoundFilter = document.getElementById('compoundFilter');
     const clearFilter = document.getElementById('clearFilter');
     const compoundCards = document.querySelectorAll('.compound-card');
@@ -673,7 +673,7 @@ function initializeCompoundFilter() {
     {% endif %}
 
         // DOM loaded successfully
-        console.log('✅ Compound filter initialized successfully');
+        console.log('✅ Zone filter initialized successfully');
 
     // Helper function to get CSRF token (if needed for AJAX requests)
     function getCookie(name) {
