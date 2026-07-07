@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>#dmp-map { height: 460px; border-radius: 0.5rem; z-index: 0; }</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-5xl mx-auto metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between">
+            <div>
+                <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">{{ title }}</h2>
+                <p class="text-gray-600 mt-1 text-sm">Click on the map (or type coordinates). The zone and street are detected automatically.</p>
+            </div>
+            <a href="{% url 'locations:compound_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-gray-400 transition-all">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Back
+            </a>
+        </div>
+
+        <form method="post" class="p-6 space-y-5">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div id="dmp-map"></div>
+
+            <div id="detect-panel" class="rounded-lg border p-3 text-sm border-gray-200 bg-gray-50">
+                <span class="text-gray-500">Detected zone:</span>
+                <span id="detect-text" class="font-semibold text-gray-700">— click the map to place the dumpster —</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.latitude.label }}</label>
+                    {{ form.latitude }}
+                    {% for e in form.latitude.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.longitude.label }}</label>
+                    {{ form.longitude }}
+                    {% for e in form.longitude.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.dumpster_type.label }}</label>
+                    {{ form.dumpster_type }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.room_code.label }}</label>
+                    {{ form.room_code }}
+                    {% for e in form.room_code.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Collection day</label>
+                    <div id="inherited-schedule" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 text-sm">— inherited from the zone —</div>
+                    <p class="text-xs text-gray-500 mt-1">Set on the zone. The shift/time is assigned by the field manager.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.client.label }}</label>
+                    {{ form.client }}
+                </div>
+                <div class="sm:col-span-3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.room_description.label }}</label>
+                    {{ form.room_description }}
+                </div>
+            </div>
+
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+                {{ form.is_active }} {{ form.is_active.label }}
+            </label>
+
+            <div class="pt-4 border-t border-gray-200 flex justify-end gap-3">
+                <a href="{% url 'locations:compound_list' %}" class="px-5 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100">Cancel</a>
+                <button type="submit" class="px-5 py-2 rounded bg-steel-blue text-white font-semibold hover:bg-opacity-90">
+                    <i class="fa-solid fa-dumpster mr-2"></i>Add Dumpster
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{ zones|json_script:"zones-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    var CENTER = {lat: {{ map_center.lat }}, lng: {{ map_center.lng }}, zoom: {{ map_center.zoom }}};
+    var zones = JSON.parse(document.getElementById('zones-data').textContent || '[]');
+    var DETECT_URL = "{% url 'locations:detect_zone' %}";
+    var latInput = document.getElementById('id_latitude');
+    var lngInput = document.getElementById('id_longitude');
+    var panel = document.getElementById('detect-panel');
+    var text = document.getElementById('detect-text');
+    var schedBox = document.getElementById('inherited-schedule');
+
+    function setSchedule(msg) { if (schedBox) { schedBox.textContent = msg; } }
+
+    var map = L.map('dmp-map').setView([CENTER.lat, CENTER.lng], CENTER.zoom);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20
+    }).addTo(map);
+
+    var allBounds = null;
+    zones.forEach(function (z) {
+        var latlngs = z.ring.map(function (p) { return [p[1], p[0]]; });
+        var poly = L.polygon(latlngs, {color: '#3F5876', weight: 1.5, fillOpacity: 0.06});
+        poly.addTo(map).bindTooltip(z.name);
+        allBounds = allBounds ? allBounds.extend(poly.getBounds()) : poly.getBounds();
+    });
+    if (allBounds && allBounds.isValid()) { map.fitBounds(allBounds, {padding: [20, 20]}); }
+
+    var marker = null;
+    function setPanel(cls, msg) {
+        panel.className = 'rounded-lg border p-3 text-sm ' + cls;
+        text.innerHTML = msg;
+    }
+
+    function detect(lat, lng) {
+        setPanel('border-gray-200 bg-gray-50', 'Detecting…');
+        fetch(DETECT_URL + '?lat=' + lat + '&lng=' + lng)
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.found) {
+                    setPanel('border-amber-200 bg-amber-50 text-amber-700',
+                        'Outside all zones — pick a point inside a zone boundary.');
+                    setSchedule('— inherited from the zone —');
+                    return;
+                }
+                var street = d.street ? (' · nearest street: <strong>' + d.street + '</strong>'
+                    + (d.street_distance_m != null ? ' (' + d.street_distance_m + ' m)' : '')) : '';
+                var sched = d.schedule ? (' · schedule: <strong>' + d.schedule + '</strong>') : '';
+                setPanel('border-green-200 bg-green-50 text-green-800',
+                    'Zone: <strong>' + d.zone_name + '</strong> <span class="text-gray-500">(' + d.site + ')</span>' + street + sched);
+                setSchedule(d.schedule || 'Unscheduled — set a day on the zone');
+            })
+            .catch(function () { setPanel('border-red-200 bg-red-50 text-red-700', 'Detection failed.'); });
+    }
+
+    function place(lat, lng, doDetect) {
+        lat = Math.round(lat * 1e6) / 1e6;
+        lng = Math.round(lng * 1e6) / 1e6;
+        latInput.value = lat;
+        lngInput.value = lng;
+        if (marker) { marker.setLatLng([lat, lng]); }
+        else { marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+               marker.on('dragend', function (e) { var ll = e.target.getLatLng(); place(ll.lat, ll.lng, true); }); }
+        if (doDetect) { detect(lat, lng); }
+    }
+
+    map.on('click', function (e) { place(e.latlng.lat, e.latlng.lng, true); });
+
+    function fromInputs() {
+        var lat = parseFloat(latInput.value), lng = parseFloat(lngInput.value);
+        if (!isNaN(lat) && !isNaN(lng)) { place(lat, lng, true); map.setView([lat, lng]); }
+    }
+    latInput.addEventListener('change', fromInputs);
+    lngInput.addEventListener('change', fromInputs);
+
+    // Pre-fill from existing values (validation re-render).
+    if (latInput.value && lngInput.value) { fromInputs(); }
+})();
+</script>
+{% endblock %}

@@ -45,6 +45,16 @@ def log_audit(request, action, object_ref, details=None):
 
 
 @login_required
+def rooms_redirect(request):
+    """Back-compat: old /rooms/ URL now lives at /service-points/."""
+    query = request.META.get('QUERY_STRING', '')
+    url = redirect('dashboard:service_points').url
+    if query:
+        url = f"{url}?{query}"
+    return redirect(url)
+
+
+@login_required
 def rooms_table(request):
     """Tabular list of rooms with inline actions, bulk actions, and exports."""
     # Check permissions: Admin, Manager, Supervisor, and Authority can access
@@ -153,6 +163,7 @@ def rooms_table(request):
     active_filter = request.GET.get('active_filter', '')
     frequency_filter = request.GET.get('frequency_filter', '')
     shift_filter = request.GET.get('shift_filter', '')
+    space_type_filter = request.GET.get('space_type_filter', '')
 
     if search_query:
         rooms_qs = rooms_qs.filter(
@@ -174,6 +185,8 @@ def rooms_table(request):
             rooms_qs = rooms_qs.filter(is_active=True)
         elif active_filter == 'inactive':
             rooms_qs = rooms_qs.filter(is_active=False)
+    if space_type_filter:
+        rooms_qs = rooms_qs.filter(space_type=space_type_filter)
     if frequency_filter:
         rooms_qs = rooms_qs.filter(frequency_per_week=Decimal(frequency_filter))
     if shift_filter:
@@ -235,10 +248,11 @@ def rooms_table(request):
             'active': active_filter,
             'frequency': frequency_filter,
             'shift': shift_filter,
+            'space_type': space_type_filter,
         },
         'user_role': user_role
     }
-    return render(request, 'dashboard/rooms_table.html', context)
+    return render(request, 'dashboard/service_points.html', context)
 
 
 @login_required

@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<style>
+    #zone-map { height: 460px; border-radius: 0.5rem; z-index: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-5xl mx-auto metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between">
+            <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">{{ title }}</h2>
+            <a href="{% url 'locations:compound_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-gray-400 transition-all">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Back
+            </a>
+        </div>
+
+        <form method="post" class="p-6 space-y-5">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% for e in form.name.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.code.label }}</label>
+                    {{ form.code }}
+                    {% for e in form.code.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.camp.label }}</label>
+                    {{ form.camp }}
+                    {% for e in form.camp.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.collection_weekday.label }}</label>
+                <div class="sm:max-w-xs">{{ form.collection_weekday }}</div>
+                <p class="text-xs text-gray-500 mt-1">{{ form.collection_weekday.help_text }}</p>
+                {% for e in form.collection_weekday.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-semibold text-gray-700">Zone boundary</label>
+                    <div class="text-xs text-gray-500">
+                        Use the polygon tool (top-left) to draw the zone. Streets inside it are populated from OpenStreetMap.
+                    </div>
+                </div>
+                <div id="zone-map"></div>
+                <div class="flex items-center justify-between mt-2">
+                    <p id="boundary-status" class="text-xs text-gray-500"></p>
+                    <button type="button" id="clear-boundary" class="text-xs text-red-600 hover:underline">
+                        <i class="fa-solid fa-eraser mr-1"></i>Clear boundary
+                    </button>
+                </div>
+                {{ form.geo_polygon }}
+                {% for e in form.geo_polygon.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+            </div>
+
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+                {{ form.is_active }} {{ form.is_active.label }}
+            </label>
+
+            <div class="pt-4 border-t border-gray-200 flex justify-end gap-3">
+                <a href="{% url 'locations:compound_list' %}" class="px-5 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100">Cancel</a>
+                <button type="submit" class="px-5 py-2 rounded bg-steel-blue text-white font-semibold hover:bg-opacity-90">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i>Save Zone
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script>
+(function () {
+    var CENTER = {lat: {{ map_center.lat }}, lng: {{ map_center.lng }}, zoom: {{ map_center.zoom }}};
+    var input = document.getElementById('id_geo_polygon');
+    var statusEl = document.getElementById('boundary-status');
+
+    var map = L.map('zone-map').setView([CENTER.lat, CENTER.lng], CENTER.zoom);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20
+    }).addTo(map);
+
+    var drawn = new L.FeatureGroup();
+    map.addLayer(drawn);
+
+    var drawControl = new L.Control.Draw({
+        edit: { featureGroup: drawn, remove: true },
+        draw: {
+            polygon: { allowIntersection: false, showArea: true },
+            polyline: false, rectangle: true, circle: false, marker: false, circlemarker: false
+        }
+    });
+    map.addControl(drawControl);
+
+    function setStatus(msg) { statusEl.textContent = msg || ''; }
+
+    // Serialize the current layer to a GeoJSON Polygon geometry into the hidden field.
+    function sync() {
+        var layer = null;
+        drawn.eachLayer(function (l) { layer = l; });
+        if (!layer) { input.value = ''; setStatus('No boundary drawn yet.'); return; }
+        var gj = layer.toGeoJSON();
+        var geom = gj.geometry;
+        if (geom && geom.type === 'Polygon') {
+            input.value = JSON.stringify(geom);
+            var ring = geom.coordinates[0] || [];
+            setStatus('Boundary set — ' + (ring.length - 1) + ' points.');
+        }
+    }
+
+    // Keep only one shape at a time.
+    map.on(L.Draw.Event.CREATED, function (e) {
+        drawn.clearLayers();
+        drawn.addLayer(e.layer);
+        sync();
+    });
+    map.on(L.Draw.Event.EDITED, sync);
+    map.on(L.Draw.Event.DELETED, sync);
+
+    document.getElementById('clear-boundary').addEventListener('click', function () {
+        drawn.clearLayers();
+        input.value = '';
+        setStatus('Boundary cleared.');
+    });
+
+    // Load existing boundary (edit mode).
+    if (input.value) {
+        try {
+            var existing = JSON.parse(input.value);
+            var geom = existing.geometry || existing;
+            if (geom && geom.type === 'Polygon') {
+                var latlngs = geom.coordinates[0].map(function (p) { return [p[1], p[0]]; });
+                var poly = L.polygon(latlngs);
+                drawn.addLayer(poly);
+                map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+                setStatus('Boundary loaded — ' + (geom.coordinates[0].length - 1) + ' points.');
+            }
+        } catch (err) { /* ignore malformed */ }
+    } else {
+        setStatus('No boundary drawn yet.');
+    }
+})();
+</script>
+{% endblock %}

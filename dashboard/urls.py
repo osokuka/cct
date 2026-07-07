@@ -24,8 +24,10 @@ urlpatterns = [
     path('authority/compound/<uuid:compound_id>/', authority_views.authority_compound_detail, name='authority_compound_detail'),
     path('authority/daily-tasks/<int:compound_id>/', authority_views.authority_daily_tasks, name='authority_daily_tasks'),
     
-    # Industrial Tables
-    path('rooms/', industrial_views.rooms_table, name='rooms_table'),
+    # Public spaces & dumpsters registry (CRUD hub)
+    path('service-points/', industrial_views.rooms_table, name='service_points'),
+    # Back-compat redirect for the old /rooms/ URL
+    path('rooms/', industrial_views.rooms_redirect, name='rooms_table'),
     path('tasks/completed/', industrial_views.completed_tasks_table, name='completed_tasks_table'),
     
     # Client Bulk Import

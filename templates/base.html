@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Gjakova Cleaning Tracker{% endblock %}</title>
     
+    <!-- Apply persisted theme before paint to avoid flash -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                if (t === 'dark' || (t === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     <!-- Tailwind CSS with fallback -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -107,6 +119,7 @@
     </style>
     
     <script>tailwind.config = {
+  "darkMode": "class",
   "theme": {
     "extend": {
       "colors": {
@@ -129,7 +142,7 @@
     
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-off-white">
+<body class="bg-off-white dark:bg-gray-950 transition-colors duration-300">
 
 <!-- Mobile Menu Button -->
 <div class="lg:hidden">
@@ -225,13 +238,13 @@
             </div>
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
             <div class="relative">
-                <div class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleLocationMenu()">
-                    <i class="fa-solid fa-map-marker-alt mr-3 {% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                    <span class="{% if 'location' in request.resolver_match.url_name or 'rooms_table' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Location Management</span>
+                <div class="px-4 py-3 flex items-center {% if 'location' in request.resolver_match.url_name or 'service_points' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleLocationMenu()">
+                    <i class="fa-solid fa-map-marker-alt mr-3 {% if 'location' in request.resolver_match.url_name or 'service_points' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                    <span class="{% if 'location' in request.resolver_match.url_name or 'service_points' in request.resolver_match.url_name or 'route' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Location Management</span>
                     <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400" id="location-chevron"></i>
                 </div>
                 <!-- Sub-menu -->
-                <div id="location-submenu" class="ml-8 mt-2 space-y-1 {% if 'location' not in request.resolver_match.url_name and 'rooms_table' not in request.resolver_match.url_name and 'route' not in request.resolver_match.url_name %}hidden{% endif %}">
+                <div id="location-submenu" class="ml-8 mt-2 space-y-1 {% if 'location' not in request.resolver_match.url_name and 'service_points' not in request.resolver_match.url_name and 'route' not in request.resolver_match.url_name %}hidden{% endif %}">
                     <a href="{% url 'locations:camp_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'camp_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-building mr-3 text-xs"></i>
                         <span class="text-xs">Sites</span>
@@ -240,9 +253,9 @@
                         <i class="fa-solid fa-map-marker-alt mr-3 text-xs"></i>
                         <span class="text-xs">Zones</span>
                     </a>
-                    <a href="{% url 'dashboard:rooms_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'rooms_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                        <i class="fa-solid fa-door-open mr-3 text-xs"></i>
-                        <span class="text-xs">Service Points & Dumpsters</span>
+                    <a href="{% url 'dashboard:service_points' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'service_points' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-dumpster mr-3 text-xs"></i>
+                        <span class="text-xs">Public Spaces & Dumpsters</span>
                     </a>
                     <a href="{% url 'accounts:route_list' %}" class="px-4 py-2 flex items-center {% if 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-route mr-3 text-xs"></i>
@@ -397,6 +410,10 @@
                 </p>
             </div>
             <div class="flex items-center space-x-2 lg:space-x-4">
+                <button type="button" id="theme-toggle" onclick="toggleTheme()" title="Toggle light / dark theme" class="w-9 h-9 rounded-lg bg-dark-graphite bg-opacity-10 hover:bg-opacity-20 text-dark-graphite flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-moon text-base" id="theme-icon-dark"></i>
+                    <i class="fa-solid fa-sun text-base hidden" id="theme-icon-light"></i>
+                </button>
                 <div class="relative hidden sm:block">
                     <i class="fa-solid fa-bell text-dark-graphite text-lg cursor-pointer hover:text-steel-blue"></i>
                     <span class="absolute -top-2 -right-2 bg-warning-orange text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
@@ -502,6 +519,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Global light/dark theme toggle
+function syncThemeIcons() {
+    var isDark = document.documentElement.classList.contains('dark');
+    var moon = document.getElementById('theme-icon-dark');
+    var sun = document.getElementById('theme-icon-light');
+    if (!moon || !sun) return;
+    // Show the icon of the theme you can switch TO
+    moon.classList.toggle('hidden', isDark);
+    sun.classList.toggle('hidden', !isDark);
+}
+
+function toggleTheme() {
+    var isDark = document.documentElement.classList.toggle('dark');
+    try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (e) {}
+    syncThemeIcons();
+}
+
+document.addEventListener('DOMContentLoaded', syncThemeIcons);
 
 // Settings menu toggle function
 function toggleSettingsMenu() {

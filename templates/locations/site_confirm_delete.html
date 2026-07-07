@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Delete Site - {{ camp.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-xl mx-auto metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h2 class="heading-font font-bold text-2xl text-red-700 uppercase">Delete Site</h2>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-gray-700">You are about to permanently delete <strong>{{ camp.name }}</strong> ({{ camp.code }}).</p>
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm">
+                This will also delete <strong>{{ zone_count }}</strong> zone(s) and <strong>{{ room_count }}</strong> service point(s)/dumpster(s). This cannot be undone.
+            </div>
+            <form method="post" class="flex justify-end gap-3 pt-2">
+                {% csrf_token %}
+                <a href="{% url 'locations:camp_list' %}" class="px-5 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100">Cancel</a>
+                <button type="submit" class="px-5 py-2 rounded bg-red-600 text-white font-semibold hover:bg-red-700">
+                    <i class="fa-solid fa-trash mr-2"></i>Delete Site
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

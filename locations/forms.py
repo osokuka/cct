@@ -2,10 +2,126 @@
 Forms for location management in the NATO Camp Cleaning Tracker.
 """
 
+import json
+
 from django import forms
 from django.db.models import Q
 from decimal import Decimal
 from .models import Camp, Compound, Building, Floor, Room
+
+
+# Shared light-theme input styling used by the rebuilt Site/Zone CRUD forms.
+INPUT_CLS = (
+    "w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-800 "
+    "focus:outline-none focus:ring-2 focus:ring-steel-blue focus:border-transparent "
+    "transition-all duration-200"
+)
+CHECKBOX_CLS = "w-5 h-5 text-steel-blue bg-gray-100 border-gray-300 rounded focus:ring-steel-blue focus:ring-2"
+
+
+class SiteForm(forms.ModelForm):
+    """Create/edit a Site (city). Cutoff fields keep their model defaults."""
+
+    class Meta:
+        model = Camp
+        fields = ['code', 'name', 'timezone', 'center_lat', 'center_lng', 'default_zoom', 'is_active']
+        widgets = {
+            'code': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. GJ'}),
+            'name': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Komuna e Gjakovës'}),
+            'timezone': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Europe/Belgrade'}),
+            'center_lat': forms.NumberInput(attrs={'class': INPUT_CLS, 'step': 'any', 'placeholder': '42.370929'}),
+            'center_lng': forms.NumberInput(attrs={'class': INPUT_CLS, 'step': 'any', 'placeholder': '20.435395'}),
+            'default_zoom': forms.NumberInput(attrs={'class': INPUT_CLS, 'min': 1, 'max': 20}),
+            'is_active': forms.CheckboxInput(attrs={'class': CHECKBOX_CLS}),
+        }
+        labels = {
+            'code': 'Site code', 'name': 'Site name', 'timezone': 'Timezone',
+            'center_lat': 'Map center latitude', 'center_lng': 'Map center longitude',
+            'default_zoom': 'Default zoom', 'is_active': 'Active',
+        }
+        help_texts = {
+            'center_lat': 'Used to center the boundary-drawing map (optional).',
+            'center_lng': 'Used to center the boundary-drawing map (optional).',
+        }
+
+    def clean_code(self):
+        code = (self.cleaned_data.get('code') or '').strip()
+        qs = Camp.objects.filter(code__iexact=code)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("A site with this code already exists.")
+        return code
+
+
+class ZoneForm(forms.ModelForm):
+    """Create/edit a Zone (city zone) with a map-drawn boundary polygon."""
+
+    class Meta:
+        model = Compound
+        fields = ['camp', 'code', 'name', 'collection_weekday', 'geo_polygon', 'is_active']
+        widgets = {
+            'camp': forms.Select(attrs={'class': INPUT_CLS}),
+            'code': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Z1'}),
+            'name': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. Zona 1 — Qendra'}),
+            'geo_polygon': forms.HiddenInput(),
+            'is_active': forms.CheckboxInput(attrs={'class': CHECKBOX_CLS}),
+        }
+        labels = {
+            'camp': 'Site', 'code': 'Zone code', 'name': 'Zone name',
+            'collection_weekday': 'Collection day', 'is_active': 'Active',
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        self.fields['camp'].queryset = Camp.objects.filter(is_active=True).order_by('name')
+        self.fields['geo_polygon'].required = False
+
+        # Collection day (optional). The shift/time is assigned by the field manager.
+        self.fields['collection_weekday'] = forms.TypedChoiceField(
+            choices=[('', '— unscheduled —')] + WEEKDAY_CHOICES,
+            coerce=int, empty_value=None, required=False,
+            label='Collection day',
+            help_text='New dumpsters added to this zone inherit this day. The shift/time is set by the field manager.',
+            widget=forms.Select(attrs={'class': INPUT_CLS}),
+        )
+
+        if self.request and hasattr(self.request.user, 'profile'):
+            profile = self.request.user.profile
+            if profile.role != 'admin' and profile.camp:
+                self.fields['camp'].queryset = Camp.objects.filter(id=profile.camp.id)
+                self.fields['camp'].initial = profile.camp
+
+    def clean_geo_polygon(self):
+        raw = (self.cleaned_data.get('geo_polygon') or '').strip()
+        if not raw:
+            return ''
+        try:
+            data = json.loads(raw)
+        except (ValueError, TypeError):
+            raise forms.ValidationError("Boundary is not valid JSON. Redraw the zone on the map.")
+
+        geom = data.get('geometry', data) if isinstance(data, dict) else data
+        if not isinstance(geom, dict) or geom.get('type') != 'Polygon':
+            raise forms.ValidationError("Boundary must be a GeoJSON Polygon.")
+        coords = geom.get('coordinates') or []
+        if not coords or len(coords[0]) < 4:
+            raise forms.ValidationError("Draw a boundary with at least 3 points.")
+        # Store a normalized bare Polygon geometry.
+        return json.dumps({'type': 'Polygon', 'coordinates': coords})
+
+    def clean(self):
+        cleaned = super().clean()
+        camp = cleaned.get('camp')
+        code = (cleaned.get('code') or '').strip()
+        if camp and code:
+            qs = Compound.objects.filter(camp=camp, code__iexact=code)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                self.add_error('code', "A zone with this code already exists for this site.")
+        return cleaned
 
 
 class CampCreateForm(forms.ModelForm):
@@ -382,6 +498,48 @@ class FloorCreateForm(forms.ModelForm):
                     self.fields['building'].queryset = Building.objects.none()
             else:
                 self.fields['building'].queryset = Building.objects.filter(is_active=True)
+
+
+WEEKDAY_CHOICES = [
+    (0, 'Monday'), (1, 'Tuesday'), (2, 'Wednesday'), (3, 'Thursday'),
+    (4, 'Friday'), (5, 'Saturday'), (6, 'Sunday'),
+]
+
+
+class DumpsterForm(forms.ModelForm):
+    """Add a single dumpster by GPS. Zone + street are auto-detected in the view."""
+
+    class Meta:
+        model = Room
+        fields = [
+            'latitude', 'longitude', 'dumpster_type', 'room_code',
+            'room_description', 'client', 'is_active',
+        ]
+        widgets = {
+            'latitude': forms.NumberInput(attrs={'class': INPUT_CLS, 'step': 'any', 'placeholder': '42.370929', 'id': 'id_latitude'}),
+            'longitude': forms.NumberInput(attrs={'class': INPUT_CLS, 'step': 'any', 'placeholder': '20.435395', 'id': 'id_longitude'}),
+            'dumpster_type': forms.Select(attrs={'class': INPUT_CLS}),
+            'room_code': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'Auto-generated if left blank'}),
+            'room_description': forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'Optional note'}),
+            'client': forms.Select(attrs={'class': INPUT_CLS}),
+            'is_active': forms.CheckboxInput(attrs={'class': CHECKBOX_CLS}),
+        }
+        labels = {
+            'latitude': 'Latitude', 'longitude': 'Longitude', 'dumpster_type': 'Dumpster type',
+            'room_code': 'Dumpster ID', 'room_description': 'Description',
+            'client': 'Billing client', 'is_active': 'Active',
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        self.fields['latitude'].required = True
+        self.fields['longitude'].required = True
+        self.fields['room_code'].required = False
+        self.fields['room_description'].required = False
+        self.fields['client'].required = False
+        self.fields['client'].queryset = self.fields['client'].queryset.filter(is_active=True)
+        self.fields['client'].empty_label = "— none —"
 
 
 class RoomCreateForm(forms.ModelForm):

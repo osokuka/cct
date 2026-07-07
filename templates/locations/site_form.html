@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-3xl mx-auto metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between">
+            <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">{{ title }}</h2>
+            <a href="{% url 'locations:camp_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-gray-400 transition-all">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Back
+            </a>
+        </div>
+
+        <form method="post" class="p-6 space-y-5">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% for e in form.name.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.code.label }}</label>
+                    {{ form.code }}
+                    {% for e in form.code.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.timezone.label }}</label>
+                    {{ form.timezone }}
+                    {% for e in form.timezone.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.default_zoom.label }}</label>
+                    {{ form.default_zoom }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.center_lat.label }}</label>
+                    {{ form.center_lat }}
+                    <p class="text-xs text-gray-500 mt-1">{{ form.center_lat.help_text }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.center_lng.label }}</label>
+                    {{ form.center_lng }}
+                </div>
+            </div>
+
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+                {{ form.is_active }} {{ form.is_active.label }}
+            </label>
+
+            <div class="pt-4 border-t border-gray-200 flex justify-end gap-3">
+                <a href="{% url 'locations:camp_list' %}" class="px-5 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100">Cancel</a>
+                <button type="submit" class="px-5 py-2 rounded bg-steel-blue text-white font-semibold hover:bg-opacity-90">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i>Save Site
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

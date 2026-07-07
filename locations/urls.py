@@ -8,25 +8,38 @@ urlpatterns = [
     # Main location management page (simplified room-centric view)
     path('', views.location_list, name='location_list'),
     
-    # Camp and Compound list views
+    # Sites (cities)
     path('camps/', views.camp_list, name='camp_list'),
+    path('camps/add/', views.site_create, name='site_create'),
     path('camps/<uuid:camp_id>/edit/', views.camp_edit, name='camp_edit'),
+    path('camps/<uuid:camp_id>/delete/', views.site_delete, name='site_delete'),
     path('camps/<uuid:camp_id>/breakdown/', views.camp_breakdown, name='camp_breakdown'),
+
+    # Zones (city zones)
     path('compounds/', views.compound_list, name='compound_list'),
+    path('compounds/add/', views.zone_create, name='zone_create'),
     path('compounds/<uuid:compound_id>/', views.compound_view, name='compound_view'),
     path('compounds/<uuid:compound_id>/edit/', views.compound_edit, name='compound_edit'),
+    path('compounds/<uuid:compound_id>/delete/', views.zone_delete, name='zone_delete'),
+    path('compounds/<uuid:compound_id>/populate/', views.zone_populate, name='zone_populate'),
+    path('compounds/<uuid:compound_id>/populate/status/', views.zone_populate_status, name='zone_populate_status'),
+    path('compounds/<uuid:compound_id>/breakdown/', views.compound_breakdown, name='compound_breakdown'),
+
+    # Streets / segments (auto-populated from OSM; edit kept for manual tweaks)
     path('buildings/<uuid:building_id>/edit/', views.building_edit, name='building_edit'),
     path('floors/<uuid:floor_id>/edit/', views.floor_edit, name='floor_edit'),
-    path('compounds/<uuid:compound_id>/breakdown/', views.compound_breakdown, name='compound_breakdown'),
     path('buildings/<uuid:building_id>/', views.building_view, name='building_view'),
     path('floors/<uuid:floor_id>/', views.floor_view, name='floor_view'),
-    
-    # Modal form submissions
-    path('camps/create/', views.camp_create, name='camp_create'),
+
+    # Modal form submissions (rooms/service points management page)
     path('compounds/create/', views.compound_create, name='compound_create'),
     path('buildings/create/', views.building_create, name='building_create'),
     path('floors/create/', views.floor_create, name='floor_create'),
     
+    # Dumpsters (GPS-placed, auto-assigned to zone + nearest street)
+    path('dumpsters/add/', views.dumpster_create, name='dumpster_create'),
+    path('dumpsters/detect-zone/', views.detect_zone, name='detect_zone'),
+
     # Room management (keep for full form)
     path('rooms/create/', views.room_create, name='room_create'),
     path('rooms/<uuid:room_id>/', views.room_view, name='room_view'),

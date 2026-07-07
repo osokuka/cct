@@ -102,6 +102,23 @@ class Camp(models.Model):
         help_text="Month cutoff hour (0-23)"
     )
     skip_holidays = models.BooleanField(default=True, help_text="Skip holidays in scheduling")
+
+    # Map center for this site (used to center the boundary-drawing map and views).
+    # Kept per-site so no coordinates are hardcoded in the app.
+    center_lat = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Map center latitude for this site (WGS84)"
+    )
+    center_lng = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Map center longitude for this site (WGS84)"
+    )
+    default_zoom = models.IntegerField(
+        default=13,
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+        help_text="Default map zoom level for this site"
+    )
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -119,16 +136,73 @@ class Camp(models.Model):
         """Calculate total SQM for all rooms in this camp."""
         return sum(room.actual_sqm for room in self.rooms.filter(is_active=True) if room.actual_sqm)
 
+    @property
+    def map_center(self):
+        """Best-effort map center: explicit site center, else settings default."""
+        from django.conf import settings
+        if self.center_lat is not None and self.center_lng is not None:
+            return {"lat": float(self.center_lat), "lng": float(self.center_lng), "zoom": self.default_zoom}
+        c = getattr(settings, "MAP_DEFAULT_CENTER", None) or {}
+        return {
+            "lat": float(c.get("lat", 0.0)),
+            "lng": float(c.get("lng", 0.0)),
+            "zoom": int(c.get("zoom", self.default_zoom or 13)),
+        }
+
 
 class Compound(models.Model):
     """
     Compound within a camp.
     """
+    # OSM street-population job status (async, persisted so the UI can poll).
+    OSM_STATUS_CHOICES = [
+        ('idle', 'Idle'),
+        ('queued', 'Queued'),
+        ('running', 'Running'),
+        ('done', 'Done'),
+        ('error', 'Error'),
+    ]
+
+    COLLECTION_WEEKDAY_CHOICES = [
+        (0, 'Monday'), (1, 'Tuesday'), (2, 'Wednesday'), (3, 'Thursday'),
+        (4, 'Friday'), (5, 'Saturday'), (6, 'Sunday'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     camp = models.ForeignKey(Camp, on_delete=models.CASCADE, related_name='compounds')
     code = models.CharField(max_length=50, help_text="Compound code")
     name = models.CharField(max_length=200, help_text="Compound name")
     is_active = models.BooleanField(default=True)
+
+    # Collection day for the whole zone. New dumpsters added to this zone inherit
+    # this day automatically. The shift/time is assigned separately by the field
+    # manager (at the team/route level), not on the zone.
+    collection_weekday = models.IntegerField(
+        null=True, blank=True, choices=COLLECTION_WEEKDAY_CHOICES,
+        help_text="Weekday this zone is collected (0=Mon..6=Sun). New dumpsters inherit this."
+    )
+
+    # Zone boundary drawn on a map (GeoJSON Polygon, WGS84). Streets are
+    # auto-populated from OpenStreetMap within this boundary.
+    geo_polygon = models.TextField(
+        blank=True, null=True,
+        help_text="GeoJSON Polygon of the zone boundary (drawn on the map)"
+    )
+
+    # Async OSM street-population tracking.
+    osm_status = models.CharField(
+        max_length=20, choices=OSM_STATUS_CHOICES, default='idle',
+        help_text="Status of the last OpenStreetMap street-population job"
+    )
+    osm_message = models.TextField(
+        blank=True, null=True, help_text="Result/error message from the last OSM job"
+    )
+    osm_last_synced_at = models.DateTimeField(
+        null=True, blank=True, help_text="When streets were last populated from OSM"
+    )
+    osm_street_count = models.IntegerField(
+        default=0, help_text="Streets created on the last OSM population run"
+    )
     
     # Additional SQM quota for urgent cleaning requests
     monthly_urgent_sqm_quota = models.DecimalField(
@@ -162,6 +236,58 @@ class Compound(models.Model):
     def total_sqm(self):
         """Calculate total SQM for all rooms in this compound."""
         return sum(room.actual_sqm for room in self.rooms.filter(is_active=True) if room.actual_sqm)
+
+    @property
+    def collection_schedule_display(self) -> str:
+        """Human-readable collection day for this zone (time is set by the field manager)."""
+        if self.collection_weekday is None:
+            return "Unscheduled"
+        return dict(self.COLLECTION_WEEKDAY_CHOICES).get(self.collection_weekday, "Unscheduled")
+
+    @property
+    def has_boundary(self) -> bool:
+        return bool(self.geo_polygon)
+
+    @property
+    def boundary_ring(self):
+        """Return the outer ring of the boundary as a list of [lng, lat] pairs.
+
+        Accepts a GeoJSON Polygon, a Feature wrapping a Polygon, or a bare
+        coordinate ring. Returns None when no valid boundary is stored.
+        """
+        import json as _json
+        if not self.geo_polygon:
+            return None
+        try:
+            data = _json.loads(self.geo_polygon)
+        except (ValueError, TypeError):
+            return None
+        if isinstance(data, dict):
+            if data.get("type") == "Feature":
+                data = data.get("geometry") or {}
+            if data.get("type") == "Polygon":
+                coords = data.get("coordinates") or []
+                return coords[0] if coords else None
+            return None
+        if isinstance(data, list) and data and isinstance(data[0], (list, tuple)):
+            return data
+        return None
+
+    @property
+    def boundary_center(self):
+        """Centroid (lat/lng) of the boundary ring, or the site center as fallback."""
+        ring = self.boundary_ring
+        if ring:
+            lngs = [p[0] for p in ring]
+            lats = [p[1] for p in ring]
+            if lats and lngs:
+                return {"lat": sum(lats) / len(lats), "lng": sum(lngs) / len(lngs),
+                        "zoom": self.camp.default_zoom or 14}
+        return self.camp.map_center
+
+    @property
+    def street_count(self) -> int:
+        return self.buildings.filter(is_active=True).count()
     
     @property
     def has_urgent_sqm_quota(self):

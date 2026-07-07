@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ zone.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>#zone-map { height: 480px; border-radius: 0.5rem; z-index: 0; }</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 space-y-6">
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">{{ zone.name }}</h2>
+                <p class="text-gray-600 mt-1 text-sm">{{ zone.camp.name }} · Code {{ zone.code }}</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'locations:compound_list' %}" class="bg-industrial-gray text-dark-graphite px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-gray-400 transition-all">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>Zones
+                </a>
+                {% if can_edit %}
+                <a href="{% url 'locations:dumpster_create' %}" class="bg-green-600 text-white px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-green-700 transition-all">
+                    <i class="fa-solid fa-dumpster mr-2"></i>Add Dumpster
+                </a>
+                <a href="{% url 'locations:compound_edit' zone.id %}" class="bg-steel-blue text-white px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-opacity-90 transition-all">
+                    <i class="fa-solid fa-pen mr-2"></i>Edit / Redraw
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="p-6">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="text-xs text-gray-500 uppercase">Boundary</div>
+                    <div class="text-lg font-bold text-dark-graphite">{% if zone.has_boundary %}Set{% else %}Not drawn{% endif %}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="text-xs text-gray-500 uppercase">Streets</div>
+                    <div class="text-lg font-bold text-dark-graphite" id="street-count">{{ street_count }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="text-xs text-gray-500 uppercase">Dumpsters</div>
+                    <div class="text-lg font-bold text-dark-graphite">{{ dumpster_count }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="text-xs text-gray-500 uppercase">Collection day</div>
+                    <div class="text-sm font-semibold text-dark-graphite">{{ zone.collection_schedule_display }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="text-xs text-gray-500 uppercase">Last OSM sync</div>
+                    <div class="text-sm font-semibold text-dark-graphite">{{ zone.osm_last_synced_at|default:"—" }}</div>
+                </div>
+            </div>
+
+            {% if can_edit %}
+            <div class="flex flex-wrap items-center gap-3 mb-4 p-4 rounded-lg border border-gray-200 bg-gray-50">
+                <button id="populate-btn" type="button"
+                        class="bg-green-600 text-white px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-green-700 transition-all disabled:opacity-50"
+                        {% if not zone.has_boundary %}disabled title="Draw the boundary first"{% endif %}>
+                    <i class="fa-solid fa-cloud-arrow-down mr-2"></i>Populate streets from OpenStreetMap
+                </button>
+                <label class="flex items-center gap-2 text-sm text-gray-600">
+                    <input type="checkbox" id="replace-toggle" class="w-4 h-4"> Replace (deactivate streets no longer in OSM)
+                </label>
+                <span id="populate-status" class="text-sm {% if zone.osm_status == 'error' %}text-red-600{% else %}text-gray-600{% endif %}">
+                    {{ zone.osm_message }}
+                </span>
+                {% if not zone.has_boundary %}
+                <span class="text-xs text-amber-600">Draw a boundary in Edit before populating.</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div id="zone-map"></div>
+        </div>
+    </div>
+
+    <div class="metallic-card rounded-lg border border-gray-300">
+        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
+            <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">Streets ({{ street_count }})</h3>
+        </div>
+        <div class="p-6 overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-gray-500 uppercase text-xs border-b border-gray-300">
+                        <th class="py-2 pr-4">Street</th>
+                        <th class="py-2 pr-4">Code</th>
+                        <th class="py-2 pr-4">Dumpsters</th>
+                        <th class="py-2 pr-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in streets %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="py-2 pr-4 font-medium text-dark-graphite">{{ s.building.name }}</td>
+                        <td class="py-2 pr-4 text-gray-600">{{ s.building.code }}</td>
+                        <td class="py-2 pr-4">{{ s.dumpster_count }}</td>
+                        <td class="py-2 pr-4">
+                            {% if s.building.is_active %}<span class="text-green-700 text-xs">Active</span>
+                            {% else %}<span class="text-gray-400 text-xs">Inactive</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="py-6 text-center text-gray-500">No streets yet. Draw a boundary and populate from OpenStreetMap.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{ boundary|json_script:"boundary-data" }}
+{{ map_streets|json_script:"streets-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    var CENTER = {lat: {{ map_center.lat }}, lng: {{ map_center.lng }}, zoom: {{ map_center.zoom }}};
+    var boundary = JSON.parse(document.getElementById('boundary-data').textContent || 'null');
+    var streets = JSON.parse(document.getElementById('streets-data').textContent || '[]');
+
+    var map = L.map('zone-map').setView([CENTER.lat, CENTER.lng], CENTER.zoom);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20
+    }).addTo(map);
+
+    var bounds = null;
+
+    if (boundary) {
+        var geom = boundary.geometry || boundary;
+        if (geom && geom.type === 'Polygon') {
+            var latlngs = geom.coordinates[0].map(function (p) { return [p[1], p[0]]; });
+            var poly = L.polygon(latlngs, {color: '#3F5876', weight: 2, fillOpacity: 0.05});
+            poly.addTo(map);
+            bounds = poly.getBounds();
+        }
+    }
+
+    streets.forEach(function (s) {
+        var g = s.geometry;
+        if (!g) return;
+        var color = s.active ? '#2563EB' : '#9CA3AF';
+        if (g.type === 'MultiLineString') {
+            g.coordinates.forEach(function (line) {
+                var ll = line.map(function (p) { return [p[1], p[0]]; });
+                var pl = L.polyline(ll, {color: color, weight: 3}).addTo(map);
+                pl.bindPopup(s.name);
+                bounds = bounds ? bounds.extend(pl.getBounds()) : pl.getBounds();
+            });
+        } else if (g.type === 'LineString') {
+            var ll2 = g.coordinates.map(function (p) { return [p[1], p[0]]; });
+            var pl2 = L.polyline(ll2, {color: color, weight: 3}).addTo(map);
+            pl2.bindPopup(s.name);
+            bounds = bounds ? bounds.extend(pl2.getBounds()) : pl2.getBounds();
+        }
+    });
+
+    if (bounds && bounds.isValid()) { map.fitBounds(bounds, {padding: [20, 20]}); }
+
+    // --- OSM population (async + polling) ---
+    var btn = document.getElementById('populate-btn');
+    if (btn) {
+        var statusEl = document.getElementById('populate-status');
+        var streetCountEl = document.getElementById('street-count');
+        var replaceToggle = document.getElementById('replace-toggle');
+        var POPULATE_URL = "{% url 'locations:zone_populate' zone.id %}";
+        var STATUS_URL = "{% url 'locations:zone_populate_status' zone.id %}";
+        var csrftoken = "{{ csrf_token }}";
+        var polling = null;
+
+        function poll() {
+            fetch(STATUS_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    statusEl.textContent = d.message || d.status;
+                    streetCountEl.textContent = d.street_count;
+                    if (d.status === 'done' || d.status === 'error') {
+                        clearInterval(polling); polling = null;
+                        btn.disabled = false;
+                        statusEl.className = 'text-sm ' + (d.status === 'error' ? 'text-red-600' : 'text-green-700');
+                        if (d.status === 'done') { setTimeout(function(){ location.reload(); }, 1200); }
+                    }
+                });
+        }
+
+        // If a job is already running when the page loads, resume polling.
+        {% if zone.osm_status == 'running' or zone.osm_status == 'queued' %}
+        btn.disabled = true; polling = setInterval(poll, 2500); poll();
+        {% endif %}
+
+        btn.addEventListener('click', function () {
+            btn.disabled = true;
+            statusEl.className = 'text-sm text-steel-blue';
+            statusEl.textContent = 'Starting…';
+            var body = new URLSearchParams();
+            if (replaceToggle.checked) { body.append('replace', '1'); }
+            fetch(POPULATE_URL, {
+                method: 'POST',
+                headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrftoken,
+                          'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body.toString()
+            }).then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
+              .then(function (res) {
+                  if (!res.ok || !res.d.success) {
+                      statusEl.className = 'text-sm text-red-600';
+                      statusEl.textContent = (res.d && res.d.error) || 'Failed to start.';
+                      btn.disabled = false;
+                      return;
+                  }
+                  if (!polling) { polling = setInterval(poll, 2500); }
+                  poll();
+              }).catch(function () {
+                  statusEl.className = 'text-sm text-red-600';
+                  statusEl.textContent = 'Network error.';
+                  btn.disabled = false;
+              });
+        });
+    }
+})();
+</script>
+{% endblock %}
