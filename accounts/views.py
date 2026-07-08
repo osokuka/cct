@@ -849,32 +849,92 @@ def team_activate(request, team_id):
 # Route Management Views
 @login_required
 def route_list(request):
-    """List all routes grouped by team."""
+    """Read-only daily routes derived from zone assignments.
+
+    Each row is (zone × collection day × assigned team). Create/edit of Route
+    objects is not part of this workflow — schedule on the zone form instead.
+    """
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
-    
-    routes = Route.objects.select_related('team', 'team__camp').prefetch_related('streets').all()
 
-    # Filter by camp if manager
+    from django.db.models import Count, Q as DQ
+
+    zones = (
+        Compound.objects.filter(is_active=True)
+        .select_related('camp', 'assigned_team')
+        .annotate(
+            n_streets=Count('buildings', filter=DQ(buildings__is_active=True), distinct=True),
+            n_dumpsters=Count(
+                'rooms',
+                filter=DQ(rooms__is_active=True, rooms__space_type='dumpster'),
+                distinct=True,
+            ),
+        )
+        .order_by('collection_weekday', 'assigned_team__name', 'name')
+    )
+
     user_role = get_user_role(request)
     if user_role == 'manager' and hasattr(request.user, 'profile'):
         camp = request.user.profile.camp
         if camp:
-            routes = routes.filter(team__camp=camp)
+            zones = zones.filter(camp=camp)
 
-    routes = routes.order_by('team__name', 'weekday')
-    route_rows = [{
-        'route': r,
-        'weekday_label': r.get_weekday_display() if r.weekday is not None else 'Always-on',
-        'street_count': r.street_count,
-        'dumpster_count': r.dumpster_count,
-    } for r in routes]
+    day_filter = request.GET.get('day', '').strip()
+    team_filter = request.GET.get('team', '').strip()
+    search = request.GET.get('search', '').strip()
+    scope_filter = request.GET.get('scope', 'scheduled').strip()
+
+    if scope_filter == 'scheduled':
+        zones = zones.filter(assigned_team__isnull=False, collection_weekday__isnull=False)
+    elif scope_filter == 'unscheduled':
+        zones = zones.filter(
+            DQ(assigned_team__isnull=True) | DQ(collection_weekday__isnull=True)
+        )
+
+    if day_filter == 'unscheduled':
+        zones = zones.filter(collection_weekday__isnull=True)
+    elif day_filter != '':
+        try:
+            zones = zones.filter(collection_weekday=int(day_filter))
+        except (TypeError, ValueError):
+            pass
+
+    if team_filter == 'unassigned':
+        zones = zones.filter(assigned_team__isnull=True)
+    elif team_filter:
+        zones = zones.filter(assigned_team_id=team_filter)
+
+    if search:
+        zones = zones.filter(
+            Q(name__icontains=search)
+            | Q(code__icontains=search)
+            | Q(assigned_team__name__icontains=search)
+        )
+
+    teams_qs = Team.objects.filter(is_active=True).order_by('name')
+    if user_role == 'manager' and hasattr(request.user, 'profile') and request.user.profile.camp:
+        teams_qs = teams_qs.filter(camp=request.user.profile.camp)
+
+    zone_list = list(zones)
+    scheduled = [z for z in zone_list if z.assigned_team_id and z.collection_weekday is not None]
 
     context = {
-        'route_rows': route_rows,
-        'active_routes_count': routes.filter(is_active=True).count(),
-        'teams_with_routes_count': routes.values('team').distinct().count(),
-        'streets_covered_count': sum(row['street_count'] for row in route_rows),
+        'route_rows': zone_list,
+        'weekday_choices': Compound.COLLECTION_WEEKDAY_CHOICES,
+        'teams': teams_qs,
+        'filters': {
+            'day': day_filter,
+            'team': team_filter,
+            'search': search,
+            'scope': scope_filter,
+        },
+        'scheduled_count': len(scheduled),
+        'teams_with_routes_count': len({z.assigned_team_id for z in scheduled}),
+        'days_covered_count': len({z.collection_weekday for z in scheduled}),
+        'unscheduled_count': sum(
+            1 for z in zone_list
+            if not z.assigned_team_id or z.collection_weekday is None
+        ),
     }
 
     return render(request, 'accounts/route_list.html', context)

@@ -207,13 +207,13 @@
         {% if user.is_authenticated %}
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
             <div class="relative">
-                <div class="px-4 py-3 flex items-center {% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleTeamMenu()">
-                    <i class="fa-solid fa-user-friends mr-3 {% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                    <span class="{% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Team Management</span>
+                <div class="px-4 py-3 flex items-center {% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name or 'task_assignment' in request.resolver_match.url_name or request.resolver_match.url_name == 'completed_tasks_table' %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors" onclick="toggleTeamMenu()">
+                    <i class="fa-solid fa-user-friends mr-3 {% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name or 'task_assignment' in request.resolver_match.url_name or request.resolver_match.url_name == 'completed_tasks_table' %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
+                    <span class="{% if 'team' in request.resolver_match.url_name or 'shift' in request.resolver_match.url_name or 'task_assignment' in request.resolver_match.url_name or request.resolver_match.url_name == 'completed_tasks_table' %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Team Management</span>
                     <i class="fa-solid fa-chevron-down ml-auto text-xs text-gray-400" id="team-chevron"></i>
                 </div>
                 <!-- Team Management Sub-menu -->
-                <div id="team-submenu" class="ml-8 mt-2 space-y-1 {% if 'team' not in request.resolver_match.url_name and 'shift' not in request.resolver_match.url_name %}hidden{% endif %}">
+                <div id="team-submenu" class="ml-8 mt-2 space-y-1 {% if 'team' not in request.resolver_match.url_name and 'shift' not in request.resolver_match.url_name and 'task_assignment' not in request.resolver_match.url_name and request.resolver_match.url_name != 'completed_tasks_table' %}hidden{% endif %}">
                     <a href="{% url 'accounts:team_list' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'team_list' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-list mr-3 text-xs"></i>
                         <span class="text-xs">List Teams</span>
@@ -222,18 +222,14 @@
                         <i class="fa-solid fa-clock mr-3 text-xs"></i>
                         <span class="text-xs">Shifts</span>
                     </a>
-                                            <a href="{% url 'accounts:task_generation_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_generation' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                            <i class="fa-solid fa-tasks mr-3 text-xs"></i>
-                            <span class="text-xs">Task Generation</span>
-                        </a>
-                        <a href="{% url 'accounts:task_assignment_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                            <i class="fa-solid fa-list-check mr-3 text-xs"></i>
-                            <span class="text-xs">Recurring Tasks</span>
-                        </a>
-                        <a href="{% url 'dashboard:completed_tasks_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'completed_tasks_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
-                            <i class="fa-solid fa-history mr-3 text-xs"></i>
-                            <span class="text-xs">Completed History</span>
-                        </a>
+                    <a href="{% url 'accounts:task_assignment_dashboard' %}" class="px-4 py-2 flex items-center {% if 'task_assignment' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-list-check mr-3 text-xs"></i>
+                        <span class="text-xs">Recurring Tasks</span>
+                    </a>
+                    <a href="{% url 'dashboard:completed_tasks_table' %}" class="px-4 py-2 flex items-center {% if request.resolver_match.url_name == 'completed_tasks_table' %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
+                        <i class="fa-solid fa-history mr-3 text-xs"></i>
+                        <span class="text-xs">Completed History</span>
+                    </a>
                 </div>
             </div>
             {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
@@ -259,7 +255,7 @@
                     </a>
                     <a href="{% url 'accounts:route_list' %}" class="px-4 py-2 flex items-center {% if 'route' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-20 text-steel-blue{% else %}hover:bg-gray-700{% endif %} cursor-pointer transition-colors rounded">
                         <i class="fa-solid fa-route mr-3 text-xs"></i>
-                        <span class="text-xs">Routes</span>
+                        <span class="text-xs">Daily Routes</span>
                     </a>
                 </div>
             </div>

@@ -3,6 +3,7 @@ URL configuration for accounts app.
 """
 
 from django.urls import path
+from django.views.generic import RedirectView
 from . import views, task_views, task_assignment_views, barcode_views, barcode_ajax_views, scan_views, debug_views, authority_compound_views
 
 app_name = 'accounts'
@@ -38,22 +39,54 @@ urlpatterns = [
     path('shifts/<uuid:shift_id>/deactivate/', views.shift_deactivate, name='shift_deactivate'),
     path('shifts/<uuid:shift_id>/activate/', views.shift_activate, name='shift_activate'),
     
-    # Route Management URLs
+    # Daily routes (read-only, derived from zone assignments)
     path('routes/', views.route_list, name='route_list'),
-    path('routes/create/', views.route_create, name='route_create'),
-    path('routes/<uuid:route_id>/', views.route_view, name='route_view'),
-    path('routes/<uuid:route_id>/update/', views.route_update, name='route_update'),
-    path('routes/<uuid:route_id>/deactivate/', views.route_deactivate, name='route_deactivate'),
-    path('routes/<uuid:route_id>/activate/', views.route_activate, name='route_activate'),
+    path(
+        'routes/create/',
+        RedirectView.as_view(pattern_name='accounts:route_list', permanent=False),
+        name='route_create',
+    ),
+    path(
+        'routes/<uuid:route_id>/',
+        RedirectView.as_view(pattern_name='accounts:route_list', permanent=False),
+        name='route_view',
+    ),
+    path(
+        'routes/<uuid:route_id>/update/',
+        RedirectView.as_view(pattern_name='accounts:route_list', permanent=False),
+        name='route_update',
+    ),
+    path(
+        'routes/<uuid:route_id>/deactivate/',
+        RedirectView.as_view(pattern_name='accounts:route_list', permanent=False),
+        name='route_deactivate',
+    ),
+    path(
+        'routes/<uuid:route_id>/activate/',
+        RedirectView.as_view(pattern_name='accounts:route_list', permanent=False),
+        name='route_activate',
+    ),
 
     # Plan generation (cadence + manual run)
     path('plan-config/', views.plan_config, name='plan_config'),
     path('plan-config/generate/', views.generate_tasks_now, name='generate_tasks_now'),
     
-    # Task Generation URLs
-    path('task-generation/', task_views.task_generation_dashboard, name='task_generation_dashboard'),
-    path('task-generation/preview/', task_views.task_generation_preview, name='task_generation_preview'),
-    path('task-generation/execute/', task_views.task_generation_execute, name='task_generation_execute'),
+    # Task generation UI removed — generate from Recurring Tasks instead
+    path(
+        'task-generation/',
+        RedirectView.as_view(pattern_name='accounts:task_assignment_dashboard', permanent=False),
+        name='task_generation_dashboard',
+    ),
+    path(
+        'task-generation/preview/',
+        RedirectView.as_view(pattern_name='accounts:task_assignment_dashboard', permanent=False),
+        name='task_generation_preview',
+    ),
+    path(
+        'task-generation/execute/',
+        RedirectView.as_view(pattern_name='accounts:task_assignment_dashboard', permanent=False),
+        name='task_generation_execute',
+    ),
     path('tasks/', task_views.task_list, name='task_list'),
     path('tasks/<uuid:task_id>/', task_views.task_detail, name='task_detail'),
     path('tasks/<uuid:task_id>/mark-done/', task_views.task_mark_done, name='task_mark_done'),

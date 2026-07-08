@@ -1,114 +1,180 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Route Management - Gjakova Cleaning Tracker{% endblock %}
-
-{% block page_title %}ROUTE MANAGEMENT{% endblock %}
-{% block page_subtitle %}Daily routes: Team, weekday & streets{% endblock %}
+{% block title %}Daily Routes — Gjakova Cleaning & Collection{% endblock %}
+{% block page_title %}DAILY ROUTES{% endblock %}
+{% block page_subtitle %}Zones scheduled by weekday and assigned team{% endblock %}
 
 {% block content %}
-<div class="px-6 py-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center">
-            <div class="w-12 h-12 bg-steel-blue rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fa-solid fa-route text-white text-xl"></i>
-            </div>
-            <div class="text-3xl font-bold text-steel-blue heading-font mb-1">{{ active_routes_count }}</div>
-            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Active Routes</div>
+<div class="container mx-auto px-4 py-8 text-dark-graphite dark:text-gray-100">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-gray-300 dark:border-gray-800">
+        <div>
+            <h1 class="heading-font text-2xl lg:text-3xl font-bold uppercase tracking-wider">Daily Routes</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                Read-only view of zones scheduled for a weekday and assigned to a team.
+                Change team or day on the <strong>Zone</strong> edit form.
+            </p>
         </div>
-        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center">
-            <div class="w-12 h-12 bg-warning-orange rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fa-solid fa-users text-white text-xl"></i>
-            </div>
-            <div class="text-3xl font-bold text-warning-orange heading-font mb-1">{{ teams_with_routes_count }}</div>
-            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Teams Assigned</div>
+        <a href="{% url 'locations:compound_list' %}"
+           class="mt-4 md:mt-0 px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+            <i class="fa-solid fa-map-location-dot mr-2"></i>Manage Zones
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow">
+            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scheduled routes</p>
+            <p class="text-3xl font-bold heading-font mt-1">{{ scheduled_count }}</p>
         </div>
-        <div class="metallic-card rounded-lg p-6 border border-gray-300 text-center">
-            <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fa-solid fa-road text-white text-xl"></i>
-            </div>
-            <div class="text-3xl font-bold text-purple-600 heading-font mb-1">{{ streets_covered_count }}</div>
-            <div class="text-sm text-gray-600 uppercase tracking-wide font-medium">Streets Scheduled</div>
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow">
+            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Teams assigned</p>
+            <p class="text-3xl font-bold heading-font mt-1 text-amber-600 dark:text-amber-400">{{ teams_with_routes_count }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow">
+            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Days covered</p>
+            <p class="text-3xl font-bold heading-font mt-1 text-steel-blue dark:text-sky-400">{{ days_covered_count }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow">
+            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unscheduled in view</p>
+            <p class="text-3xl font-bold heading-font mt-1 {% if unscheduled_count %}text-amber-600 dark:text-amber-400{% endif %}">{{ unscheduled_count }}</p>
         </div>
     </div>
-</div>
 
-<div class="px-6 pb-6">
-    <div class="metallic-card rounded-lg border border-gray-300">
-        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient">
-            <div class="flex items-center justify-between">
-                <h3 class="heading-font font-bold text-lg text-dark-graphite uppercase">DAILY ROUTES</h3>
-                <div class="flex items-center gap-2">
-                    <a href="{% url 'accounts:plan_config' %}" class="bg-dark-graphite text-white px-4 py-2 rounded uppercase text-sm tracking-wide flex items-center gap-2 hover:bg-black">
-                        <i class="fa-solid fa-gears"></i> <span>Plan Settings</span>
-                    </a>
-                    <a href="{% url 'accounts:route_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center gap-2">
-                        <i class="fa-solid fa-plus"></i> <span>Create Route</span>
-                    </a>
-                </div>
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 mb-6 shadow">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Scope</label>
+                <select name="scope" onchange="this.form.submit()"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                    <option value="scheduled" {% if filters.scope == 'scheduled' %}selected{% endif %}>Scheduled only</option>
+                    <option value="all" {% if filters.scope == 'all' %}selected{% endif %}>All zones</option>
+                    <option value="unscheduled" {% if filters.scope == 'unscheduled' %}selected{% endif %}>Unscheduled only</option>
+                </select>
             </div>
-        </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Weekday</label>
+                <select name="day" onchange="this.form.submit()"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                    <option value="">All days</option>
+                    {% for val, label in weekday_choices %}
+                    <option value="{{ val }}" {% if filters.day == val|stringformat:'s' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                    <option value="unscheduled" {% if filters.day == 'unscheduled' %}selected{% endif %}>Unscheduled</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Team</label>
+                <select name="team" onchange="this.form.submit()"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                    <option value="">All teams</option>
+                    <option value="unassigned" {% if filters.team == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                    {% for t in teams %}
+                    <option value="{{ t.id }}" {% if filters.team == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Search</label>
+                <input type="text" name="search" value="{{ filters.search }}" placeholder="Zone, code, team…"
+                       class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit"
+                        class="px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                    <i class="fa-solid fa-filter mr-2"></i>Filter
+                </button>
+                <a href="{% url 'accounts:route_list' %}"
+                   class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-dark-graphite dark:text-gray-100 font-semibold rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
 
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-steel-blue text-white">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Team</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Weekday</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Streets</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Dumpsters</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Priority</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+            {% if route_rows %}
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider">
+                        <th class="py-4 px-6">Weekday</th>
+                        <th class="py-4 px-6">Team</th>
+                        <th class="py-4 px-6">Zone</th>
+                        <th class="py-4 px-6">Type</th>
+                        <th class="py-4 px-6">Streets</th>
+                        <th class="py-4 px-6">Dumpsters</th>
+                        <th class="py-4 px-6 text-right">Open</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    {% for row in route_rows %}
-                    <tr class="hover:bg-blue-50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-dark-graphite">{{ row.route.team.name }}</div>
-                            <div class="text-xs text-gray-500">{{ row.route.team.camp.name }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                <i class="fa-solid fa-calendar-day mr-1"></i> {{ row.weekday_label }}
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+                    {% for zone in route_rows %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td class="py-4 px-6">
+                            {% if zone.collection_weekday is not None %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                                <i class="fa-solid fa-calendar-day mr-1"></i>{{ zone.collection_schedule_display }}
                             </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-dark-graphite">{{ row.street_count }}</td>
-                        <td class="px-6 py-4 text-sm text-dark-graphite">{{ row.dumpster_count }}</td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <i class="fa-solid fa-flag mr-1"></i> {{ row.route.priority }}
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                Unscheduled
                             </span>
+                            {% endif %}
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if row.route.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                <i class="fa-solid fa-{% if row.route.is_active %}check-circle{% else %}times-circle{% endif %} mr-1"></i>
-                                {% if row.route.is_active %}Active{% else %}Inactive{% endif %}
-                            </span>
+                        <td class="py-4 px-6">
+                            {% if zone.assigned_team %}
+                            <div class="font-semibold">{{ zone.assigned_team.name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ zone.camp.name }}</div>
+                            {% else %}
+                            <span class="text-amber-600 dark:text-amber-400 font-medium">Unassigned</span>
+                            {% endif %}
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center space-x-2">
-                                <a href="{% url 'accounts:route_view' row.route.id %}" class="text-steel-blue hover:text-blue-800" title="View Route"><i class="fa-solid fa-eye"></i></a>
-                                <a href="{% url 'accounts:route_update' row.route.id %}" class="text-warning-orange hover:text-orange-800" title="Edit Route"><i class="fa-solid fa-edit"></i></a>
-                            </div>
+                        <td class="py-4 px-6">
+                            <a href="{% url 'locations:compound_view' zone.id %}"
+                               class="font-semibold text-dark-graphite dark:text-gray-100 hover:text-steel-blue dark:hover:text-sky-400">
+                                {{ zone.name }}
+                            </a>
+                            <div class="text-xs font-mono text-steel-blue dark:text-sky-400">{{ zone.code }}</div>
                         </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center">
-                                <i class="fa-solid fa-route text-gray-400 text-4xl mb-4"></i>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">No routes yet</h3>
-                                <p class="text-gray-500 mb-4">Create a daily route by assigning a team, a weekday and its streets.</p>
-                                <a href="{% url 'accounts:route_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded uppercase text-sm tracking-wide metallic-shine flex items-center gap-2">
-                                    <i class="fa-solid fa-plus"></i> <span>Create Route</span>
-                                </a>
-                            </div>
+                        <td class="py-4 px-6">
+                            {% if zone.zone_type == 'public_area' %}
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">Public area</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-700">Collection</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-gray-600 dark:text-gray-400">{{ zone.n_streets }}</td>
+                        <td class="py-4 px-6 text-gray-600 dark:text-gray-400">
+                            {% if zone.zone_type == 'public_area' %}
+                                {% if zone.area_sqm %}{{ zone.area_sqm|floatformat:0 }} m²{% else %}—{% endif %}
+                            {% else %}
+                                {{ zone.n_dumpsters }}
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <a href="{% url 'locations:compound_view' zone.id %}"
+                               class="text-steel-blue dark:text-sky-400 hover:opacity-80" title="Open zone">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <div class="text-center py-16 px-6">
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-route text-gray-400 dark:text-gray-500 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold mb-2">No scheduled routes</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                    Assign a team and collection day on a zone to see it here.
+                </p>
+                <a href="{% url 'locations:compound_list' %}"
+                   class="inline-flex items-center px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white text-sm font-semibold rounded-lg uppercase tracking-wider shadow">
+                    <i class="fa-solid fa-map-location-dot mr-2"></i>Manage Zones
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

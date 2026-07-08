@@ -227,10 +227,10 @@
                         <i class="fa-solid fa-edit mr-2"></i>
                         Edit Shift
                     </a>
-                    <a href="{% url 'accounts:route_create' %}?shift={{ shift.id }}" 
+                    <a href="{% url 'accounts:route_list' %}"
                        class="inline-flex items-center justify-center px-4 py-2 bg-steel-blue text-white text-sm font-medium rounded-md hover:bg-steel-blue-dark transition-colors">
-                        <i class="fa-solid fa-plus mr-2"></i>
-                        Create Route
+                        <i class="fa-solid fa-route mr-2"></i>
+                        Daily Routes
                     </a>
                     <a href="{% url 'accounts:shift_list' %}" 
                        class="inline-flex items-center justify-center px-4 py-2 bg-industrial-gray text-dark-graphite text-sm font-medium rounded-md hover:bg-gray-700 hover:text-white transition-colors">
