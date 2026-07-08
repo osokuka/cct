@@ -133,10 +133,10 @@ def rooms_table(request):
             log_audit(request, 'bulk_deactivate_rooms', f"RoomsCount:{updated}", {'room_ids': room_ids})
             return JsonResponse({'success': True, 'message': f'Deactivated {updated} rooms successfully.'})
             
-        # 4. Bulk delete (Admin only)
+        # 4. Bulk delete
         elif action == 'bulk_delete':
-            if user_role != 'admin':
-                return JsonResponse({'success': False, 'error': 'Only Admins can delete rooms.'}, status=403)
+            if user_role not in ['admin', 'manager']:
+                return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
             room_ids = request.POST.getlist('room_ids[]')
             deleted, _ = Room.objects.filter(id__in=room_ids).delete()
             log_audit(request, 'bulk_delete_rooms', f"RoomsCount:{deleted}", {'room_ids': room_ids})

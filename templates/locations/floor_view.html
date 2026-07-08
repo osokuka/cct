@@ -27,7 +27,7 @@
                         <i class="fa-solid fa-circle text-xs mr-2"></i>
                         {% if floor.is_active %}Active{% else %}Inactive{% endif %}
                     </span>
-                    {% if user.profile.role == 'admin' %}
+                    {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
                     <a href="{% url 'locations:floor_edit' floor.id %}" class="inline-flex items-center px-4 py-2 bg-steel-blue text-white rounded-lg text-sm font-medium hover:bg-steel-blue/90 transition-colors">
                         <i class="fa-solid fa-edit mr-2"></i>Edit
                     </a>

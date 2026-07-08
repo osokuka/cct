@@ -112,7 +112,7 @@
         <div class="flex gap-2">
             <button onclick="bulkStatusChange(true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded uppercase tracking-wider">Activate</button>
             <button onclick="bulkStatusChange(false)" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded uppercase tracking-wider">Deactivate</button>
-            {% if user_role == 'admin' %}
+            {% if user_role == 'admin' or user_role == 'manager' %}
             <button onclick="bulkDelete()" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded uppercase tracking-wider">Delete</button>
             {% endif %}
             <button onclick="clearSelection()" class="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-dark-graphite dark:text-white text-xs font-semibold rounded uppercase tracking-wider">Cancel</button>
@@ -198,7 +198,7 @@
                                 <a href="{% url 'locations:room_update' room.id %}" class="w-8 h-8 rounded bg-gray-100 dark:bg-gray-800 hover:bg-steel-blue hover:text-white flex items-center justify-center text-gray-500 dark:text-gray-400 transition-colors" title="Full Edit">
                                     <i class="fa-solid fa-edit text-xs"></i>
                                 </a>
-                                {% if user_role == 'admin' %}
+                                {% if user_role == 'admin' or user_role == 'manager' %}
                                 <button onclick="deleteSingleRoom('{{ room.id }}', '{{ room.room_code }}')" class="w-8 h-8 rounded bg-gray-100 dark:bg-gray-800 hover:bg-red-600 hover:text-white flex items-center justify-center text-gray-500 dark:text-gray-400 transition-colors" title="Delete">
                                     <i class="fa-solid fa-trash-can text-xs"></i>
                                 </button>

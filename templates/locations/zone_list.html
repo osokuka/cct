@@ -1,107 +1,161 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Zones{% endblock %}
+{% block title %}Zones — Gjakova Cleaning & Collection{% endblock %}
+{% block page_title %}ZONES{% endblock %}
+{% block page_subtitle %}City zones with map-drawn boundaries and OSM-populated streets{% endblock %}
 
 {% block content %}
-<div class="p-6">
-    <div class="metallic-card rounded-lg border border-gray-300 mb-6">
-        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between">
-            <div>
-                <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">Zones</h2>
-                <p class="text-gray-600 mt-1 text-sm">City zones with map-drawn boundaries and OSM-populated streets</p>
-            </div>
-            {% if user.profile.role != 'authority' %}
-            <div class="flex gap-2">
-                <a href="{% url 'locations:dumpster_create' %}" class="bg-green-600 text-white px-4 py-2 rounded font-semibold text-sm uppercase tracking-wide hover:bg-green-700 transition-all">
-                    <i class="fa-solid fa-dumpster mr-2"></i>Add Dumpster
-                </a>
-                <a href="{% url 'locations:zone_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded font-semibold text-sm uppercase tracking-wide hover:bg-opacity-90 transition-all">
-                    <i class="fa-solid fa-plus mr-2"></i>Add Zone
-                </a>
-            </div>
-            {% endif %}
+<div class="container mx-auto px-4 py-8 text-dark-graphite dark:text-gray-100">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-gray-300 dark:border-gray-800">
+        <div>
+            <h1 class="heading-font text-2xl lg:text-3xl font-bold uppercase tracking-wider">Zones</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                City zones with map-drawn boundaries, collection assignment, and OSM-populated streets.
+            </p>
         </div>
+        {% if user.profile.role != 'authority' %}
+        <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+            <a href="{% url 'locations:dumpster_create' %}"
+               class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                <i class="fa-solid fa-dumpster mr-2"></i>Add Dumpster
+            </a>
+            <a href="{% url 'locations:zone_create' %}"
+               class="px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                <i class="fa-solid fa-plus mr-2"></i>Add Zone
+            </a>
+        </div>
+        {% endif %}
+    </div>
 
-        <div class="p-6">
-            <form method="get" class="flex flex-wrap gap-3 mb-6">
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 mb-6 shadow">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="lg:col-span-2">
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Search</label>
                 <input type="text" name="search" value="{{ search_query }}" placeholder="Search zones…"
-                       class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-steel-blue">
-                <select name="camp_filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                       class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Site</label>
+                <select name="camp_filter" onchange="this.form.submit()"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
                     <option value="">All sites</option>
                     {% for camp in camps %}
                     <option value="{{ camp.id }}" {% if camp_filter == camp.id|stringformat:'s' %}selected{% endif %}>{{ camp.name }}</option>
                     {% endfor %}
                 </select>
-                <select name="status_filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-steel-blue">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Status</label>
+                <select name="status_filter" onchange="this.form.submit()"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
                     <option value="">All statuses</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                     <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
                 </select>
-                <button type="submit" class="bg-dark-graphite text-white px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-black transition-all">
-                    <i class="fa-solid fa-magnifying-glass mr-2"></i>Filter
-                </button>
-            </form>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-gray-500 uppercase text-xs border-b border-gray-300">
-                            <th class="py-3 pr-4">Zone</th>
-                            <th class="py-3 pr-4">Code</th>
-                            <th class="py-3 pr-4">Site</th>
-                            <th class="py-3 pr-4">Collection day</th>
-                            <th class="py-3 pr-4">Boundary</th>
-                            <th class="py-3 pr-4">Streets</th>
-                            <th class="py-3 pr-4">OSM</th>
-                            <th class="py-3 pr-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for zone in zones %}
-                        <tr class="border-b border-gray-200 hover:bg-gray-50">
-                            <td class="py-3 pr-4 font-semibold text-dark-graphite">
-                                <a href="{% url 'locations:compound_view' zone.id %}" class="hover:text-steel-blue">{{ zone.name }}</a>
-                            </td>
-                            <td class="py-3 pr-4">{{ zone.code }}</td>
-                            <td class="py-3 pr-4 text-gray-600">{{ zone.camp.name }}</td>
-                            <td class="py-3 pr-4">
-                                {% if zone.collection_weekday is not None %}
-                                <span class="px-2 py-1 rounded-full text-xs bg-steel-blue/10 text-steel-blue">{{ zone.collection_schedule_display }}</span>
-                                {% else %}
-                                <span class="text-gray-400 text-xs">Unscheduled</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-3 pr-4">
-                                {% if zone.has_boundary %}
-                                <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700"><i class="fa-solid fa-draw-polygon"></i> Set</span>
-                                {% else %}
-                                <span class="px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-700">Not drawn</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-3 pr-4">{{ zone.street_count }}</td>
-                            <td class="py-3 pr-4">
-                                {% if zone.osm_status == 'done' %}<span class="text-green-700 text-xs"><i class="fa-solid fa-circle-check"></i> Done</span>
-                                {% elif zone.osm_status == 'running' or zone.osm_status == 'queued' %}<span class="text-steel-blue text-xs"><i class="fa-solid fa-spinner fa-spin"></i> {{ zone.get_osm_status_display }}</span>
-                                {% elif zone.osm_status == 'error' %}<span class="text-red-600 text-xs"><i class="fa-solid fa-triangle-exclamation"></i> Error</span>
-                                {% else %}<span class="text-gray-400 text-xs">—</span>{% endif %}
-                            </td>
-                            <td class="py-3 pr-4 text-right whitespace-nowrap">
-                                <a href="{% url 'locations:compound_view' zone.id %}" class="text-steel-blue hover:underline mr-3"><i class="fa-solid fa-eye"></i> Open</a>
-                                {% if user.profile.role != 'authority' %}
-                                <a href="{% url 'locations:compound_edit' zone.id %}" class="text-steel-blue hover:underline mr-3"><i class="fa-solid fa-pen"></i> Edit</a>
-                                {% endif %}
-                                {% if user.profile.role == 'admin' %}
-                                <a href="{% url 'locations:zone_delete' zone.id %}" class="text-red-600 hover:underline"><i class="fa-solid fa-trash"></i></a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="8" class="py-8 text-center text-gray-500">No zones yet.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
+            <div class="sm:col-span-2 lg:col-span-4 flex justify-end gap-2">
+                <button type="submit"
+                        class="px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                    <i class="fa-solid fa-filter mr-2"></i>Filter
+                </button>
+                <a href="?"
+                   class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-dark-graphite dark:text-gray-100 font-semibold rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider">
+                        <th class="py-4 px-6">Zone</th>
+                        <th class="py-4 px-6">Code</th>
+                        <th class="py-4 px-6">Site</th>
+                        <th class="py-4 px-6">Type</th>
+                        <th class="py-4 px-6">Team / Day</th>
+                        <th class="py-4 px-6">Boundary</th>
+                        <th class="py-4 px-6">Streets</th>
+                        <th class="py-4 px-6">OSM</th>
+                        <th class="py-4 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+                    {% for zone in zones %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td class="py-4 px-6 font-semibold">
+                            <a href="{% url 'locations:compound_view' zone.id %}" class="text-dark-graphite dark:text-gray-100 hover:text-steel-blue dark:hover:text-sky-400">
+                                {{ zone.name }}
+                            </a>
+                        </td>
+                        <td class="py-4 px-6 font-mono text-steel-blue dark:text-sky-400">{{ zone.code }}</td>
+                        <td class="py-4 px-6 text-gray-600 dark:text-gray-400">{{ zone.camp.name }}</td>
+                        <td class="py-4 px-6">
+                            {% if zone.zone_type == 'public_area' %}
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">Public area</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-700">Collection</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if zone.assigned_team %}
+                            <div class="font-medium text-dark-graphite dark:text-gray-100">{{ zone.assigned_team.name }}</div>
+                            {% else %}
+                            <div class="text-gray-400 dark:text-gray-500 text-xs">No team</div>
+                            {% endif %}
+                            {% if zone.collection_weekday is not None %}
+                            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-steel-blue/10 dark:bg-steel-blue/20 text-steel-blue dark:text-sky-300">{{ zone.collection_schedule_display }}</span>
+                            {% else %}
+                            <span class="inline-block mt-1 text-xs text-amber-600 dark:text-amber-400">Unscheduled</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if zone.has_boundary %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                <i class="fa-solid fa-draw-polygon mr-1"></i>Set
+                                {% if zone.area_sqm %}<span class="font-normal opacity-80">· {{ zone.area_sqm|floatformat:0 }} m²</span>{% endif %}
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800">Not drawn</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 font-mono text-gray-600 dark:text-gray-400">{{ zone.street_count }}</td>
+                        <td class="py-4 px-6 text-xs">
+                            {% if zone.osm_status == 'done' %}
+                            <span class="text-emerald-700 dark:text-emerald-400"><i class="fa-solid fa-circle-check mr-1"></i>Done</span>
+                            {% elif zone.osm_status == 'running' or zone.osm_status == 'queued' %}
+                            <span class="text-steel-blue dark:text-sky-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>{{ zone.get_osm_status_display }}</span>
+                            {% elif zone.osm_status == 'error' %}
+                            <span class="text-red-600 dark:text-red-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Error</span>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-right whitespace-nowrap">
+                            <a href="{% url 'locations:compound_view' zone.id %}" class="text-steel-blue dark:text-sky-400 hover:underline mr-3"><i class="fa-solid fa-eye"></i> Open</a>
+                            {% if user.profile.role != 'authority' %}
+                            <a href="{% url 'locations:compound_edit' zone.id %}" class="text-steel-blue dark:text-sky-400 hover:underline mr-3"><i class="fa-solid fa-pen"></i> Edit</a>
+                            {% endif %}
+                            {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
+                            <a href="{% url 'locations:zone_delete' zone.id %}" class="text-red-600 dark:text-red-400 hover:underline"><i class="fa-solid fa-trash"></i></a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-10 text-center text-gray-400 dark:text-gray-500 font-medium">
+                            No zones yet.
+                            {% if user.profile.role != 'authority' %}
+                            <a href="{% url 'locations:zone_create' %}" class="text-steel-blue dark:text-sky-400 hover:underline ml-1">Add the first zone</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

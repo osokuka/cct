@@ -162,7 +162,7 @@
                                 <a href="{% url 'locations:room_update' room.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
                                     <i class="fa-solid fa-edit"></i>
                                 </a>
-                                {% if user.profile.role == 'admin' %}
+                                {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
                                 <a href="{% url 'locations:room_delete' room.id %}" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
                                     <i class="fa-solid fa-trash"></i>
                                 </a>
@@ -237,7 +237,7 @@
                                 <a href="{% url 'locations:room_update' room.id %}" class="text-steel-blue hover:text-steel-blue/80 transition-colors" title="Edit">
                                     <i class="fa-solid fa-edit"></i>
                                 </a>
-                                {% if user.profile.role == 'admin' %}
+                                {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
                                 <a href="{% url 'locations:room_delete' room.id %}" class="text-warning-orange hover:text-warning-orange/80 transition-colors" title="Delete">
                                     <i class="fa-solid fa-trash"></i>
                                 </a>
@@ -307,7 +307,7 @@
                         <a href="{% url 'locations:room_update' room.id %}" class="text-steel-blue hover:text-steel-blue/80 p-1 transition-colors" title="Edit">
                             <i class="fa-solid fa-edit"></i>
                         </a>
-                        {% if user.profile.role == 'admin' %}
+                        {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
                         <a href="{% url 'locations:room_delete' room.id %}" class="text-warning-orange hover:text-warning-orange/80 p-1 transition-colors" title="Delete">
                             <i class="fa-solid fa-trash"></i>
                         </a>

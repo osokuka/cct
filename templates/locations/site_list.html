@@ -1,76 +1,100 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Sites{% endblock %}
+{% block title %}Sites — Gjakova Cleaning & Collection{% endblock %}
+{% block page_title %}SITES{% endblock %}
+{% block page_subtitle %}Cities / municipalities managed on the platform{% endblock %}
 
 {% block content %}
-<div class="p-6">
-    <div class="metallic-card rounded-lg border border-gray-300 mb-6">
-        <div class="px-6 py-4 border-b border-gray-300 metallic-gradient flex items-center justify-between">
-            <div>
-                <h2 class="heading-font font-bold text-2xl text-dark-graphite uppercase">Sites</h2>
-                <p class="text-gray-600 mt-1 text-sm">Cities / municipalities managed on the platform</p>
-            </div>
-            <a href="{% url 'locations:site_create' %}" class="bg-steel-blue text-white px-4 py-2 rounded font-semibold text-sm uppercase tracking-wide hover:bg-opacity-90 transition-all">
-                <i class="fa-solid fa-plus mr-2"></i>Add Site
-            </a>
+<div class="container mx-auto px-4 py-8 text-dark-graphite dark:text-gray-100">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-gray-300 dark:border-gray-800">
+        <div>
+            <h1 class="heading-font text-2xl lg:text-3xl font-bold uppercase tracking-wider">Sites</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Cities / municipalities managed on the platform.</p>
         </div>
+        {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
+        <a href="{% url 'locations:site_create' %}"
+           class="mt-4 md:mt-0 px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+            <i class="fa-solid fa-plus mr-2"></i>Add Site
+        </a>
+        {% endif %}
+    </div>
 
-        <div class="p-6">
-            <form method="get" class="flex flex-wrap gap-3 mb-6">
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 mb-6 shadow">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Search</label>
                 <input type="text" name="search" value="{{ search_query }}" placeholder="Search sites…"
-                       class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-steel-blue">
-                <select name="status_filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-steel-blue">
+                       class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Status</label>
+                <select name="status_filter" onchange="this.form.submit()"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-dark-graphite dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-steel-blue">
                     <option value="">All statuses</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                     <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
                 </select>
-                <button type="submit" class="bg-dark-graphite text-white px-4 py-2 rounded font-semibold text-sm uppercase hover:bg-black transition-all">
-                    <i class="fa-solid fa-magnifying-glass mr-2"></i>Filter
-                </button>
-            </form>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-gray-500 uppercase text-xs border-b border-gray-300">
-                            <th class="py-3 pr-4">Site</th>
-                            <th class="py-3 pr-4">Code</th>
-                            <th class="py-3 pr-4">Timezone</th>
-                            <th class="py-3 pr-4">Zones</th>
-                            <th class="py-3 pr-4">Streets</th>
-                            <th class="py-3 pr-4">Status</th>
-                            <th class="py-3 pr-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for s in sites %}
-                        <tr class="border-b border-gray-200 hover:bg-gray-50">
-                            <td class="py-3 pr-4 font-semibold text-dark-graphite">{{ s.camp.name }}</td>
-                            <td class="py-3 pr-4">{{ s.camp.code }}</td>
-                            <td class="py-3 pr-4 text-gray-600">{{ s.camp.timezone }}</td>
-                            <td class="py-3 pr-4">{{ s.zone_count }}</td>
-                            <td class="py-3 pr-4">{{ s.street_count }}</td>
-                            <td class="py-3 pr-4">
-                                {% if s.camp.is_active %}
-                                <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">Active</span>
-                                {% else %}
-                                <span class="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">Inactive</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-3 pr-4 text-right whitespace-nowrap">
-                                <a href="{% url 'locations:camp_edit' s.camp.id %}" class="text-steel-blue hover:underline mr-3"><i class="fa-solid fa-pen"></i> Edit</a>
-                                {% if user.profile.role == 'admin' %}
-                                <a href="{% url 'locations:site_delete' s.camp.id %}" class="text-red-600 hover:underline"><i class="fa-solid fa-trash"></i> Delete</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="7" class="py-8 text-center text-gray-500">No sites yet. <a href="{% url 'locations:site_create' %}" class="text-steel-blue hover:underline">Add the first site</a>.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
+            <div class="sm:col-span-3 flex justify-end gap-2">
+                <button type="submit"
+                        class="px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-semibold rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                    <i class="fa-solid fa-filter mr-2"></i>Filter
+                </button>
+                <a href="?"
+                   class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-dark-graphite dark:text-gray-100 font-semibold rounded-lg uppercase text-xs tracking-wider transition-all shadow">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider">
+                        <th class="py-4 px-6">Site</th>
+                        <th class="py-4 px-6">Code</th>
+                        <th class="py-4 px-6">Timezone</th>
+                        <th class="py-4 px-6">Zones</th>
+                        <th class="py-4 px-6">Streets</th>
+                        <th class="py-4 px-6">Status</th>
+                        <th class="py-4 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+                    {% for s in sites %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td class="py-4 px-6 font-semibold text-dark-graphite dark:text-gray-100">{{ s.camp.name }}</td>
+                        <td class="py-4 px-6 font-mono text-steel-blue dark:text-sky-400">{{ s.camp.code }}</td>
+                        <td class="py-4 px-6 text-gray-600 dark:text-gray-400">{{ s.camp.timezone }}</td>
+                        <td class="py-4 px-6 font-mono text-gray-600 dark:text-gray-400">{{ s.zone_count }}</td>
+                        <td class="py-4 px-6 font-mono text-gray-600 dark:text-gray-400">{{ s.street_count }}</td>
+                        <td class="py-4 px-6">
+                            {% if s.camp.is_active %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 uppercase tracking-wider">Active</span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-700 uppercase tracking-wider">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-right whitespace-nowrap">
+                            <a href="{% url 'locations:camp_edit' s.camp.id %}" class="text-steel-blue dark:text-sky-400 hover:underline mr-3"><i class="fa-solid fa-pen"></i> Edit</a>
+                            {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
+                            <a href="{% url 'locations:site_delete' s.camp.id %}" class="text-red-600 dark:text-red-400 hover:underline"><i class="fa-solid fa-trash"></i> Delete</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-10 text-center text-gray-400 dark:text-gray-500 font-medium">
+                            No sites yet.
+                            <a href="{% url 'locations:site_create' %}" class="text-steel-blue dark:text-sky-400 hover:underline ml-1">Add the first site</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

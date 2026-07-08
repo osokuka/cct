@@ -238,8 +238,8 @@ def camp_edit(request, camp_id):
 
 @login_required
 def site_delete(request, camp_id):
-    """Delete a Site (city) and its zones/streets — admin only."""
-    if not check_permission(request, ['admin']):
+    """Delete a Site (city) and its zones/streets."""
+    if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:camp_list')
 
     camp = get_object_or_404(Camp, id=camp_id)
@@ -368,7 +368,7 @@ def compound_list(request):
     if not check_permission(request, ['admin', 'manager', 'authority']):
         return redirect('accounts:login')
 
-    compounds = Compound.objects.select_related('camp').all().order_by('camp__name', 'name')
+    compounds = Compound.objects.select_related('camp', 'assigned_team').all().order_by('camp__name', 'name')
 
     user_role = get_user_role(request)
     if user_role == 'authority' and hasattr(request.user, 'profile'):
@@ -637,8 +637,8 @@ def compound_edit(request, compound_id):
 
 @login_required
 def zone_delete(request, compound_id):
-    """Delete a Zone (city zone) and its streets/service points — admin only."""
-    if not check_permission(request, ['admin']):
+    """Delete a Zone (city zone) and its streets/service points."""
+    if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
 
     compound = get_object_or_404(Compound, id=compound_id)
@@ -969,8 +969,8 @@ def building_view(request, building_id):
 
 @login_required
 def building_edit(request, building_id):
-    """Edit building details - restricted to admin only."""
-    if not check_permission(request, ['admin']):
+    """Edit building / street details."""
+    if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
     building = get_object_or_404(Building, id=building_id)
@@ -1024,8 +1024,8 @@ def floor_view(request, floor_id):
 
 @login_required
 def floor_edit(request, floor_id):
-    """Edit floor details - restricted to admin only."""
-    if not check_permission(request, ['admin']):
+    """Edit floor / segment details."""
+    if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
     floor = get_object_or_404(Floor, id=floor_id)
@@ -1169,8 +1169,8 @@ def room_create(request):
 
 @login_required
 def room_update(request, room_id):
-    """Update an existing room - admin only."""
-    if not check_permission(request, ['admin']):
+    """Update an existing service point / dumpster."""
+    if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
     room = get_object_or_404(Room, id=room_id)
@@ -1228,8 +1228,8 @@ def room_view(request, room_id):
 
 @login_required
 def room_delete(request, room_id):
-    """Delete a room - admin only."""
-    if not check_permission(request, ['admin']):
+    """Delete a service point / dumpster."""
+    if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
     room = get_object_or_404(Room, id=room_id)
