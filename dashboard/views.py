@@ -29,6 +29,10 @@ def dashboard(request):
     # Redirect operations managers to the operations dashboard
     if hasattr(request.user, 'profile') and request.user.profile.role == 'operations_manager':
         return redirect('dashboard:operations_dashboard')
+
+    # Field operators (cleaners) use the minimal scan UI
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'cleaner':
+        return redirect('accounts:barcode_scanner')
     
     context = {}
     

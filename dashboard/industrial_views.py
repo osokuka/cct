@@ -201,16 +201,25 @@ def rooms_table(request):
         elif export_format == 'xlsx':
             return export_rooms_xlsx(rooms_qs)
 
-    # Handle Barcode Sheet Download
-    if request.GET.get('barcode_pdf') == 'true':
-        pdf_bytes = BarcodeService.generate_barcode_pdf(rooms_qs)
+    # Handle tag sheet downloads (barcode or QR)
+    tag_kind = request.GET.get('tags') or (
+        'barcode' if request.GET.get('barcode_pdf') == 'true' else ''
+    )
+    if tag_kind in ('barcode', 'qr'):
+        if tag_kind == 'qr':
+            pdf_bytes = BarcodeService.generate_qr_pdf(rooms_qs)
+            filename = 'dumpster_qr_tags.pdf'
+            audit_action = 'export_rooms_qr_pdf'
+        else:
+            pdf_bytes = BarcodeService.generate_barcode_pdf(rooms_qs)
+            filename = 'dumpster_barcode_tags.pdf'
+            audit_action = 'export_rooms_barcodes_pdf'
         if pdf_bytes:
             response = HttpResponse(pdf_bytes, content_type='application/pdf')
-            response['Content-Disposition'] = 'attachment; filename="rooms_barcode_sheet.pdf"'
-            log_audit(request, 'export_rooms_barcodes_pdf', f"RoomsCount:{rooms_qs.count()}")
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            log_audit(request, audit_action, f"RoomsCount:{rooms_qs.count()}")
             return response
-        else:
-            messages.error(request, "Failed to generate barcode sheet.")
+        messages.error(request, f"Failed to generate {'QR' if tag_kind == 'qr' else 'barcode'} tag sheet.")
 
     # Pagination
     paginator = Paginator(rooms_qs, 25)

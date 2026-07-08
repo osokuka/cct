@@ -618,27 +618,59 @@ def team_view(request, team_id):
         return redirect('accounts:login')
     
     try:
-        team = Team.objects.select_related('camp', 'team_leader', 'shift').prefetch_related('members', 'routes__compounds').get(id=team_id)
+        team = Team.objects.select_related(
+            'camp', 'team_leader', 'team_leader__profile', 'shift'
+        ).prefetch_related(
+            'members', 'members__profile', 'routes__compounds', 'assigned_zones'
+        ).get(id=team_id)
     except Team.DoesNotExist:
         messages.error(request, 'Team not found.')
         return redirect('accounts:team_list')
-    
-    # Log audit event
+
     log_audit_event(
-        request, 
-        'TEAM_VIEWED', 
+        request,
+        'TEAM_VIEWED',
         object_ref=f'Team:{team.id}',
         details={
             'team_name': team.name,
             'camp': team.camp.name if team.camp else None,
-            'team_leader': team.team_leader.username
-        }
+            'team_leader': team.team_leader.username if team.team_leader_id else None,
+        },
     )
-    
-    # Calculate active members count
-    active_members_count = team.members.filter(is_active=True, profile__is_active=True).count()
-    
-    # Group routes by compounds to avoid duplicates
+
+    # Full roster: leader first, then members (no duplicates).
+    members_qs = list(
+        team.members.select_related('profile').order_by('username')
+    )
+    member_ids = {m.id for m in members_qs}
+    roster = []
+    if team.team_leader_id:
+        roster.append({
+            'user': team.team_leader,
+            'role_label': 'Team leader',
+            'is_leader': True,
+        })
+    for m in members_qs:
+        if m.id == team.team_leader_id:
+            continue
+        roster.append({
+            'user': m,
+            'role_label': 'Operator',
+            'is_leader': False,
+        })
+        member_ids.add(m.id)
+
+    active_members_count = sum(
+        1 for row in roster
+        if row['user'].is_active and getattr(getattr(row['user'], 'profile', None), 'is_active', True)
+    )
+
+    # Zones assigned on the zone form (current workflow).
+    assigned_zones = list(
+        team.assigned_zones.filter(is_active=True).select_related('camp').order_by('name')
+    )
+
+    # Legacy route-based compound groupings (kept for older data).
     routes = team.routes.all()
     compounds_data = {}
     for route in routes:
@@ -648,31 +680,32 @@ def team_view(request, team_id):
                     'compound': compound,
                     'routes': [],
                     'total_priority': 0,
-                    'is_active': False
+                    'is_active': False,
                 }
             compounds_data[compound.id]['routes'].append(route)
             compounds_data[compound.id]['total_priority'] += route.priority
             if route.is_active:
                 compounds_data[compound.id]['is_active'] = True
-    
-    # Convert to list and sort by compound name
+
     assigned_compounds = []
-    for compound_id, data in compounds_data.items():
+    for _cid, data in compounds_data.items():
         assigned_compounds.append({
             'compound': data['compound'],
             'routes': data['routes'],
             'total_priority': data['total_priority'],
             'is_active': data['is_active'],
-            'route_count': len(data['routes'])
+            'route_count': len(data['routes']),
         })
-    
     assigned_compounds.sort(key=lambda x: x['compound'].name)
-    
+
     context = {
         'team': team,
+        'roster': roster,
+        'roster_count': len(roster),
         'active_members_count': active_members_count,
+        'assigned_zones': assigned_zones,
         'assigned_compounds': assigned_compounds,
-        'total_compounds': len(assigned_compounds)
+        'total_compounds': len(assigned_zones) or len(assigned_compounds),
     }
     return render(request, 'accounts/team_view.html', context)
 

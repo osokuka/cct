@@ -174,80 +174,128 @@ class BarcodeService:
             return None
     
     @staticmethod
-    def generate_barcode_pdf(rooms, filename: str = "room_barcodes.pdf") -> bytes:
-        """
-        Generate PDF with multiple barcodes
-        """
+    def generate_qr_image(tag_data: str, size: int = 280, with_text: bool = True) -> bytes:
+        """Generate a QR-code PNG for a dumpster/service-point tag."""
         try:
-            from reportlab.lib.pagesizes import letter, A4
+            import qrcode
+            qr = qrcode.QRCode(
+                version=None,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                box_size=8,
+                border=2,
+            )
+            qr.add_data(tag_data)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color='black', back_color='white').convert('RGB')
+            qr_img = qr_img.resize((size, size), Image.Resampling.NEAREST)
+
+            if not with_text:
+                out = io.BytesIO()
+                qr_img.save(out, format='PNG')
+                return out.getvalue()
+
+            text_h = 48
+            final = Image.new('RGB', (size, size + text_h), 'white')
+            final.paste(qr_img, (0, 0))
+            draw = ImageDraw.Draw(final)
+            try:
+                font = ImageFont.truetype("DejaVuSans.ttf", 14)
+            except Exception:
+                try:
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+                except Exception:
+                    font = ImageFont.load_default()
+            bbox = draw.textbbox((0, 0), tag_data, font=font)
+            tw = bbox[2] - bbox[0]
+            draw.text((max(4, (size - tw) // 2), size + 12), tag_data, fill='black', font=font)
+            out = io.BytesIO()
+            final.save(out, format='PNG')
+            return out.getvalue()
+        except Exception as e:
+            print(f"Error generating QR: {e}")
+            return None
+
+    @staticmethod
+    def _tag_payload(room) -> str:
+        """Canonical tag payload — prefer room_code (stable for scanning)."""
+        return (room.room_code or BarcodeService.generate_barcode_data(room) or '').strip()
+
+    @staticmethod
+    def _build_tag_pdf(rooms, image_builder, title: str, img_w: int, img_h: int,
+                       per_page: int = 6) -> bytes:
+        """Shared PDF builder for barcode/QR tag sheets."""
+        try:
+            from reportlab.lib.pagesizes import A4
             from reportlab.lib.units import inch
-            from reportlab.platypus import SimpleDocTemplate, Image as RLImage, Spacer, Paragraph
+            from reportlab.platypus import (
+                SimpleDocTemplate, Image as RLImage, Spacer, Paragraph, PageBreak,
+            )
             from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.lib import colors
-            
-            # Create PDF buffer
+
             buffer = io.BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
-            
-            # Container for the 'Flowable' objects
+            doc = SimpleDocTemplate(
+                buffer, pagesize=A4,
+                topMargin=0.5 * inch, bottomMargin=0.5 * inch,
+            )
             elements = []
             styles = getSampleStyleSheet()
-            
-            # Add title
-            title = Paragraph("Room Barcodes", styles['Title'])
-            elements.append(title)
+            elements.append(Paragraph(title, styles['Title']))
             elements.append(Spacer(1, 12))
-            
-            # Generate barcodes for each room with high quality
-            barcodes_per_row = 2  # Fewer per row for larger, higher quality barcodes
-            barcode_width = 300  # Increased width for better quality
-            barcode_height = 120  # Increased height for better quality
-            
-            for i, room in enumerate(rooms):
-                barcode_data = BarcodeService.generate_barcode_data(room)
-                barcode_bytes = BarcodeService.generate_barcode_with_text(
-                    barcode_data, barcode_width, barcode_height
-                )
-                
-                if barcode_bytes:
-                    # Use in-memory image instead of temporary file
-                    try:
-                        # Create PIL image from bytes
-                        from PIL import Image
-                        pil_img = Image.open(io.BytesIO(barcode_bytes))
-                        
-                        # Convert to RGB if needed
-                        if pil_img.mode != 'RGB':
-                            pil_img = pil_img.convert('RGB')
-                        
-                        # Save to BytesIO
-                        img_buffer = io.BytesIO()
-                        pil_img.save(img_buffer, format='PNG')
-                        img_buffer.seek(0)
-                        
-                        # Add image to PDF
-                        img = RLImage(img_buffer, width=barcode_width, height=barcode_height)
-                        elements.append(img)
-                        
-                        # Add room code only (no description)
-                        room_info = f"{room.room_code}"
-                        #room_para = Paragraph(room_info, styles['Normal'])
-                        #elements.append(room_para)
-                        elements.append(Spacer(1, 6))
-                        
-                    except Exception as img_error:
-                        print(f"Error processing image for room {room.room_code}: {img_error}")
-                        continue
-                
-                # Add page break every 6 barcodes (2 rows of 3)
-                if (i + 1) % 6 == 0:
-                    elements.append(Spacer(1, 12))
-            
-            # Build PDF
+
+            count = 0
+            for room in rooms:
+                payload = BarcodeService._tag_payload(room)
+                if not payload:
+                    continue
+                img_bytes = image_builder(payload)
+                if not img_bytes:
+                    continue
+                try:
+                    pil_img = Image.open(io.BytesIO(img_bytes))
+                    if pil_img.mode != 'RGB':
+                        pil_img = pil_img.convert('RGB')
+                    img_buffer = io.BytesIO()
+                    pil_img.save(img_buffer, format='PNG')
+                    img_buffer.seek(0)
+                    elements.append(RLImage(img_buffer, width=img_w, height=img_h))
+                    elements.append(Paragraph(
+                        f"<b>{room.room_code}</b>"
+                        + (f" — {room.compound.name}" if getattr(room, 'compound_id', None) else ""),
+                        styles['Normal'],
+                    ))
+                    elements.append(Spacer(1, 10))
+                    count += 1
+                    if count % per_page == 0:
+                        elements.append(PageBreak())
+                except Exception as img_error:
+                    print(f"Error processing tag image for {room.room_code}: {img_error}")
+                    continue
+
+            if count == 0:
+                return None
             doc.build(elements)
             buffer.seek(0)
             return buffer.getvalue()
-            
         except Exception as e:
-            print(f"Error generating PDF: {e}")
+            print(f"Error generating tag PDF: {e}")
             return None
+
+    @staticmethod
+    def generate_barcode_pdf(rooms, filename: str = "room_barcodes.pdf") -> bytes:
+        """Generate a PDF sheet of Code128 barcode tags."""
+        return BarcodeService._build_tag_pdf(
+            rooms,
+            image_builder=lambda payload: BarcodeService.generate_barcode_with_text(payload, 300, 120),
+            title="Barcode Tags",
+            img_w=300, img_h=120, per_page=6,
+        )
+
+    @staticmethod
+    def generate_qr_pdf(rooms, filename: str = "room_qr_tags.pdf") -> bytes:
+        """Generate a PDF sheet of QR-code tags."""
+        return BarcodeService._build_tag_pdf(
+            rooms,
+            image_builder=lambda payload: BarcodeService.generate_qr_image(payload, size=220, with_text=True),
+            title="QR Code Tags",
+            img_w=180, img_h=210, per_page=6,
+        )
