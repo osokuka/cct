@@ -2,8 +2,10 @@ services:
   # Main Django application
   web:
     build: .
-    ports:
-      - "8232:8000"
+    container_name: cct-web
+    networks:
+      - default
+      - proxy
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -12,10 +14,10 @@ services:
       - DEBUG=${DEBUG:-0}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-*&v#&okfzv%-wgvm#q=&qgif1l)vr5gg11i_^fh%bw#+3pu7&!}
       - DATABASE_URL=postgresql://arcom:${DB_PASSWORD:-Ferizaj2024!}@db:5432/arcom
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.10.6,prosolutions-ks.com,arcom-international.com,192.168.0.10,arcom.prosolutions-ks.com}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://192.168.10.6:8232,http://localhost:8232,http://127.0.0.1:8232}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,ambienti.scardustech.com}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://ambienti.scardustech.com}
       - DB_PASSWORD=${DB_PASSWORD:-Ferizaj2024!}
-      - USE_TLS=${USE_TLS:-False}
+      - USE_TLS=${USE_TLS:-True}
       # Fallback map center (used only when a scope has no geolocated points).
       - MAP_DEFAULT_LAT=${MAP_DEFAULT_LAT:-42.37092943416372}
       - MAP_DEFAULT_LNG=${MAP_DEFAULT_LNG:-20.435394872814765}
@@ -67,3 +69,8 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+
+networks:
+  proxy:
+    external: true
+    name: scarduspage_proxy

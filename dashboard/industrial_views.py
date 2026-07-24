@@ -222,7 +222,7 @@ def rooms_table(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # Get filter dropdown options
+    # Get filter dropdown options (site-scoped)
     if user_role == 'authority':
         assigned_compounds = get_authority_compound_ids(request.user)
         camps = Camp.objects.filter(compounds__id__in=assigned_compounds, is_active=True).distinct()
@@ -230,10 +230,10 @@ def rooms_table(request):
         buildings = Building.objects.filter(compound_id__in=assigned_compounds, is_active=True)
         floors = Floor.objects.filter(building__compound_id__in=assigned_compounds, is_active=True)
     else:
-        camps = Camp.objects.filter(is_active=True)
-        compounds = Compound.objects.filter(is_active=True)
-        buildings = Building.objects.filter(is_active=True)
-        floors = Floor.objects.filter(is_active=True)
+        camps = scoped_camps(request.user, active_only=True)
+        compounds = filter_by_camp(Compound.objects.filter(is_active=True), request.user, "camp")
+        buildings = filter_by_camp(Building.objects.filter(is_active=True), request.user, "compound__camp")
+        floors = filter_by_camp(Floor.objects.filter(is_active=True), request.user, "building__compound__camp")
 
     shifts = Shift.objects.filter(is_active=True)
 

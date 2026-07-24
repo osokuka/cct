@@ -20,6 +20,16 @@ INPUT_CLS = (
 CHECKBOX_CLS = "w-5 h-5 text-steel-blue bg-gray-100 border-gray-300 rounded focus:ring-steel-blue focus:ring-2"
 
 
+def _round_coordinate(value):
+    """Round pasted GPS values to the model's 6 decimal places."""
+    if value in (None, ''):
+        return None
+    try:
+        return Decimal(str(value).strip()).quantize(Decimal('0.000001'))
+    except Exception as exc:
+        raise forms.ValidationError('Enter a valid coordinate.') from exc
+
+
 class SiteForm(forms.ModelForm):
     """Create/edit a Site (city). Cutoff fields keep their model defaults."""
 
@@ -45,6 +55,20 @@ class SiteForm(forms.ModelForm):
             'center_lng': 'Used to center the boundary-drawing map (optional).',
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        coord_widget = forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': 'e.g. 42.388492'})
+        for name, label, placeholder in (
+            ('center_lat', 'Map center latitude', 'e.g. 42.388492'),
+            ('center_lng', 'Map center longitude', 'e.g. 20.431489'),
+        ):
+            self.fields[name] = forms.CharField(
+                required=False,
+                label=label,
+                help_text=self.Meta.help_texts.get(name, ''),
+                widget=forms.TextInput(attrs={'class': INPUT_CLS, 'placeholder': placeholder}),
+            )
+
     def clean_code(self):
         code = (self.cleaned_data.get('code') or '').strip()
         qs = Camp.objects.filter(code__iexact=code)
@@ -53,6 +77,12 @@ class SiteForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError("A site with this code already exists.")
         return code
+
+    def clean_center_lat(self):
+        return _round_coordinate(self.cleaned_data.get('center_lat'))
+
+    def clean_center_lng(self):
+        return _round_coordinate(self.cleaned_data.get('center_lng'))
 
 
 class ZoneForm(forms.ModelForm):

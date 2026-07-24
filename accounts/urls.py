@@ -96,8 +96,7 @@ urlpatterns = [
     path('task-assignment/', task_assignment_views.task_assignment_dashboard, name='task_assignment_dashboard'),
     path('task-assignment/manage/', task_assignment_views.manage_recurring_tasks, name='manage_recurring_tasks'),
     
-    # Barcode Generator URLs
-    path('barcode-generator/', barcode_views.barcode_generator, name='barcode_generator'),
+    # Barcode Generator URLs (page removed; generation endpoints kept)
     path('barcode-generator/room/<uuid:room_id>/', barcode_views.generate_single_barcode, name='generate_single_barcode'),
     path('barcode-generator/bulk/', barcode_views.generate_bulk_barcodes, name='generate_bulk_barcodes'),
     path('barcode-generator/camp/<uuid:camp_id>/', barcode_views.generate_camp_barcodes, name='generate_camp_barcodes'),

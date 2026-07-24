@@ -5,7 +5,7 @@ Barcode generator views for the admin interface.
 from django.shortcuts import render, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.views.generic import TemplateView, View
+from django.views.generic import View
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
@@ -19,32 +19,6 @@ from reportlab.lib.units import inch
 from cct.mixins import AdminRequiredMixin
 from locations.models import Camp, Compound, Building, Floor, Room
 from cct.utils import generate_barcode_data
-
-
-@method_decorator(login_required, name='dispatch')
-class BarcodeGeneratorView(AdminRequiredMixin, TemplateView):
-    """
-    Barcode generator interface with room selection and bulk generation.
-    """
-    template_name = 'dashboard/barcode_generator.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Get filter options
-        context['camps'] = Camp.objects.all()
-        context['compounds'] = Compound.objects.all()
-        context['buildings'] = Building.objects.all()
-        context['floors'] = Floor.objects.all()
-        
-        # Get rooms with barcode status
-        rooms = Room.objects.filter(is_active=True).select_related(
-            'floor__building__compound__camp'
-        ).order_by('floor__building__compound__camp__name', 'floor__building__compound__name', 'floor__building__name', 'floor__name', 'name')
-        
-        context['rooms'] = rooms
-        
-        return context
 
 
 @method_decorator(login_required, name='dispatch')

@@ -29,7 +29,9 @@
     </h2>
 
     <div id="camera-box" class="relative bg-gray-900 rounded-lg overflow-hidden mb-3" style="aspect-ratio: 4/3;">
-        <video id="camera" autoplay playsinline muted class="w-full h-full object-cover" style="display:none;"></video>
+        <div id="qr-reader" class="absolute inset-0"></div>
+        <video id="camera" autoplay playsinline muted webkit-playsinline
+               class="absolute inset-0 w-full h-full object-cover" style="display:none;"></video>
         <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
             <i class="fa-solid fa-camera text-3xl mb-2"></i>
             <p class="text-sm mb-1">Camera off</p>
@@ -122,7 +124,16 @@
 </section>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    #camera-box video { width: 100% !important; height: 100% !important; object-fit: cover; }
+    #qr-reader video { width: 100% !important; height: 100% !important; object-fit: cover; }
+    #qr-reader #qr-shaded-region { border-radius: 0.5rem; }
+</style>
+{% endblock %}
+
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
 <script>
 (function () {
@@ -135,9 +146,13 @@
     const GO = document.getElementById('manual-scan-btn');
     const STATUS = document.getElementById('status-message');
 
-    let reader = null;
+    let html5Qr = null;
+    let zxingReader = null;
+    let barcodeDetector = null;
+    let scanRaf = null;
     let scanning = false;
     let lookingUp = false;
+    let scanMode = null;
 
     function showStatus(msg, kind) {
         STATUS.className = 'mt-2 text-sm rounded-lg px-3 py-2 ' + (
@@ -147,6 +162,20 @@
         );
         STATUS.textContent = msg;
         STATUS.classList.remove('hidden');
+    }
+
+    function waitForVideo(video) {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+            return Promise.resolve();
+        }
+        return new Promise((resolve) => {
+            const done = () => {
+                if (video.videoWidth > 0) resolve();
+            };
+            video.addEventListener('loadedmetadata', done, { once: true });
+            video.addEventListener('playing', done, { once: true });
+            setTimeout(resolve, 2000);
+        });
     }
 
     async function lookup(code) {
@@ -175,71 +204,196 @@
         }
     }
 
+    function onCodeDetected(text) {
+        text = (text || '').trim();
+        if (!text || !scanning || lookingUp) return;
+        scanning = false;
+        stopCamera(false);
+        lookup(text);
+    }
+
+    function qrBoxSize(viewfinderWidth, viewfinderHeight) {
+        const edge = Math.min(viewfinderWidth, viewfinderHeight);
+        const size = Math.max(200, Math.floor(edge * 0.72));
+        return { width: size, height: size };
+    }
+
+    async function startHtml5Qrcode() {
+        html5Qr = new Html5Qrcode('qr-reader', { verbose: false });
+        const cameraConfig = { facingMode: { ideal: 'environment' } };
+        await html5Qr.start(
+            cameraConfig,
+            { fps: 10, qrbox: qrBoxSize, aspectRatio: 1.333333 },
+            onCodeDetected,
+            () => {}
+        );
+        scanMode = 'html5';
+    }
+
+    function scanWithDetector() {
+        if (!scanning || !barcodeDetector) return;
+        barcodeDetector.detect(VIDEO).then((codes) => {
+            if (!scanning) return;
+            if (codes && codes.length && codes[0].rawValue) {
+                onCodeDetected(codes[0].rawValue);
+                return;
+            }
+            scanRaf = requestAnimationFrame(scanWithDetector);
+        }).catch(() => {
+            if (scanning) scanRaf = requestAnimationFrame(scanWithDetector);
+        });
+    }
+
+    async function startBarcodeDetector(stream) {
+        const supported = await BarcodeDetector.getSupportedFormats();
+        const wanted = ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a'];
+        const formats = wanted.filter((f) => supported.includes(f));
+        if (!formats.length) return false;
+
+        VIDEO.srcObject = stream;
+        await VIDEO.play();
+        await waitForVideo(VIDEO);
+
+        PLACEHOLDER.style.display = 'none';
+        VIDEO.style.display = 'block';
+        FRAME.style.display = 'block';
+        STOP.style.display = 'block';
+        scanning = true;
+
+        barcodeDetector = new BarcodeDetector({ formats });
+        scanMode = 'detector';
+        showStatus('Point at a QR code or barcode', 'info');
+        scanWithDetector();
+        return true;
+    }
+
+    async function startZxing(stream) {
+        const formats = [
+            ZXing.BarcodeFormat.QR_CODE,
+            ZXing.BarcodeFormat.CODE_128,
+            ZXing.BarcodeFormat.CODE_39,
+            ZXing.BarcodeFormat.CODE_93,
+            ZXing.BarcodeFormat.EAN_13,
+            ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.UPC_A,
+            ZXing.BarcodeFormat.UPC_E,
+            ZXing.BarcodeFormat.ITF,
+            ZXing.BarcodeFormat.CODABAR,
+            ZXing.BarcodeFormat.DATA_MATRIX,
+        ];
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+        VIDEO.srcObject = stream;
+        await VIDEO.play();
+        await waitForVideo(VIDEO);
+
+        PLACEHOLDER.style.display = 'none';
+        VIDEO.style.display = 'block';
+        FRAME.style.display = 'block';
+        STOP.style.display = 'block';
+        scanning = true;
+
+        zxingReader = new ZXing.BrowserMultiFormatReader(hints, 250);
+        scanMode = 'zxing';
+        showStatus('Point at a QR code or barcode', 'info');
+
+        await zxingReader.decodeFromStream(stream, VIDEO, (result, err) => {
+            if (result && scanning) {
+                onCodeDetected(result.getText());
+            }
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.warn('Scan error:', err);
+            }
+        });
+    }
+
     async function startCamera() {
         if (scanning) return;
-        if (typeof ZXing === 'undefined') {
-            showStatus('Scanner library failed to load — use manual entry', 'error');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showStatus('Camera not available in this browser — use manual entry', 'error');
             return;
         }
+
+        showStatus('Requesting camera…', 'info');
+        STOP.style.display = 'block';
+
+        // html5-qrcode is the most reliable QR reader on iOS/Android.
+        if (typeof Html5Qrcode !== 'undefined') {
+            try {
+                PLACEHOLDER.style.display = 'none';
+                FRAME.style.display = 'block';
+                scanning = true;
+                await startHtml5Qrcode();
+                showStatus('Point at a QR code', 'info');
+                return;
+            } catch (e) {
+                console.warn('html5-qrcode failed, trying fallback:', e);
+                await stopCamera(false);
+            }
+        }
+
+        if (typeof ZXing === 'undefined' && typeof BarcodeDetector === 'undefined') {
+            showStatus('Scanner library failed to load — use manual entry below', 'error');
+            return;
+        }
+
         try {
-            // Accept QR codes and common 1D barcodes (tags print as Code 128).
-            const formats = [
-                ZXing.BarcodeFormat.QR_CODE,
-                ZXing.BarcodeFormat.CODE_128,
-                ZXing.BarcodeFormat.CODE_39,
-                ZXing.BarcodeFormat.CODE_93,
-                ZXing.BarcodeFormat.EAN_13,
-                ZXing.BarcodeFormat.EAN_8,
-                ZXing.BarcodeFormat.UPC_A,
-                ZXing.BarcodeFormat.UPC_E,
-                ZXing.BarcodeFormat.ITF,
-                ZXing.BarcodeFormat.CODABAR,
-                ZXing.BarcodeFormat.DATA_MATRIX,
-            ];
-            const hints = new Map();
-            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                },
+                audio: false,
+            });
 
-            reader = new ZXing.BrowserMultiFormatReader(hints, 250);
-            PLACEHOLDER.style.display = 'none';
-            VIDEO.style.display = 'block';
-            FRAME.style.display = 'block';
-            STOP.style.display = 'block';
-            scanning = true;
-            showStatus('Point at a QR code or barcode', 'info');
-
-            // Prefer the rear camera on phones.
-            const devices = await reader.listVideoInputDevices();
-            let deviceId = undefined;
-            if (devices && devices.length) {
-                const back = devices.find(d =>
-                    /back|rear|environment/i.test(d.label)
-                );
-                deviceId = (back || devices[devices.length - 1]).deviceId;
+            if (typeof BarcodeDetector !== 'undefined') {
+                try {
+                    if (await startBarcodeDetector(stream)) return;
+                } catch (e) {
+                    console.warn('BarcodeDetector failed:', e);
+                }
             }
 
-            reader.decodeFromVideoDevice(deviceId, VIDEO, (result, err) => {
-                if (result && scanning) {
-                    const text = (result.getText() || '').trim();
-                    if (text) {
-                        scanning = false;
-                        stopCamera(false);
-                        lookup(text);
-                    }
-                }
-            });
+            if (typeof ZXing !== 'undefined') {
+                await startZxing(stream);
+                return;
+            }
+
+            stream.getTracks().forEach((t) => t.stop());
+            showStatus('No compatible scanner — use manual entry', 'error');
+            stopCamera(true);
         } catch (e) {
-            showStatus('Camera permission denied — use manual entry', 'error');
+            console.error('Camera start failed:', e);
+            const msg = (e && (e.message || e.name)) ? (e.message || e.name) : String(e);
+            showStatus('Camera failed: ' + msg + ' — use manual entry', 'error');
             stopCamera(true);
         }
     }
 
-    function stopCamera(resetPlaceholder) {
+    async function stopCamera(resetPlaceholder) {
         scanning = false;
-        try { if (reader) reader.reset(); } catch (e) {}
-        reader = null;
+        if (scanRaf) {
+            cancelAnimationFrame(scanRaf);
+            scanRaf = null;
+        }
+
+        if (html5Qr) {
+            try { await html5Qr.stop(); } catch (e) {}
+            try { html5Qr.clear(); } catch (e) {}
+            html5Qr = null;
+        }
+        if (zxingReader) {
+            try { zxingReader.reset(); } catch (e) {}
+            zxingReader = null;
+        }
+        barcodeDetector = null;
+        scanMode = null;
+
         if (VIDEO.srcObject) {
-            VIDEO.srcObject.getTracks().forEach(t => t.stop());
+            VIDEO.srcObject.getTracks().forEach((t) => t.stop());
             VIDEO.srcObject = null;
         }
         VIDEO.style.display = 'none';

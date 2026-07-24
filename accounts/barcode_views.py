@@ -2,102 +2,14 @@
 Barcode Generator Views
 """
 
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, Http404, JsonResponse
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_http_methods
-from django.core.paginator import Paginator
-from django.db.models import Q
-from locations.models import Room, Camp, Compound, Building, Floor
+from locations.models import Room, Camp, Compound, Building
 from accounts.barcode_service import BarcodeService
 import json
-
-
-@login_required
-@staff_member_required
-def barcode_generator(request):
-    """
-    Barcode generator main page
-    """
-    # Get filter parameters
-    camp_id = request.GET.get('camp')
-    compound_id = request.GET.get('compound')
-    building_id = request.GET.get('building')
-    floor_id = request.GET.get('floor')
-    search = request.GET.get('search', '')
-    
-    # Get available camps
-    camps = Camp.objects.filter(is_active=True).order_by('name')
-    
-    # Get selected camp
-    selected_camp = None
-    if camp_id:
-        selected_camp = get_object_or_404(Camp, id=camp_id, is_active=True)
-    
-    # Get rooms based on filters
-    rooms = Room.objects.filter(is_active=True).select_related(
-        'floor__building__compound__camp'
-    ).order_by('floor__building__compound__camp__name', 'floor__building__compound__name', 'room_code')
-    
-    if selected_camp:
-        rooms = rooms.filter(floor__building__compound__camp=selected_camp)
-    
-    if compound_id:
-        rooms = rooms.filter(floor__building__compound_id=compound_id)
-    
-    if building_id:
-        rooms = rooms.filter(floor__building_id=building_id)
-    
-    if floor_id:
-        rooms = rooms.filter(floor_id=floor_id)
-    
-    if search:
-        rooms = rooms.filter(
-            Q(room_code__icontains=search) |
-            Q(room_description__icontains=search) |
-            Q(floor__building__name__icontains=search) |
-            Q(floor__building__compound__name__icontains=search)
-        )
-    
-    # Pagination
-    paginator = Paginator(rooms, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    # Get filter options
-    compounds = []
-    buildings = []
-    floors = []
-    
-    if selected_camp:
-        compounds = Compound.objects.filter(camp=selected_camp, is_active=True).order_by('name')
-        
-        if compound_id:
-            compound = get_object_or_404(Compound, id=compound_id)
-            buildings = Building.objects.filter(compound=compound, is_active=True).order_by('name')
-            
-            if building_id:
-                building = get_object_or_404(Building, id=building_id)
-                floors = Floor.objects.filter(building=building, is_active=True).order_by('name')
-    
-    context = {
-        'page_title': 'BARCODE GENERATOR',
-        'page_subtitle': 'Generate and download room barcodes',
-        'camps': camps,
-        'selected_camp': selected_camp,
-        'compounds': compounds,
-        'buildings': buildings,
-        'floors': floors,
-        'page_obj': page_obj,
-        'search': search,
-        'camp_id': camp_id,
-        'compound_id': compound_id,
-        'building_id': building_id,
-        'floor_id': floor_id,
-    }
-    
-    return render(request, 'accounts/barcode_generator.html', context)
 
 
 @login_required

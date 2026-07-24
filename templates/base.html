@@ -260,13 +260,6 @@
                 </div>
             </div>
             {% endif %}
-            
-            {% if user.is_authenticated and user.profile.role == 'admin' %}
-            <a href="{% url 'accounts:barcode_generator' %}" class="px-4 py-3 flex items-center {% if 'barcode' in request.resolver_match.url_name %}bg-steel-blue bg-opacity-30 border-r-4 border-steel-blue{% else %}hover:bg-gray-800{% endif %} cursor-pointer transition-colors">
-                <i class="fa-solid fa-barcode mr-3 {% if 'barcode' in request.resolver_match.url_name %}text-steel-blue{% else %}text-gray-400{% endif %}"></i>
-                <span class="{% if 'barcode' in request.resolver_match.url_name %}heading-font font-semibold uppercase text-sm{% else %}text-sm{% endif %}">Barcode Generator</span>
-            </a>
-            {% endif %}
         {% endif %}
         
         {% if user.is_authenticated and user.profile.role == 'cleaner' %}
