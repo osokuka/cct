@@ -12,6 +12,7 @@ from decimal import Decimal
 from accounts.models import User, UserProfile, Team, Shift, Route
 from accounts.task_generation import DailyCleaningTask
 from accounts.views import check_permission
+from accounts.scoping import is_platform_user, user_camp, scoped_camps, filter_by_camp
 from locations.models import Camp, Compound, Room, UrgentCleaningRequest
 
 
@@ -38,16 +39,13 @@ def dashboard(request):
     
     # Get user role and camp
     user_role = None
-    user_camp = None
+    user_camp_obj = None
     if hasattr(request.user, 'profile'):
         user_role = request.user.profile.role
-        user_camp = request.user.profile.camp
-    
-    # Get camps for filtering
-    if user_role == 'admin':
-        camps = Camp.objects.filter(is_active=True)
-    else:
-        camps = Camp.objects.filter(is_active=True, id=user_camp.id) if user_camp else []
+        user_camp_obj = request.user.profile.camp
+    user_camp = user_camp_obj  # keep local name used below
+
+    camps = scoped_camps(request.user)
     
     # Get today's date and calculate time periods
     today = timezone.now().date()
@@ -111,16 +109,21 @@ def dashboard(request):
             # If not in any team, show tasks assigned directly to their user account
             all_tasks = all_tasks.filter(assigned_to_user=request.user, task_date=today)
     elif user_role == 'authority':
-        # Authority users see tasks from their assigned compou        from accounts.views import get_authority_compound_ids
+        # Authority users see tasks from their assigned compounds
+        from accounts.views import get_authority_compound_ids
         authority_compound_ids = get_authority_compound_ids(request.user)
         if authority_compound_ids:
             all_tasks = all_tasks.filter(room__compound_id__in=authority_compound_ids)
         else:
             # If no compound assignments, show no tasks
             all_tasks = all_tasks.none()
-    elif user_role != 'admin' and user_camp:
-        # Managers see their camp's tasks
-        all_tasks = all_tasks.filter(room__camp=user_camp)
+    elif not is_platform_user(request.user):
+        # Site-scoped roles (admin/manager/ops): only their camp's tasks
+        if user_camp:
+            all_tasks = all_tasks.filter(room__camp=user_camp)
+        else:
+            all_tasks = all_tasks.none()
+    # Platform superuser: unscoped (all camps)
     
     # Filter tasks based on show_all parameter
     if show_all_tasks and user_role != 'cleaner':

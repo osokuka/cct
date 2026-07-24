@@ -16,6 +16,7 @@ import json
 from .task_generation import TaskGenerationService, DailyCleaningTask
 # Import functions from existing views.py
 from .views import check_permission, log_audit_event
+from .scoping import is_platform_user, user_camp, scoped_camps, filter_by_camp, get_scoped_object
 from locations.models import Camp, Compound
 from .models import Team, Shift, Route
 
@@ -27,14 +28,7 @@ def task_generation_dashboard(request):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('dashboard:dashboard')
     
-    # Get user's camp
-    user_camp = request.user.profile.camp if hasattr(request.user, 'profile') else None
-    
-    # Get camps for dropdown
-    if request.user.profile.role == 'admin':
-        camps = Camp.objects.filter(is_active=True)
-    else:
-        camps = Camp.objects.filter(is_active=True, id=user_camp.id) if user_camp else []
+    camps = scoped_camps(request.user)
     
     # Get recent task generation stats
     recent_tasks = DailyCleaningTask.objects.filter(
@@ -94,9 +88,9 @@ def task_generation_preview(request):
         start_date = date.fromisoformat(data.get('start_date'))
         end_date = date.fromisoformat(data.get('end_date'))
         
-        # Get camp
+        # Get camp (must be in caller's scope)
         try:
-            camp = Camp.objects.get(id=camp_id)
+            camp = scoped_camps(request.user).get(id=camp_id)
         except Camp.DoesNotExist:
             return JsonResponse({'error': 'Camp not found'}, status=404)
         
@@ -140,9 +134,9 @@ def task_generation_execute(request):
         start_date = date.fromisoformat(data.get('start_date'))
         end_date = date.fromisoformat(data.get('end_date'))
         
-        # Get camp
+        # Get camp (must be in caller's scope)
         try:
-            camp = Camp.objects.get(id=camp_id)
+            camp = scoped_camps(request.user).get(id=camp_id)
         except Camp.DoesNotExist:
             return JsonResponse({'error': 'Camp not found'}, status=404)
         
@@ -186,17 +180,13 @@ def task_list(request):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('dashboard:dashboard')
     
-    # Get user's camp
-    user_camp = request.user.profile.camp if hasattr(request.user, 'profile') else None
-    
     # Build queryset
     tasks = DailyCleaningTask.objects.select_related(
         'room', 'room__compound', 'room__building', 'room__floor', 'assigned_to_team'
     ).order_by('-task_date', 'room__room_code')
     
-    # Filter by camp if not admin
-    if request.user.profile.role != 'admin' and user_camp:
-        tasks = tasks.filter(room__camp=user_camp)
+    # Filter by camp for non-platform users
+    tasks = filter_by_camp(tasks, request.user, camp_lookup='room__camp')
     
     # Apply filters
     search = request.GET.get('search', '')
@@ -259,20 +249,13 @@ def task_detail(request, task_id):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('dashboard:dashboard')
     
-    try:
-        task = DailyCleaningTask.objects.select_related(
-            'room', 'room__compound', 'room__building', 'room__floor', 
-            'assigned_to_team', 'assigned_to_user'
-        ).get(id=task_id)
-    except DailyCleaningTask.DoesNotExist:
-        messages.error(request, "Task not found.")
-        return redirect('accounts:task_list')
-    
-    # Check camp access
-    user_camp = request.user.profile.camp if hasattr(request.user, 'profile') else None
-    if request.user.profile.role != 'admin' and user_camp and task.room.camp != user_camp:
-        messages.error(request, "You don't have permission to view this task.")
-        return redirect('accounts:task_list')
+    task = get_scoped_object(
+        DailyCleaningTask, request.user, task_id, camp_lookups=['room__camp']
+    )
+    task = DailyCleaningTask.objects.select_related(
+        'room', 'room__compound', 'room__building', 'room__floor',
+        'assigned_to_team', 'assigned_to_user'
+    ).get(id=task.id)
     
     context = {
         'task': task,
@@ -293,12 +276,9 @@ def task_mark_done(request, task_id):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
     try:
-        task = DailyCleaningTask.objects.get(id=task_id)
-        
-        # Check camp access
-        user_camp = request.user.profile.camp if hasattr(request.user, 'profile') else None
-        if request.user.profile.role != 'admin' and user_camp and task.room.camp != user_camp:
-            return JsonResponse({'error': 'Permission denied'}, status=403)
+        task = get_scoped_object(
+            DailyCleaningTask, request.user, task_id, camp_lookups=['room__camp']
+        )
         
         # Update task
         task.state = 'done'
@@ -315,9 +295,10 @@ def task_mark_done(request, task_id):
         
         return JsonResponse({'success': True, 'message': 'Task marked as done'})
         
-    except DailyCleaningTask.DoesNotExist:
-        return JsonResponse({'error': 'Task not found'}, status=404)
     except Exception as e:
+        from django.http import Http404
+        if isinstance(e, Http404):
+            return JsonResponse({'error': 'Task not found'}, status=404)
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -334,20 +315,18 @@ def task_assign_team(request, task_id):
         data = json.loads(request.body)
         team_id = data.get('team_id')
         
-        task = DailyCleaningTask.objects.get(id=task_id)
-        
-        # Check camp access
-        user_camp = request.user.profile.camp if hasattr(request.user, 'profile') else None
-        if request.user.profile.role != 'admin' and user_camp and task.room.camp != user_camp:
-            return JsonResponse({'error': 'Permission denied'}, status=403)
+        task = get_scoped_object(
+            DailyCleaningTask, request.user, task_id, camp_lookups=['room__camp']
+        )
         
         # Update task
         if team_id:
             from .models import Team
-            team = Team.objects.get(id=team_id)
+            team = get_scoped_object(Team, request.user, team_id)
             task.assigned_to_team = team
         else:
             task.assigned_to_team = None
+            team = None
         
         task.save()
         
@@ -361,7 +340,8 @@ def task_assign_team(request, task_id):
         
         return JsonResponse({'success': True, 'message': 'Task assignment updated'})
         
-    except DailyCleaningTask.DoesNotExist:
-        return JsonResponse({'error': 'Task not found'}, status=404)
     except Exception as e:
+        from django.http import Http404
+        if isinstance(e, Http404):
+            return JsonResponse({'error': 'Task not found'}, status=404)
         return JsonResponse({'error': str(e)}, status=500)

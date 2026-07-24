@@ -1,5 +1,5 @@
 """
-Custom admin site configuration to restrict access to admin users only.
+Custom admin site configuration — platform superusers only.
 """
 
 from django.contrib.admin import AdminSite
@@ -11,50 +11,47 @@ User = get_user_model()
 
 
 class RestrictedAdminSite(AdminSite):
-    """Custom admin site that restricts access to admin users only."""
-    
+    """Django admin restricted to is_superuser (platform). Site admins use the app UI."""
+
+    def has_permission(self, request):
+        return bool(
+            request.user.is_active
+            and request.user.is_authenticated
+            and request.user.is_superuser
+        )
+
     def login(self, request, extra_context=None):
-        """Override login to redirect non-admin users."""
         if request.user.is_authenticated:
-            if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
+            if request.user.is_superuser:
                 return super().login(request, extra_context)
-            else:
-                # Redirect non-admin users to the main dashboard
-                return redirect('dashboard:dashboard')
+            return redirect('dashboard:dashboard')
         return super().login(request, extra_context)
-    
+
     def index(self, request, extra_context=None):
-        """Override index to check admin role."""
         if not request.user.is_authenticated:
             return redirect('accounts:login')
-        
-        if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
-            return HttpResponseForbidden("Access denied. Admin role required.")
-        
+        if not request.user.is_superuser:
+            return HttpResponseForbidden(
+                "Access denied. Platform superuser required."
+            )
         return super().index(request, extra_context)
-    
+
     def each_context(self, request):
-        """Add custom context to admin pages."""
         context = super().each_context(request)
-        context['site_title'] = 'NATO Camp Cleaning Tracker - Admin'
-        context['site_header'] = 'NATO Camp Cleaning Tracker'
+        context['site_title'] = 'CCT — Platform Admin'
+        context['site_header'] = 'CCT Platform Administration'
         context['index_title'] = 'Administration Panel'
         return context
 
 
-# Create custom admin site instance
 admin_site = RestrictedAdminSite(name='restricted_admin')
 
-# Register models with the custom admin site
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from accounts.models import UserProfile, CompoundAssignment, Team, Shift, Route
 from accounts.admin import UserProfileInline, UserAdmin
 
-# Register User with custom admin
 admin_site.register(User, UserAdmin)
-
-# Register other models
 admin_site.register(UserProfile)
 admin_site.register(CompoundAssignment)
 admin_site.register(Team)

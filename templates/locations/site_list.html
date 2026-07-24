@@ -12,7 +12,7 @@
             <h1 class="heading-font text-2xl lg:text-3xl font-bold uppercase tracking-wider">Sites</h1>
             <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Cities / municipalities managed on the platform.</p>
         </div>
-        {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
+        {% if can_create_site %}
         <a href="{% url 'locations:site_create' %}"
            class="mt-4 md:mt-0 px-4 py-2 bg-steel-blue hover:bg-opacity-80 text-white font-medium rounded-lg uppercase text-xs tracking-wider transition-all shadow">
             <i class="fa-solid fa-plus mr-2"></i>Add Site
@@ -80,7 +80,7 @@
                         </td>
                         <td class="py-4 px-6 text-right whitespace-nowrap">
                             <a href="{% url 'locations:camp_edit' s.camp.id %}" class="text-steel-blue dark:text-sky-400 hover:underline mr-3"><i class="fa-solid fa-pen"></i> Edit</a>
-                            {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
+                            {% if user.is_superuser %}
                             <a href="{% url 'locations:site_delete' s.camp.id %}" class="text-red-600 dark:text-red-400 hover:underline"><i class="fa-solid fa-trash"></i> Delete</a>
                             {% endif %}
                         </td>
@@ -89,7 +89,9 @@
                     <tr>
                         <td colspan="7" class="py-10 text-center text-gray-400 dark:text-gray-500 font-medium">
                             No sites yet.
+                            {% if can_create_site %}
                             <a href="{% url 'locations:site_create' %}" class="text-steel-blue dark:text-sky-400 hover:underline ml-1">Add the first site</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

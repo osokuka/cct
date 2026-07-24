@@ -8,6 +8,7 @@ from django import forms
 from django.db.models import Q
 from decimal import Decimal
 from .models import Camp, Compound, Building, Floor, Room
+from accounts.scoping import is_platform_user, user_camp, scoped_camps, filter_by_camp
 
 
 # Shared light-theme input styling used by the rebuilt Site/Zone CRUD forms.
@@ -104,13 +105,16 @@ class ZoneForm(forms.ModelForm):
         self.fields['assigned_team'].required = False
         self.fields['assigned_team'].empty_label = "— unassigned —"
 
-        if self.request and hasattr(self.request.user, 'profile'):
-            profile = self.request.user.profile
-            if profile.role != 'admin' and profile.camp:
-                self.fields['camp'].queryset = Camp.objects.filter(id=profile.camp.id)
-                self.fields['camp'].initial = profile.camp
+        if self.request and self.request.user.is_authenticated and not is_platform_user(self.request.user):
+            camp = user_camp(self.request.user)
+            if camp:
+                self.fields['camp'].queryset = Camp.objects.filter(id=camp.id)
+                self.fields['camp'].initial = camp
                 self.fields['assigned_team'].queryset = Team.objects.filter(
-                    camp=profile.camp).select_related('team_leader').order_by('name')
+                    camp=camp).select_related('team_leader').order_by('name')
+            else:
+                self.fields['camp'].queryset = Camp.objects.none()
+                self.fields['assigned_team'].queryset = Team.objects.none()
 
     def clean_geo_polygon(self):
         raw = (self.cleaned_data.get('geo_polygon') or '').strip()
@@ -396,6 +400,7 @@ class BuildingEditForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
         # Style the form fields
@@ -409,6 +414,11 @@ class BuildingEditForm(forms.ModelForm):
         self.fields['name'].help_text = 'Full name of the building'
         self.fields['compound'].help_text = 'Select the compound this building belongs to'
         self.fields['is_active'].help_text = 'Whether this building is currently active'
+
+        if self.request and self.request.user.is_authenticated:
+            self.fields['compound'].queryset = filter_by_camp(
+                Compound.objects.all(), self.request.user
+            )
 
 
 class FloorEditForm(forms.ModelForm):
@@ -435,6 +445,7 @@ class FloorEditForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
         # Style the form fields
@@ -449,6 +460,11 @@ class FloorEditForm(forms.ModelForm):
         self.fields['building'].help_text = 'Select the building this floor belongs to'
         self.fields['is_active'].help_text = 'Whether this floor is currently active'
 
+        if self.request and self.request.user.is_authenticated:
+            self.fields['building'].queryset = filter_by_camp(
+                Building.objects.all(), self.request.user, camp_lookup='compound__camp'
+            )
+
 
 class CompoundCreateForm(forms.ModelForm):
     """Form for creating compounds."""
@@ -461,16 +477,8 @@ class CompoundCreateForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
-        if self.request and hasattr(self.request.user, 'profile'):
-            # Filter by user's camp if not admin
-            if self.request.user.profile.role != 'admin':
-                camp = self.request.user.profile.camp
-                if camp:
-                    self.fields['camp'].queryset = Camp.objects.filter(id=camp.id, is_active=True)
-                else:
-                    self.fields['camp'].queryset = Camp.objects.none()
-            else:
-                self.fields['camp'].queryset = Camp.objects.filter(is_active=True)
+        if self.request and self.request.user.is_authenticated:
+            self.fields['camp'].queryset = scoped_camps(self.request.user)
 
 
 class BuildingCreateForm(forms.ModelForm):
@@ -484,16 +492,10 @@ class BuildingCreateForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
-        if self.request and hasattr(self.request.user, 'profile'):
-            # Filter by user's camp if not admin
-            if self.request.user.profile.role != 'admin':
-                camp = self.request.user.profile.camp
-                if camp:
-                    self.fields['compound'].queryset = Compound.objects.filter(camp=camp, is_active=True)
-                else:
-                    self.fields['compound'].queryset = Compound.objects.none()
-            else:
-                self.fields['compound'].queryset = Compound.objects.filter(is_active=True)
+        if self.request and self.request.user.is_authenticated:
+            self.fields['compound'].queryset = filter_by_camp(
+                Compound.objects.filter(is_active=True), self.request.user
+            )
 
 
 class FloorCreateForm(forms.ModelForm):
@@ -507,16 +509,10 @@ class FloorCreateForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
-        if self.request and hasattr(self.request.user, 'profile'):
-            # Filter by user's camp if not admin
-            if self.request.user.profile.role != 'admin':
-                camp = self.request.user.profile.camp
-                if camp:
-                    self.fields['building'].queryset = Building.objects.filter(compound__camp=camp, is_active=True)
-                else:
-                    self.fields['building'].queryset = Building.objects.none()
-            else:
-                self.fields['building'].queryset = Building.objects.filter(is_active=True)
+        if self.request and self.request.user.is_authenticated:
+            self.fields['building'].queryset = filter_by_camp(
+                Building.objects.filter(is_active=True), self.request.user, camp_lookup='compound__camp'
+            )
 
 
 WEEKDAY_CHOICES = [
@@ -589,25 +585,17 @@ class RoomCreateForm(forms.ModelForm):
             if field_name != 'room_description':
                 field.required = True
         
-        if self.request and hasattr(self.request.user, 'profile'):
-            # Filter by user's camp if not admin
-            if self.request.user.profile.role != 'admin':
-                camp = self.request.user.profile.camp
-                if camp:
-                    self.fields['camp'].queryset = Camp.objects.filter(id=camp.id, is_active=True)
-                    self.fields['compound'].queryset = Compound.objects.filter(camp=camp, is_active=True)
-                    self.fields['building'].queryset = Building.objects.filter(compound__camp=camp, is_active=True)
-                    self.fields['floor'].queryset = Floor.objects.filter(building__compound__camp=camp, is_active=True)
-                else:
-                    self.fields['camp'].queryset = Camp.objects.none()
-                    self.fields['compound'].queryset = Compound.objects.none()
-                    self.fields['building'].queryset = Building.objects.none()
-                    self.fields['floor'].queryset = Floor.objects.none()
-            else:
-                self.fields['camp'].queryset = Camp.objects.filter(is_active=True)
-                self.fields['compound'].queryset = Compound.objects.filter(is_active=True)
-                self.fields['building'].queryset = Building.objects.filter(is_active=True)
-                self.fields['floor'].queryset = Floor.objects.filter(is_active=True)
+        if self.request and self.request.user.is_authenticated:
+            self.fields['camp'].queryset = scoped_camps(self.request.user)
+            self.fields['compound'].queryset = filter_by_camp(
+                Compound.objects.filter(is_active=True), self.request.user
+            )
+            self.fields['building'].queryset = filter_by_camp(
+                Building.objects.filter(is_active=True), self.request.user, camp_lookup='compound__camp'
+            )
+            self.fields['floor'].queryset = filter_by_camp(
+                Floor.objects.filter(is_active=True), self.request.user, camp_lookup='building__compound__camp'
+            )
         
         # Add data attributes for JavaScript filtering
         self.fields['compound'].widget.attrs['data-camp'] = ''

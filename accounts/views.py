@@ -20,8 +20,12 @@ from .forms import (
     ShiftCreateForm, ShiftUpdateForm, RouteCreateForm, RouteUpdateForm, CompoundAssignmentForm,
     PlanGenerationConfigForm,
 )
-from locations.models import Camp, Compound
+from locations.models import Compound
 from audit.models import AuditLog
+from .scoping import (
+    is_platform_user, user_camp, scoped_camps, filter_by_camp,
+    get_scoped_object, user_in_scope,
+)
 
 
 # Authentication Views
@@ -84,7 +88,7 @@ def login_view(request):
                 next_url = request.GET.get('next')
                 if next_url:
                     return redirect(next_url)
-                elif user_role == 'admin':
+                elif user.is_superuser:
                     return redirect('/admin/')
                 elif user_role == 'authority':
                     return redirect('dashboard:authority_dashboard')
@@ -137,19 +141,27 @@ def check_permission(request, required_roles):
 
 def get_authority_compound_ids(user):
     """Get compound IDs that an Authority, Admin, or Manager user can access."""
+    if is_platform_user(user):
+        return list(Compound.objects.filter(is_active=True).values_list('id', flat=True))
+
     if not hasattr(user, 'profile') or user.profile.role not in ['authority', 'admin', 'manager']:
         return []
-    
-    # For admin and manager users, return all compounds
+
+    # Site admin / manager: compounds for their assigned site only
     if user.profile.role in ['admin', 'manager']:
-        from locations.models import Compound
-        return list(Compound.objects.filter(is_active=True).values_list('id', flat=True))
-    
-    # For authority users, return only assigned compounds
-    return list(CompoundAssignment.objects.filter(
-        user=user, 
-        is_active=True
-    ).values_list('compound_id', flat=True))
+        camp = user_camp(user)
+        if not camp:
+            return []
+        return list(
+            Compound.objects.filter(is_active=True, camp=camp).values_list('id', flat=True)
+        )
+
+    # Authority: assigned compounds, still fenced to their site when set
+    qs = CompoundAssignment.objects.filter(user=user, is_active=True)
+    camp = user_camp(user)
+    if camp:
+        qs = qs.filter(compound__camp=camp)
+    return list(qs.values_list('compound_id', flat=True))
 
 
 def log_audit_event(request, action, object_ref=None, details=None, status_code=200):
@@ -184,50 +196,46 @@ def log_audit_event(request, action, object_ref=None, details=None, status_code=
 # User Management Views
 @login_required
 def user_list(request):
-    """List all users with role-based filtering and RBAC enforcement."""
-    # Admin, Supervisor, and Manager can view users
+    """List users scoped to the actor's site (platform sees all)."""
     if not check_permission(request, ['admin', 'supervisor', 'manager']):
         return redirect('accounts:login')
-    
-    # Get all users for statistics (before filtering)
+
     all_users = User.objects.select_related('profile').all()
-    
-    # Calculate statistics
+    if not is_platform_user(request.user):
+        camp = user_camp(request.user)
+        if camp:
+            all_users = all_users.filter(profile__camp=camp)
+        else:
+            all_users = all_users.none()
+
     total_users = all_users.count()
     active_users = all_users.filter(is_active=True, profile__is_active=True).count()
-    
-    # Get last user created
+
     last_user_created = all_users.order_by('-date_joined').first()
     last_user_created_info = {
         'username': last_user_created.username if last_user_created else 'N/A',
         'date': last_user_created.date_joined.strftime('%Y-%m-%d %H:%M') if last_user_created else 'Never'
     }
-    
-    # Count users who logged in today
-    from datetime import datetime, timedelta
+
     today = timezone.now().date()
     online_today = all_users.filter(last_login__date=today).count()
-    
-    # Get last password change from audit logs
+
     from audit.models import AuditLog
     last_password_change_log = AuditLog.objects.filter(
         action='PASSWORD_RESET'
     ).order_by('-timestamp').first()
-    
+
     last_password_change = {
         'user': last_password_change_log.details.get('username', 'N/A') if last_password_change_log else 'N/A',
         'date': last_password_change_log.timestamp.strftime('%Y-%m-%d %H:%M') if last_password_change_log else 'Never'
     }
-    
-    # Apply filters for the actual user list
+
     users = all_users.order_by('username')
-    
-    # Filter by role if specified
+
     role_filter = request.GET.get('role')
     if role_filter:
         users = users.filter(profile__role=role_filter)
-    
-    # Search functionality
+
     search_query = request.GET.get('search')
     if search_query:
         users = users.filter(
@@ -236,12 +244,11 @@ def user_list(request):
             Q(last_name__icontains=search_query) |
             Q(email__icontains=search_query)
         )
-    
-    # Pagination
+
     paginator = Paginator(users, 20)
     page_number = request.GET.get('page')
     users = paginator.get_page(page_number)
-    
+
     context = {
         'users': users,
         'role_choices': UserProfile.ROLE_CHOICES,
@@ -318,7 +325,11 @@ def user_update(request, profile_uuid):
     except UserProfile.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('accounts:user_list')
-    
+
+    if not user_in_scope(request.user, user):
+        messages.error(request, 'You do not have permission to manage this user.')
+        return redirect('accounts:user_list')
+
     if request.method == 'POST':
         form = UserUpdateForm(request.POST, instance=user, request=request)
         if form.is_valid():
@@ -358,7 +369,11 @@ def user_view(request, profile_uuid):
     except UserProfile.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('accounts:user_list')
-    
+
+    if not user_in_scope(request.user, user):
+        messages.error(request, 'You do not have permission to view this user.')
+        return redirect('accounts:user_list')
+
     # Log audit event
     log_audit_event(
         request, 
@@ -386,7 +401,11 @@ def user_disable(request, profile_uuid):
     except UserProfile.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('accounts:user_list')
-    
+
+    if not user_in_scope(request.user, user):
+        messages.error(request, 'You do not have permission to manage this user.')
+        return redirect('accounts:user_list')
+
     # Prevent disabling admin users
     if user.is_superuser or (hasattr(user, 'profile') and user.profile.role == 'admin'):
         messages.error(request, 'Cannot disable admin users.')
@@ -432,7 +451,11 @@ def user_enable(request, profile_uuid):
     except UserProfile.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('accounts:user_list')
-    
+
+    if not user_in_scope(request.user, user):
+        messages.error(request, 'You do not have permission to manage this user.')
+        return redirect('accounts:user_list')
+
     if request.method == 'POST':
         # Enable both user and profile
         if hasattr(user, 'profile'):
@@ -473,7 +496,11 @@ def user_delete(request, profile_uuid):
     except UserProfile.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('accounts:user_list')
-    
+
+    if not user_in_scope(request.user, user):
+        messages.error(request, 'You do not have permission to manage this user.')
+        return redirect('accounts:user_list')
+
     # Prevent deleting admin users
     if user.is_superuser or (hasattr(user, 'profile') and user.profile.role == 'admin'):
         messages.error(request, 'Cannot delete admin users.')
@@ -517,7 +544,11 @@ def password_reset(request, profile_uuid):
     except UserProfile.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('accounts:user_list')
-    
+
+    if not user_in_scope(request.user, user):
+        messages.error(request, 'You do not have permission to manage this user.')
+        return redirect('accounts:user_list')
+
     if request.method == 'POST':
         new_password = request.POST.get('new_password')
         confirm_password = request.POST.get('confirm_password')
@@ -558,13 +589,9 @@ def team_list(request):
         return redirect('accounts:login')
     
     teams = Team.objects.select_related('camp', 'team_leader').prefetch_related('members').all()
-    
-    # Filter by camp if manager
-    user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp:
-            teams = teams.filter(camp=camp)
+
+    # Restrict to the actor's site (platform sees all)
+    teams = filter_by_camp(teams, request.user)
     
     # Search functionality
     search_query = request.GET.get('search')
@@ -586,15 +613,14 @@ def team_list(request):
     teams = paginator.get_page(page_number)
     
     # Calculate statistics
-    all_teams = Team.objects.all()
+    all_teams = filter_by_camp(Team.objects.all(), request.user)
     total_teams = all_teams.count()
     active_teams = all_teams.filter(is_active=True).count()
     total_members = sum(team.employee_count for team in all_teams)
     avg_team_size = total_members / total_teams if total_teams > 0 else 0
     
     # Get available camps for filter
-    from locations.models import Camp
-    camps = Camp.objects.filter(is_active=True)
+    camps = scoped_camps(request.user)
     
     context = {
         'teams': teams,
@@ -617,6 +643,7 @@ def team_view(request, team_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
+    get_scoped_object(Team, request.user, team_id)
     try:
         team = Team.objects.select_related(
             'camp', 'team_leader', 'team_leader__profile', 'shift'
@@ -749,7 +776,7 @@ def team_update(request, team_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    team = get_object_or_404(Team, id=team_id)
+    team = get_scoped_object(Team, request.user, team_id)
     
     if request.method == 'POST':
         form = TeamUpdateForm(request.POST, instance=team, request=request)
@@ -787,7 +814,7 @@ def team_delete(request, team_id):
     if not check_permission(request, ['admin']):
         return redirect('accounts:login')
     
-    team = get_object_or_404(Team, id=team_id)
+    team = get_scoped_object(Team, request.user, team_id)
     
     if request.method == 'POST':
         team.is_active = False
@@ -820,7 +847,7 @@ def team_activate(request, team_id):
     if not check_permission(request, ['admin']):
         return redirect('accounts:login')
     
-    team = get_object_or_404(Team, id=team_id)
+    team = get_scoped_object(Team, request.user, team_id)
     
     if request.method == 'POST':
         team.is_active = True
@@ -873,11 +900,7 @@ def route_list(request):
         .order_by('collection_weekday', 'assigned_team__name', 'name')
     )
 
-    user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp:
-            zones = zones.filter(camp=camp)
+    zones = filter_by_camp(zones, request.user)
 
     day_filter = request.GET.get('day', '').strip()
     team_filter = request.GET.get('team', '').strip()
@@ -911,9 +934,7 @@ def route_list(request):
             | Q(assigned_team__name__icontains=search)
         )
 
-    teams_qs = Team.objects.filter(is_active=True).order_by('name')
-    if user_role == 'manager' and hasattr(request.user, 'profile') and request.user.profile.camp:
-        teams_qs = teams_qs.filter(camp=request.user.profile.camp)
+    teams_qs = filter_by_camp(Team.objects.filter(is_active=True).order_by('name'), request.user)
 
     zone_list = list(zones)
     scheduled = [z for z in zone_list if z.assigned_team_id and z.collection_weekday is not None]
@@ -946,19 +967,12 @@ def route_view(request, route_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
+    get_scoped_object(Route, request.user, route_id, camp_lookups=['team__camp'])
     try:
         route = Route.objects.select_related('team', 'team__camp', 'team__shift').prefetch_related('team__members', 'compounds__camp').get(id=route_id)
     except Route.DoesNotExist:
         messages.error(request, 'Route not found.')
         return redirect('accounts:route_list')
-    
-    # Check camp access for managers
-    user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp and route.team.camp != camp:
-            messages.error(request, 'You do not have permission to view this route.')
-            return redirect('accounts:route_list')
     
     # Log audit event
     compound_names = ", ".join([c.name for c in route.compounds.all()])
@@ -1018,19 +1032,7 @@ def route_update(request, route_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    try:
-        route = Route.objects.get(id=route_id)
-    except Route.DoesNotExist:
-        messages.error(request, 'Route not found.')
-        return redirect('accounts:route_list')
-    
-    # Check camp access for managers
-    user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp and route.team.camp != camp:
-            messages.error(request, 'You do not have permission to edit this route.')
-            return redirect('accounts:route_list')
+    route = get_scoped_object(Route, request.user, route_id, camp_lookups=['team__camp'])
     
     if request.method == 'POST':
         form = RouteUpdateForm(request.POST, instance=route, request=request)
@@ -1066,19 +1068,7 @@ def route_deactivate(request, route_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    try:
-        route = Route.objects.get(id=route_id)
-    except Route.DoesNotExist:
-        messages.error(request, 'Route not found.')
-        return redirect('accounts:route_list')
-    
-    # Check camp access for managers
-    user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp and route.team.camp != camp:
-            messages.error(request, 'You do not have permission to modify this route.')
-            return redirect('accounts:route_list')
+    route = get_scoped_object(Route, request.user, route_id, camp_lookups=['team__camp'])
     
     if request.method == 'POST':
         route.is_active = False
@@ -1110,19 +1100,7 @@ def route_activate(request, route_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    try:
-        route = Route.objects.get(id=route_id)
-    except Route.DoesNotExist:
-        messages.error(request, 'Route not found.')
-        return redirect('accounts:route_list')
-    
-    # Check camp access for managers
-    user_role = get_user_role(request)
-    if user_role == 'manager' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp and route.team.camp != camp:
-            messages.error(request, 'You do not have permission to modify this route.')
-            return redirect('accounts:route_list')
+    route = get_scoped_object(Route, request.user, route_id, camp_lookups=['team__camp'])
     
     if request.method == 'POST':
         route.is_active = True
@@ -1155,14 +1133,21 @@ def plan_config(request):
         return redirect('accounts:login')
 
     # Resolve the Site (Camp) in scope.
-    camp = None
-    if hasattr(request.user, 'profile') and request.user.profile.camp:
-        camp = request.user.profile.camp
-    if camp is None:
-        camp = Camp.objects.filter(is_active=True).first()
-    if camp is None:
-        messages.error(request, 'No active Site found.')
-        return redirect('accounts:route_list')
+    if is_platform_user(request.user):
+        camp = None
+        camp_id = request.GET.get('camp')
+        if camp_id:
+            camp = scoped_camps(request.user).filter(id=camp_id).first()
+        if camp is None:
+            camp = scoped_camps(request.user).first()
+        if camp is None:
+            messages.error(request, 'No active Site found.')
+            return redirect('accounts:route_list')
+    else:
+        camp = user_camp(request.user)
+        if camp is None:
+            messages.error(request, 'Your account is not assigned to a Site.')
+            return redirect('accounts:route_list')
 
     config, _ = PlanGenerationConfig.objects.get_or_create(camp=camp)
 
@@ -1190,11 +1175,21 @@ def generate_tasks_now(request):
     from datetime import timedelta
     from .task_generation import generate_tasks_from_routes
 
-    camp = None
-    if hasattr(request.user, 'profile') and request.user.profile.camp:
-        camp = request.user.profile.camp
-    if camp is None:
-        camp = Camp.objects.filter(is_active=True).first()
+    if is_platform_user(request.user):
+        camp = None
+        camp_id = request.GET.get('camp')
+        if camp_id:
+            camp = scoped_camps(request.user).filter(id=camp_id).first()
+        if camp is None:
+            camp = scoped_camps(request.user).first()
+        if camp is None:
+            messages.error(request, 'No active Site found.')
+            return redirect('accounts:plan_config')
+    else:
+        camp = user_camp(request.user)
+        if camp is None:
+            messages.error(request, 'Your account is not assigned to a Site.')
+            return redirect('accounts:plan_config')
 
     config, _ = PlanGenerationConfig.objects.get_or_create(camp=camp)
     start = timezone.localdate()
@@ -1223,6 +1218,7 @@ def compound_assignment_list(request):
         return redirect('accounts:login')
     
     assignments = CompoundAssignment.objects.select_related('user', 'compound', 'assigned_by').all()
+    assignments = filter_by_camp(assignments, request.user, camp_lookup='compound__camp')
     
     context = {'assignments': assignments}
     return render(request, 'accounts/compound_assignment_list.html', context)
@@ -1258,12 +1254,9 @@ def shift_list(request):
         return redirect('accounts:login')
     
     shifts = Shift.objects.select_related('camp').all()
-    
-    # Filter by camp for managers
-    if request.user.profile.role == 'manager':
-        camp = request.user.profile.camp
-        if camp:
-            shifts = shifts.filter(camp=camp)
+
+    # Restrict to the actor's site (platform sees all)
+    shifts = filter_by_camp(shifts, request.user)
     
     # Search functionality
     search_query = request.GET.get('search', '')
@@ -1307,8 +1300,9 @@ def shift_list(request):
     shifts = paginator.get_page(page_number)
     
     # Statistics
-    total_shifts = Shift.objects.count()
-    active_shifts = Shift.objects.filter(is_active=True).count()
+    scoped_shifts = filter_by_camp(Shift.objects.all(), request.user)
+    total_shifts = scoped_shifts.count()
+    active_shifts = scoped_shifts.filter(is_active=True).count()
     
     context = {
         'shifts': shifts,
@@ -1326,14 +1320,7 @@ def shift_view(request, shift_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    shift = get_object_or_404(Shift, id=shift_id)
-    
-    # Check camp access for managers
-    if request.user.profile.role == 'manager':
-        camp = request.user.profile.camp
-        if camp and shift.camp != camp:
-            messages.error(request, 'You do not have permission to view this shift.')
-            return redirect('accounts:shift_list')
+    shift = get_scoped_object(Shift, request.user, shift_id, camp_lookups=['camp'])
     
     # Calculate duration for display
     if shift.start_time and shift.end_time:
@@ -1403,14 +1390,7 @@ def shift_update(request, shift_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    shift = get_object_or_404(Shift, id=shift_id)
-    
-    # Check camp access for managers
-    if request.user.profile.role == 'manager':
-        camp = request.user.profile.camp
-        if camp and shift.camp != camp:
-            messages.error(request, 'You do not have permission to edit this shift.')
-            return redirect('accounts:shift_list')
+    shift = get_scoped_object(Shift, request.user, shift_id, camp_lookups=['camp'])
     
     if request.method == 'POST':
         form = ShiftUpdateForm(request.POST, instance=shift, request=request)
@@ -1440,14 +1420,7 @@ def shift_deactivate(request, shift_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    shift = get_object_or_404(Shift, id=shift_id)
-    
-    # Check camp access for managers
-    if request.user.profile.role == 'manager':
-        camp = request.user.profile.camp
-        if camp and shift.camp != camp:
-            messages.error(request, 'You do not have permission to deactivate this shift.')
-            return redirect('accounts:shift_list')
+    shift = get_scoped_object(Shift, request.user, shift_id, camp_lookups=['camp'])
     
     if request.method == 'POST':
         shift.is_active = False
@@ -1474,14 +1447,7 @@ def shift_activate(request, shift_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    shift = get_object_or_404(Shift, id=shift_id)
-    
-    # Check camp access for managers
-    if request.user.profile.role == 'manager':
-        camp = request.user.profile.camp
-        if camp and shift.camp != camp:
-            messages.error(request, 'You do not have permission to activate this shift.')
-            return redirect('accounts:shift_list')
+    shift = get_scoped_object(Shift, request.user, shift_id, camp_lookups=['camp'])
     
     if request.method == 'POST':
         shift.is_active = True

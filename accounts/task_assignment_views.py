@@ -16,6 +16,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .views import check_permission, get_user_role, log_audit_event
+from .scoping import scoped_camps, is_platform_user
 from locations.models import Camp, Compound, Room
 from .models import Team
 from .task_generation import DailyCleaningTask, generate_tasks_from_zones
@@ -29,12 +30,7 @@ def task_assignment_dashboard(request):
         return redirect('dashboard:dashboard')
 
     user_role = get_user_role(request)
-    user_camp = request.user.profile.camp if hasattr(request.user, 'profile') else None
-
-    if user_role == 'admin':
-        camps = Camp.objects.filter(is_active=True).order_by('name')
-    else:
-        camps = Camp.objects.filter(is_active=True, id=user_camp.id) if user_camp else Camp.objects.none()
+    camps = scoped_camps(request.user)
 
     tasks = (Room.objects.filter(space_type='dumpster', camp__in=camps)
              .select_related('camp', 'compound', 'compound__assigned_team',
@@ -145,11 +141,7 @@ def manage_recurring_tasks(request):
     horizon_days = max(1, min(horizon_days, 90))
 
     user_role = get_user_role(request)
-    user_camp = request.user.profile.camp if hasattr(request.user, 'profile') else None
-    if user_role == 'admin':
-        camps = list(Camp.objects.filter(is_active=True))
-    else:
-        camps = [user_camp] if user_camp else []
+    camps = list(scoped_camps(request.user))
 
     if not camps:
         messages.error(request, 'No Site in scope.')

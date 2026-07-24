@@ -19,6 +19,9 @@ from django.utils import timezone
 from accounts.views import check_permission
 from accounts.models import Team, Route
 from accounts.task_generation import DailyCleaningTask
+from accounts.scoping import (
+    is_platform_user, user_camp, scoped_camps as scope_camps_for_user,
+)
 from locations.models import Camp, Room, OperationsConfig
 
 from .map_views import center_from_rooms, build_map_features, map_counts
@@ -51,12 +54,24 @@ def _parse_polyline(geojson_str):
 
 
 def _scoped_camps(request):
-    profile = getattr(request.user, "profile", None)
-    role = getattr(profile, "role", None)
-    if role == "admin":
-        return Camp.objects.filter(is_active=True)
-    camp = getattr(profile, "camp", None)
-    return Camp.objects.filter(is_active=True, id=camp.id) if camp else Camp.objects.none()
+    """Camps visible to this user. Platform may narrow via ?camp=."""
+    camps = scope_camps_for_user(request.user)
+    camp_param = request.GET.get("camp")
+    if camp_param and is_platform_user(request.user):
+        narrowed = camps.filter(id=camp_param)
+        if narrowed.exists():
+            return narrowed
+    return camps
+
+
+def _display_site(request):
+    """Single Camp for TV/dashboard title, or None when showing all sites."""
+    camps = list(_scoped_camps(request))
+    if len(camps) == 1:
+        return camps[0]
+    if not is_platform_user(request.user):
+        return user_camp(request.user)
+    return None
 
 
 def _scoped_center(request):
@@ -71,8 +86,13 @@ def _scoped_center(request):
 def operations_dashboard(request):
     if not check_permission(request, _OPS_ROLES):
         return redirect("accounts:login")
+    site = _display_site(request)
     return render(request, "dashboard/operations_dashboard.html", {
         "center": _scoped_center(request),
+        "site": site,
+        "site_name": site.name if site else "All Sites",
+        "is_platform": is_platform_user(request.user),
+        "camps": scope_camps_for_user(request.user) if is_platform_user(request.user) else [],
     })
 
 
@@ -80,8 +100,13 @@ def operations_dashboard(request):
 def operations_tv(request):
     if not check_permission(request, _OPS_ROLES):
         return redirect("accounts:login")
+    site = _display_site(request)
     return render(request, "dashboard/operations_tv.html", {
         "center": _scoped_center(request),
+        "site": site,
+        "site_name": site.name if site else "All Sites",
+        "is_platform": is_platform_user(request.user),
+        "camps": scope_camps_for_user(request.user) if is_platform_user(request.user) else [],
     })
 
 

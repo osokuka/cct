@@ -26,6 +26,7 @@ from accounts.models import Team, Shift, Route
 from scans.models import ScanEvent
 from audit.models import AuditLog
 from accounts.views import get_authority_compound_ids, get_user_role, check_permission
+from accounts.scoping import is_platform_user, user_camp, scoped_camps, filter_by_camp, get_scoped_object
 from accounts.barcode_service import BarcodeService
 
 
@@ -64,17 +65,12 @@ def rooms_table(request):
     user_role = get_user_role(request)
     user_profile = request.user.profile if hasattr(request.user, 'profile') else None
     
-    # Scoping per RBAC
+    # Scoping per RBAC + site isolation
     if user_role == 'authority':
-        # Authority only sees assigned compounds
         assigned_compound_ids = get_authority_compound_ids(request.user)
         rooms_qs = Room.objects.filter(compound_id__in=assigned_compound_ids)
-    elif user_role in ['manager', 'supervisor'] and user_profile and user_profile.camp:
-        # Managers/Supervisors scoped to camp
-        rooms_qs = Room.objects.filter(camp=user_profile.camp)
     else:
-        # Admins see everything
-        rooms_qs = Room.objects.all()
+        rooms_qs = filter_by_camp(Room.objects.all(), request.user)
 
     rooms_qs = rooms_qs.select_related('camp', 'compound', 'building', 'floor').order_by('camp__name', 'compound__name', 'building__name', 'floor__name', 'room_code')
 
@@ -88,7 +84,7 @@ def rooms_table(request):
         # 1. Inline edit
         if action == 'inline_edit':
             room_id = request.POST.get('room_id')
-            room = get_object_or_404(Room, id=room_id)
+            room = get_scoped_object(Room, request.user, room_id)
             
             try:
                 with transaction.atomic():
@@ -273,28 +269,32 @@ def completed_tasks_table(request):
 
     user_role = get_user_role(request)
     
-    # Scoping per RBAC - completed tasks only
+    # Scoping per RBAC + site isolation - completed tasks only
     completed_tasks_qs = DailyCleaningTask.objects.filter(state='done')
 
     if user_role == 'authority':
         assigned_compound_ids = get_authority_compound_ids(request.user)
         completed_tasks_qs = completed_tasks_qs.filter(room__compound_id__in=assigned_compound_ids)
-    elif user_role in ['manager', 'supervisor']:
-        user_profile = request.user.profile if hasattr(request.user, 'profile') else None
-        if user_profile and user_profile.camp:
-            completed_tasks_qs = completed_tasks_qs.filter(room__camp=user_profile.camp)
+    else:
+        completed_tasks_qs = filter_by_camp(
+            completed_tasks_qs, request.user, camp_lookup='room__camp'
+        )
 
     completed_tasks_qs = completed_tasks_qs.select_related('room', 'room__camp', 'room__compound', 'room__building', 'room__floor', 'assigned_to_team', 'assigned_to_user').order_by('-completed_at')
 
-    # Handle Admin deletion action (audit logged)
+    # Handle Admin deletion action (audit logged) — site admin or platform
     if request.method == 'POST':
-        if user_role != 'admin':
+        if user_role != 'admin' and not is_platform_user(request.user):
             return JsonResponse({'success': False, 'error': 'Only Admins can delete completed tasks.'}, status=403)
             
         action = request.POST.get('action')
         if action == 'delete_completed':
             task_id = request.POST.get('task_id')
-            task = get_object_or_404(DailyCleaningTask, id=task_id, state='done')
+            task = get_scoped_object(
+                DailyCleaningTask, request.user, task_id, camp_lookups=['room__camp']
+            )
+            if task.state != 'done':
+                return JsonResponse({'success': False, 'error': 'Task not found.'}, status=404)
             
             # Save task info for logs
             task_info = {

@@ -22,6 +22,9 @@ from .forms import (
 )
 from .tasks import start_zone_population
 from . import geo
+from accounts.scoping import (
+    is_platform_user, user_camp, scoped_camps, filter_by_camp, get_scoped_object,
+)
 
 
 def get_user_role(request):
@@ -92,19 +95,18 @@ def location_list(request):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    # Get all data for filtering and modals
-    camps = Camp.objects.all().order_by('name')
-    compounds = Compound.objects.select_related('camp').all().order_by('camp__name', 'name')
-    rooms = Room.objects.select_related('camp', 'compound', 'building', 'floor').all().order_by('camp__name', 'compound__name', 'building__name', 'floor__name', 'room_code')
-    
-    # Managers can view all locations (no filtering by camp)
-    # Only Authority users are restricted to their assigned camp
+    # Get all data for filtering and modals — scoped to the user's site.
+    # Platform users see every site; everyone else (including role=admin) is
+    # locked to their own UserProfile.camp.
+    camps = scoped_camps(request.user, active_only=False)
+    compounds = filter_by_camp(
+        Compound.objects.select_related('camp').all(), request.user
+    ).order_by('camp__name', 'name')
+    rooms = filter_by_camp(
+        Room.objects.select_related('camp', 'compound', 'building', 'floor').all(), request.user
+    ).order_by('camp__name', 'compound__name', 'building__name', 'floor__name', 'room_code')
+
     user_role = get_user_role(request)
-    if user_role == 'authority' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp:
-            compounds = compounds.filter(camp=camp)
-            rooms = rooms.filter(camp=camp)
     
     # Apply room filters
     search_query = request.GET.get('search')
@@ -138,15 +140,11 @@ def location_list(request):
         elif status_filter == 'inactive':
             rooms = rooms.filter(is_active=False)
     
-    # Get all buildings for modals
-    buildings = Building.objects.select_related('compound', 'compound__camp').all().order_by('compound__camp__name', 'compound__name', 'name')
-    
-    # Managers can view all buildings (no filtering by camp)
-    # Only Authority users are restricted to their assigned camp
-    if user_role == 'authority' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp:
-            buildings = buildings.filter(compound__camp=camp)
+    # Get all buildings for modals — scoped to the user's site.
+    buildings = filter_by_camp(
+        Building.objects.select_related('compound', 'compound__camp').all(),
+        request.user, camp_lookup='compound__camp',
+    ).order_by('compound__camp__name', 'compound__name', 'name')
     
     context = {
         'camps': camps,
@@ -168,7 +166,7 @@ def camp_list(request):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
 
-    camps = Camp.objects.all().order_by('name')
+    camps = scoped_camps(request.user, active_only=False)
 
     search_query = request.GET.get('search')
     status_filter = request.GET.get('status_filter')
@@ -188,19 +186,23 @@ def camp_list(request):
             'street_count': Building.objects.filter(compound__camp=camp, is_active=True).count(),
         })
 
+    platform = is_platform_user(request.user)
     context = {
         'sites': sites,
         'search_query': search_query or '',
         'status_filter': status_filter or '',
+        'is_platform': platform,
+        'can_create_site': platform,
     }
     return render(request, 'locations/site_list.html', context)
 
 
 @login_required
 def site_create(request):
-    """Create a new Site (city)."""
-    if not check_permission(request, ['admin', 'manager']):
-        return redirect('accounts:login')
+    """Create a new Site (city). Platform (superuser) only."""
+    if not is_platform_user(request.user):
+        messages.error(request, "Only platform administrators can create sites.")
+        return redirect('locations:camp_list')
 
     if request.method == 'POST':
         form = SiteForm(request.POST)
@@ -217,11 +219,11 @@ def site_create(request):
 
 @login_required
 def camp_edit(request, camp_id):
-    """Edit a Site (city)."""
+    """Edit a Site (city). Platform, or the site admin whose camp matches."""
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
 
-    camp = get_object_or_404(Camp, id=camp_id)
+    camp = get_object_or_404(scoped_camps(request.user, active_only=False), id=camp_id)
     if request.method == 'POST':
         form = SiteForm(request.POST, instance=camp)
         if form.is_valid():
@@ -238,8 +240,9 @@ def camp_edit(request, camp_id):
 
 @login_required
 def site_delete(request, camp_id):
-    """Delete a Site (city) and its zones/streets."""
-    if not check_permission(request, ['admin', 'manager']):
+    """Delete a Site (city) and its zones/streets. Platform (superuser) only."""
+    if not is_platform_user(request.user):
+        messages.error(request, "Only platform administrators can delete sites.")
         return redirect('locations:camp_list')
 
     camp = get_object_or_404(Camp, id=camp_id)
@@ -261,10 +264,10 @@ def camp_breakdown(request, camp_id):
     """Get camp breakdown data for AJAX requests."""
     if not check_permission(request, ['admin', 'manager']):
         return JsonResponse({'error': 'Permission denied'}, status=403)
-    
+
+    camp = get_object_or_404(scoped_camps(request.user, active_only=False), id=camp_id)
+
     try:
-        camp = get_object_or_404(Camp, id=camp_id)
-        
         # Get compounds for this camp
         compounds = Compound.objects.filter(camp=camp).select_related('camp')
         
@@ -368,13 +371,9 @@ def compound_list(request):
     if not check_permission(request, ['admin', 'manager', 'authority']):
         return redirect('accounts:login')
 
-    compounds = Compound.objects.select_related('camp', 'assigned_team').all().order_by('camp__name', 'name')
-
-    user_role = get_user_role(request)
-    if user_role == 'authority' and hasattr(request.user, 'profile'):
-        camp = request.user.profile.camp
-        if camp:
-            compounds = compounds.filter(camp=camp)
+    compounds = filter_by_camp(
+        Compound.objects.select_related('camp', 'assigned_team').all(), request.user
+    ).order_by('camp__name', 'name')
 
     search_query = request.GET.get('search')
     camp_filter = request.GET.get('camp_filter')
@@ -393,7 +392,7 @@ def compound_list(request):
 
     context = {
         'zones': compounds,
-        'camps': Camp.objects.all().order_by('name'),
+        'camps': scoped_camps(request.user, active_only=False),
         'search_query': search_query or '',
         'camp_filter': camp_filter or '',
         'status_filter': status_filter or '',
@@ -425,11 +424,9 @@ def zone_create(request):
     else:
         form = ZoneForm(request=request)
 
-    default_camp = None
-    if hasattr(request.user, 'profile') and request.user.profile.camp:
-        default_camp = request.user.profile.camp
+    default_camp = user_camp(request.user)
     if default_camp is None:
-        default_camp = Camp.objects.filter(is_active=True).order_by('name').first()
+        default_camp = scoped_camps(request.user).first()
 
     return render(request, 'locations/zone_form.html', {
         'form': form, 'title': 'Add Zone',
@@ -442,10 +439,10 @@ def compound_breakdown(request, compound_id):
     """Get compound breakdown data for AJAX requests."""
     if not check_permission(request, ['admin', 'manager', 'authority']):
         return JsonResponse({'error': 'Permission denied'}, status=403)
-    
+
+    compound = get_scoped_object(Compound, request.user, compound_id)
+
     try:
-        compound = get_object_or_404(Compound, id=compound_id)
-        
         # Get buildings for this compound
         buildings = Building.objects.filter(compound=compound).select_related('compound')
         
@@ -518,7 +515,7 @@ def compound_view(request, compound_id):
     if not check_permission(request, ['admin', 'manager', 'authority']):
         return redirect('accounts:login')
 
-    compound = get_object_or_404(Compound.objects.select_related('camp'), id=compound_id)
+    compound = get_scoped_object(Compound.objects.select_related('camp'), request.user, compound_id)
 
     ring = compound.boundary_ring
 
@@ -610,7 +607,7 @@ def compound_edit(request, compound_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
 
-    compound = get_object_or_404(Compound, id=compound_id)
+    compound = get_scoped_object(Compound, request.user, compound_id)
     if request.method == 'POST':
         form = ZoneForm(request.POST, instance=compound, request=request)
         if form.is_valid():
@@ -641,7 +638,7 @@ def zone_delete(request, compound_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
 
-    compound = get_object_or_404(Compound, id=compound_id)
+    compound = get_scoped_object(Compound, request.user, compound_id)
     if request.method == 'POST':
         name = compound.name
         compound.delete()
@@ -661,7 +658,7 @@ def zone_populate(request, compound_id):
     if not check_permission(request, ['admin', 'manager']):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
 
-    compound = get_object_or_404(Compound, id=compound_id)
+    compound = get_scoped_object(Compound, request.user, compound_id)
     if not compound.has_boundary:
         msg = 'Draw the zone boundary before populating streets.'
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -691,7 +688,7 @@ def zone_populate_status(request, compound_id):
     if not check_permission(request, ['admin', 'manager', 'authority']):
         return JsonResponse({'error': 'Permission denied'}, status=403)
 
-    compound = get_object_or_404(Compound, id=compound_id)
+    compound = get_scoped_object(Compound, request.user, compound_id)
     return JsonResponse({
         'status': compound.osm_status,
         'message': compound.osm_message or '',
@@ -709,7 +706,7 @@ def zone_measure_area(request, compound_id):
     if request.method != 'POST':
         return redirect('locations:compound_view', compound_id=compound_id)
 
-    compound = get_object_or_404(Compound, id=compound_id)
+    compound = get_scoped_object(Compound, request.user, compound_id)
     area = compound.compute_area_sqm()
     if area is None:
         msg = 'Draw the zone boundary first so the area can be measured.'
@@ -825,7 +822,7 @@ def dumpster_create(request):
         if form.is_valid():
             lat = form.cleaned_data['latitude']
             lng = form.cleaned_data['longitude']
-            zone = geo.find_zone_for_point(lat, lng)
+            zone = geo.find_zone_for_point(lat, lng, camp=user_camp(request.user))
             if zone is None:
                 err = ("This GPS point is not inside any zone boundary. "
                        "Pick a point within a drawn zone.")
@@ -875,21 +872,27 @@ def dumpster_create(request):
     else:
         form = DumpsterForm(request=request)
 
-    # Zone boundaries for the click-map + client-side preview.
+    # Zone boundaries for the click-map + client-side preview (scoped to the user's site).
     zones_payload = []
-    zqs = Compound.objects.filter(is_active=True).exclude(geo_polygon__isnull=True).exclude(geo_polygon="").select_related('camp')
+    zqs = filter_by_camp(
+        Compound.objects.filter(is_active=True).exclude(geo_polygon__isnull=True).exclude(geo_polygon="").select_related('camp'),
+        request.user,
+    )
     for z in zqs:
         ring = z.boundary_ring
         if ring:
             zones_payload.append({'id': str(z.id), 'name': z.name, 'site': z.camp.name, 'ring': ring})
 
-    # Existing dumpsters so they show on the map right away.
+    # Existing dumpsters so they show on the map right away (scoped to the user's site).
     dumpsters_payload = [
         _dumpster_marker(d)
-        for d in Room.objects.filter(
-            space_type='dumpster', is_active=True,
-            latitude__isnull=False, longitude__isnull=False,
-        ).select_related('compound', 'building')
+        for d in filter_by_camp(
+            Room.objects.filter(
+                space_type='dumpster', is_active=True,
+                latitude__isnull=False, longitude__isnull=False,
+            ).select_related('compound', 'building'),
+            request.user,
+        )
     ]
 
     return render(request, 'locations/dumpster_form.html', {
@@ -912,7 +915,7 @@ def detect_zone(request):
     except (TypeError, ValueError):
         return JsonResponse({'error': 'Invalid coordinates'}, status=400)
 
-    zone = geo.find_zone_for_point(lat, lng)
+    zone = geo.find_zone_for_point(lat, lng, camp=user_camp(request.user))
     if zone is None:
         return JsonResponse({'found': False})
     building, dist = geo.nearest_street(zone, lat, lng)
@@ -934,7 +937,7 @@ def building_view(request, building_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    building = get_object_or_404(Building, id=building_id)
+    building = get_scoped_object(Building, request.user, building_id)
     
     # Get rooms for this building
     rooms = Room.objects.filter(building=building).select_related('floor', 'compound', 'camp')
@@ -973,10 +976,10 @@ def building_edit(request, building_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
-    building = get_object_or_404(Building, id=building_id)
+    building = get_scoped_object(Building, request.user, building_id)
     
     if request.method == 'POST':
-        form = BuildingEditForm(request.POST, instance=building)
+        form = BuildingEditForm(request.POST, instance=building, request=request)
         if form.is_valid():
             form.save()
             messages.success(request, f'Building "{building.name}" updated successfully!')
@@ -984,7 +987,7 @@ def building_edit(request, building_id):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = BuildingEditForm(instance=building)
+        form = BuildingEditForm(instance=building, request=request)
     
     context = {
         'form': form,
@@ -1001,7 +1004,7 @@ def floor_view(request, floor_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('accounts:login')
     
-    floor = get_object_or_404(Floor, id=floor_id)
+    floor = get_scoped_object(Floor, request.user, floor_id)
     
     # Get rooms for this floor
     rooms = Room.objects.filter(floor=floor).select_related('building', 'compound', 'camp')
@@ -1028,10 +1031,10 @@ def floor_edit(request, floor_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
-    floor = get_object_or_404(Floor, id=floor_id)
+    floor = get_scoped_object(Floor, request.user, floor_id)
     
     if request.method == 'POST':
-        form = FloorEditForm(request.POST, instance=floor)
+        form = FloorEditForm(request.POST, instance=floor, request=request)
         if form.is_valid():
             form.save()
             messages.success(request, f'Floor "{floor.name}" updated successfully!')
@@ -1039,7 +1042,7 @@ def floor_edit(request, floor_id):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = FloorEditForm(instance=floor)
+        form = FloorEditForm(instance=floor, request=request)
     
     context = {
         'form': form,
@@ -1057,7 +1060,7 @@ def compound_create(request):
         return redirect('accounts:login')
     
     if request.method == 'POST':
-        form = CompoundCreateForm(request.POST)
+        form = CompoundCreateForm(request.POST, request=request)
         if form.is_valid():
             compound = form.save()
             messages.success(request, f'Compound "{compound.name}" created successfully.')
@@ -1065,7 +1068,7 @@ def compound_create(request):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = CompoundCreateForm()
+        form = CompoundCreateForm(request=request)
     
     return render(request, 'locations/location_list.html', {'form': form})
 
@@ -1079,7 +1082,7 @@ def building_create(request):
         return redirect('accounts:login')
     
     if request.method == 'POST':
-        form = BuildingCreateForm(request.POST)
+        form = BuildingCreateForm(request.POST, request=request)
         if form.is_valid():
             building = form.save()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1100,7 +1103,7 @@ def building_create(request):
                 })
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = BuildingCreateForm()
+        form = BuildingCreateForm(request=request)
     
     return render(request, 'locations/location_list.html', {'form': form})
 
@@ -1114,7 +1117,7 @@ def floor_create(request):
         return redirect('accounts:login')
     
     if request.method == 'POST':
-        form = FloorCreateForm(request.POST)
+        form = FloorCreateForm(request.POST, request=request)
         if form.is_valid():
             floor = form.save()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1134,7 +1137,7 @@ def floor_create(request):
                 })
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = FloorCreateForm()
+        form = FloorCreateForm(request=request)
     
     return render(request, 'locations/location_list.html', {'form': form})
 
@@ -1158,10 +1161,18 @@ def room_create(request):
     
     context = {
         'form': form,
-        'camps': Camp.objects.all().order_by('name'),
-        'compounds': Compound.objects.select_related('camp').all().order_by('camp__name', 'name'),
-        'buildings': Building.objects.select_related('compound', 'compound__camp').all().order_by('compound__camp__name', 'compound__name', 'name'),
-        'floors': Floor.objects.select_related('building', 'building__compound', 'building__compound__camp').all().order_by('building__compound__camp__name', 'building__compound__name', 'building__name', 'name'),
+        'camps': scoped_camps(request.user, active_only=False),
+        'compounds': filter_by_camp(
+            Compound.objects.select_related('camp').all(), request.user
+        ).order_by('camp__name', 'name'),
+        'buildings': filter_by_camp(
+            Building.objects.select_related('compound', 'compound__camp').all(),
+            request.user, camp_lookup='compound__camp',
+        ).order_by('compound__camp__name', 'compound__name', 'name'),
+        'floors': filter_by_camp(
+            Floor.objects.select_related('building', 'building__compound', 'building__compound__camp').all(),
+            request.user, camp_lookup='building__compound__camp',
+        ).order_by('building__compound__camp__name', 'building__compound__name', 'building__name', 'name'),
     }
     
     return render(request, 'locations/room_create.html', context)
@@ -1173,7 +1184,7 @@ def room_update(request, room_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
-    room = get_object_or_404(Room, id=room_id)
+    room = get_scoped_object(Room, request.user, room_id)
     
     if request.method == 'POST':
         form = RoomEditForm(request.POST, instance=room, request=request)
@@ -1217,7 +1228,7 @@ def room_view(request, room_id):
     if not check_permission(request, ['admin', 'manager', 'supervisor']):
         return redirect('accounts:login')
     
-    room = get_object_or_404(Room, id=room_id)
+    room = get_scoped_object(Room, request.user, room_id)
     
     context = {
         'room': room,
@@ -1232,7 +1243,7 @@ def room_delete(request, room_id):
     if not check_permission(request, ['admin', 'manager']):
         return redirect('locations:compound_list')
     
-    room = get_object_or_404(Room, id=room_id)
+    room = get_scoped_object(Room, request.user, room_id)
     
     if request.method == 'POST':
         room_code = room.room_code
@@ -1244,37 +1255,46 @@ def room_delete(request, room_id):
     return render(request, 'locations/room_confirm_delete.html', context)
 
 
-# AJAX endpoints for cascading dropdowns
+# AJAX endpoints for cascading dropdowns (scoped to the caller's site)
+@login_required
 @require_http_methods(["GET"])
 def ajax_load_compounds(request):
     """Load compounds for a specific camp."""
     camp_id = request.GET.get('camp_id')
     if camp_id:
-        compounds = Compound.objects.filter(camp_id=camp_id).order_by('name')
+        compounds = filter_by_camp(
+            Compound.objects.filter(camp_id=camp_id), request.user
+        ).order_by('name')
         data = [{'id': compound.id, 'name': compound.name} for compound in compounds]
     else:
         data = []
     return JsonResponse(data, safe=False)
 
 
+@login_required
 @require_http_methods(["GET"])
 def ajax_load_buildings(request):
     """Load buildings for a specific compound."""
     compound_id = request.GET.get('compound_id')
     if compound_id:
-        buildings = Building.objects.filter(compound_id=compound_id).order_by('name')
+        buildings = filter_by_camp(
+            Building.objects.filter(compound_id=compound_id), request.user, camp_lookup='compound__camp'
+        ).order_by('name')
         data = [{'id': building.id, 'name': building.name, 'building_code': building.code} for building in buildings]
     else:
         data = []
     return JsonResponse(data, safe=False)
 
 
+@login_required
 @require_http_methods(["GET"])
 def ajax_load_floors(request):
     """Load floors for a specific building."""
     building_id = request.GET.get('building_id')
     if building_id:
-        floors = Floor.objects.filter(building_id=building_id).order_by('name')
+        floors = filter_by_camp(
+            Floor.objects.filter(building_id=building_id), request.user, camp_lookup='building__compound__camp'
+        ).order_by('name')
         data = [{'id': floor.id, 'name': floor.name} for floor in floors]
     else:
         data = []
